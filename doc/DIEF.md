@@ -34,8 +34,8 @@ Only the non-ground rectangles are to be specified. Each rectangle is described 
 ~~~yaml
 
 # Width and height of the die (mandatory attributes)
-width: 19,
-height: 20,
+width: 19
+height: 20
 # Non-ground rectangles: [x, y, width, height, region]
 rectangles: [
     [6, 10, 2, 20, 'BRAM'],
