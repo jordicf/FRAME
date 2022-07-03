@@ -1,4 +1,4 @@
-<img src="https://github.com/jordicf/FRAME/blob/master/doc/pict/Frame.png" alt="drawing" style="height: 35px;"/>
+<img src="pict/Frame.png" alt="FRAME" style="height: 35px;"/>
 
 # Floorplan Exchange Format (FPEF)
 **Author:** [Jordi Cortadella](https://www.cs.upc.edu/~jordicf)
@@ -13,7 +13,7 @@ aligned with the _x_ and _y_ axes, such as the one shown in the figure.
 
 <figure>
 <p style="text-align:center">
-<img src="https://www.cs.upc.edu/~jordicf/Research/FRAME/doc/RectFP.png" alt="drawing" style="height: 150px;"/>
+<img src="pict/RectFP.png" alt="Rectilinear floorplan" style="height: 150px;"/>
 </p>
 <figcaption style="text-align:center"><b>Rectilinear floorplan</b></figcaption>
 </figure>
@@ -27,7 +27,7 @@ as shown in the figure below.
 
 <figure>
 <p style="text-align:center">
-<img src="https://www.cs.upc.edu/~jordicf/Research/FRAME/doc/FPprocess.png" alt="drawing" style="height: 180px;"/>
+<img src="pict/FPprocess.png" alt="Evolutive floorplanning" style="height: 180px;"/>
 </p>
 <figcaption style="text-align:center"><b>Evolutive floorplanning at different levels of abstraction</b></figcaption>
 </figure>
@@ -40,7 +40,7 @@ die, as shown in the following figure.
 
 <figure>
 <p style="text-align:center">
-<img src="https://www.cs.upc.edu/~jordicf/Research/FRAME/doc/FakeFixedBlocks.png" alt="drawing" style="height: 200px;"/>
+<img src="pict/FakeFixedBlocks.png" alt="Fake and fixed blocks" style="height: 200px;"/>
 </p>
 <figcaption style="text-align:center"><b>Die with blockages and fixed blocks</b></figcaption>
 </figure>
@@ -50,7 +50,7 @@ FPGA die with slices dedicated to BRAMs or DSPs, as shown in the figure below.
 
 <figure>
 <p style="text-align:center">
-<img src="https://www.cs.upc.edu/~jordicf/Research/FRAME/doc/FPGA_structure.png" alt="drawing" style="height: 200px;"/>
+<img src="pict/FPGA_structure.png" alt="Die with dedicated regions" style="height: 200px;"/>
 </p>
 <figcaption style="text-align:center"><b>Die with dedicated regions</b></figcaption>
 </figure>
@@ -121,7 +121,7 @@ A rectilinear block can be represented by a set of rectangles, as shown in the f
 
 <figure>
 <p style="text-align:center">
-<img src="https://www.cs.upc.edu/~jordicf/Research/FRAME/doc/BlockRectangles.png" alt="drawing" style="height: 150px;"/>
+<img src="pict/BlockRectangles.png" alt="Block as a set of rectangles" style="height: 150px;"/>
 </p>
 <figcaption style="text-align:center"><b>Rectilinear block represented as a set of rectangles</b></figcaption>
 </figure>
@@ -137,8 +137,8 @@ The attribute `rectangles` can be either specified just one rectangle (a list) o
 Here we can see an example with two blocks, each one with a different type of specification.
 <figure>
 <p style="text-align:center">
-<img src="https://www.cs.upc.edu/~jordicf/Research/FRAME/doc/TwoBlocksRectangles.png" 
-alt="drawing" style="height: 85px;"/>
+<img src="pict/TwoBlocksRectangles.png" 
+alt="Blocks represented as rectangles" style="height: 85px;"/>
 </p>
 <figcaption style="text-align:center"><b>Two blocks represented as rectangles</b></figcaption>
 </figure>
