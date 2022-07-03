@@ -1,19 +1,19 @@
 import unittest
 
-from block import Block
+from module import Module
 from geometry import Point, Shape, Rectangle
 
 
-class TestBlock(unittest.TestCase):
+class Testmodule(unittest.TestCase):
 
-    def test_bad_block(self):
+    def test_bad_module(self):
         # Bad constructors
-        self.assertRaises(AssertionError, Block, "my_block", unknown_keyword=3)
-        self.assertRaises(AssertionError, Block, "3_bad_name_4")
-        self.assertRaises(AssertionError, Block, "good_name", area="no_number")
+        self.assertRaises(AssertionError, Module, "my_module", unknown_keyword=3)
+        self.assertRaises(AssertionError, Module, "3_bad_name_4")
+        self.assertRaises(AssertionError, Module, "good_name", area="no_number")
 
-    def test_block_rectangles(self):
-        b = Block("my_block", area={'dsp': 10, 'lut': 6, 'bram': 20})
+    def test_module_rectangles(self):
+        b = Module("my_module", area={'dsp': 10, 'lut': 6, 'bram': 20})
         self.assertEqual(b.num_rectangles, 0)
 
         # Create 3 rectangles
@@ -31,12 +31,12 @@ class TestBlock(unittest.TestCase):
         self.assertEqual(b.num_rectangles, 1)
         self.assertTrue(35.999999 < b.area_rectangles < 36.000001)
 
-    def test_block_regions(self):
-        b = Block("my_block", area=100)
+    def test_module_regions(self):
+        b = Module("my_module", area=100)
         self.assertEqual(b.area(), 100)
         self.assertEqual(b.area('Ground'), 100)
         self.assertEqual(b.area('wrong_region'), 0)
-        b = Block("my_block", area={'dsp': 10, 'lut': 6, 'bram': 20})
+        b = Module("my_module", area={'dsp': 10, 'lut': 6, 'bram': 20})
         self.assertEqual(b.area(), 36)
         self.assertEqual(b.area('wrong_region'), 0)
         self.assertEqual(b.area('dsp'), 10)

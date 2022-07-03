@@ -25,6 +25,17 @@ class TestGeometry(unittest.TestCase):
         self.assertEqual(r.area, 3)
         self.assertEqual(r.bounding_box, (Point(28.5, 39.5), Point(31.5, 40.5)))
 
+    def test_overlap_rectangles(self):
+        r1 = Rectangle(center=Point(2, 3), shape=Shape(2, 4))
+        r2 = Rectangle(center=Point(5, 5), shape=Shape(4, 2))
+        r3 = Rectangle(center=Point(8, 5), shape=Shape(4, 6))
+        r4 = Rectangle(center=Point(6, 2), shape=Shape(4, 2))
+        self.assertFalse(r1.overlap(r2))
+        self.assertFalse(r1.overlap(r3))
+        self.assertFalse(r1.overlap(r4))
+        self.assertTrue(r2.overlap(r3))
+        self.assertFalse(r2.overlap(r4))
+        self.assertTrue(r3.overlap(r4))
 
 if __name__ == '__main__':
     unittest.main()

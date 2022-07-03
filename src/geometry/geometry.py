@@ -123,6 +123,18 @@ class Rectangle:
         bb = self.bounding_box
         return bb[0].x <= p.x <= bb[1].x and bb[0].y <= p.y <= bb[1].y
 
+    def overlap(self, r: 'Rectangle') -> bool:
+        """
+        Checks whether two rectangles overlap. They are considered not to overlap if they touch each other
+        :param r: the other rectangle.
+        :return: True if they overlap, and False otherwise.
+        """
+        ll1, ur1 = self.bounding_box
+        ll2, ur2 = r.bounding_box
+        if ur1.x <= ll2.x or ur2.x <= ll1.x:
+            return False
+        return ur1.y > ll2.y and ur2.y > ll1.y
+
     def __str__(self) -> str:
         """
         :return: string representation of the rectangle

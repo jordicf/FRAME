@@ -2,8 +2,10 @@ import unittest
 
 from netlist import Netlist
 
+
 def getkey(i):
     return str(i)
+
 
 def yaml_diff(yamla, yamlb, path='', key=getkey):
     if isinstance(yamla, list) and isinstance(yamlb, list):
@@ -79,7 +81,7 @@ class TestYaml(unittest.TestCase):
         n1_yaml = n1.dump_yaml_netlist()
         n2 = Netlist(n1_yaml, from_text=True)
         n2_yaml = n2.dump_yaml_netlist()
-        diffs = [x for x in yaml_diff(n1_yaml,n2_yaml)]
+        diffs = [x for x in yaml_diff(n1_yaml, n2_yaml)]
         if len(diffs) > 0:
             print(diffs)
         self.assertEqual(len(diffs), 0)
@@ -88,11 +90,12 @@ class TestYaml(unittest.TestCase):
         self.read_write_netlist(netlist1)
         self.read_write_netlist(netlist2)
 
+
 if __name__ == '__main__':
     unittest.main()
 
 netlist1 = """
-Blocks: {
+Modules: {
   B1: {
     area: 18,
     rectangles: [[3,3,6,3]],
@@ -114,7 +117,7 @@ Nets: [
 """
 
 netlist2 = """
-Blocks: {
+Modules: {
   B1: {
     area: 6,
     center: [2,3]
@@ -142,5 +145,3 @@ Nets: [
   [B4, B1, B2]
 ]
 """
-
-

@@ -1,5 +1,5 @@
 from typing import NamedTuple
-from block import Block
+from module import Module
 
 
 # Representation of an edge in a graph (possibly obtained from a hypergraph).
@@ -9,24 +9,24 @@ class Edge(NamedTuple):
     weight: float  # Weight of the edge
 
 
-# Representation of a hyperedge (list of Blocks)
+# Representation of a hyperedge (list of modules)
 class HyperEdge(NamedTuple):
-    blocks: list[Block]  # List of blocks of the hyperedge
+    modules: list[Module]  # List of modules of the hyperedge
     weight: float  # Weight of the hyperedge
 
     def __repr__(self) -> str:
-        names = [b.name for b in self.blocks]
+        names = [b.name for b in self.modules]
         if self.weight == 1:
-            return f'Edge<blocks={names}>'
-        return f'Edge<blocks={self.blocks}, weight={self.weight}>'
+            return f'Edge<modules={names}>'
+        return f'Edge<modules={self.modules}, weight={self.weight}>'
 
 
-# Representation of a hyperedge (list of Block names)
+# Representation of a hyperedge (list of module names)
 class NamedHyperEdge(NamedTuple):
-    blocks: list[str]  # List of block names of the hyperedge
+    modules: list[str]  # List of module names of the hyperedge
     weight: float  # Weight of the hyperedge
 
     def __repr__(self) -> str:
         if self.weight == 1:
-            return f'Edge<blocks={self.blocks}>'
-        return f'Edge<blocks={self.blocks}, weight={self.weight}>'
+            return f'Edge<modules={self.modules}>'
+        return f'Edge<modules={self.modules}, weight={self.weight}>'

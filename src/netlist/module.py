@@ -5,27 +5,27 @@ from keywords import KW_CENTER, KW_SHAPE, KW_MIN_SHAPE, KW_AREA, KW_FIXED, KW_FA
 from utils import valid_identifier, is_number
 
 
-class Block:
+class Module:
     """
-    Class to represent a block of the system
+    Class to represent a module of the system
     """
-    _name: str  # Name of the block
-    _center: Point | None  # Center of the block (if defined)
+    _name: str  # Name of the module
+    _center: Point | None  # Center of the module (if defined)
     _min_shape: Shape | None  # min width and height
     _fixed: bool  # Must be fixed in the layout
     _fake: bool  # Used for fake nodes (centers of hyperedges)
-    # A block can be assigned to different layout areas (LUT, DSP, BRAM).
+    # A module can be assigned to different layout areas (LUT, DSP, BRAM).
     # The following attribute indicate the area assigned to each region.
     # If no region specified, the default is assigned (Ground).
     _area_regions: dict[str, float]  # Area for each type of region
-    # This is an attribute to store the whole area of the block. If not calculated, it
+    # This is an attribute to store the whole area of the module. If not calculated, it
     # has a negative value
     _total_area: float
-    # A block can be implemented with different rectangles. Here is the list of rectangles
-    _rectangles: list[Rectangle]  # Rectangles of the block (if defined)
-    _area_rectangles: float # Total area of the rectangles (negative if not calculated).
+    # A module can be implemented with different rectangles. Here is the list of rectangles
+    _rectangles: list[Rectangle]  # Rectangles of the module (if defined)
+    _area_rectangles: float  # Total area of the rectangles (negative if not calculated).
     # Allocation of regions. This dictionary receives the name of a rectangle (from the die)
-    # as key and stores the ratio of ocupation of the rectangle by the block (a value in [0,1]).
+    # as key and stores the ratio of ocupation of the rectangle by the module (a value in [0,1]).
     _area_rectangles: float
     _alloc: dict[str, float]  # Allocation to regions (rectangles) defined in the die
 
@@ -45,18 +45,18 @@ class Block:
         self._area_rectangles = -1
         self._alloc = {}
 
-        assert valid_identifier(name), "Incorrect block name"
+        assert valid_identifier(name), "Incorrect module name"
 
         # Reading parameters and type checking
         for key, value in kwargs.items():
-            assert key in [KW_CENTER, KW_MIN_SHAPE, KW_AREA, KW_FIXED, KW_FAKE], "Unknown block attribute"
+            assert key in [KW_CENTER, KW_MIN_SHAPE, KW_AREA, KW_FIXED, KW_FAKE], "Unknown module attribute"
             if key == KW_CENTER:
-                assert isinstance(value, Point), "Incorrect point associated to the center of the block"
+                assert isinstance(value, Point), "Incorrect point associated to the center of the module"
                 self._center = value
             elif key == KW_MIN_SHAPE:
-                assert isinstance(value, Shape), "Incorrect shape associated to the block"
-                assert value.w >= 0, "Incorrect block width"
-                assert value.h >= 0, "incorrect block height"
+                assert isinstance(value, Shape), "Incorrect shape associated to the module"
+                assert value.w >= 0, "Incorrect module width"
+                assert value.h >= 0, "incorrect module height"
                 self._min_shape = value
             elif key == KW_AREA:
                 self._area_regions = self._read_region_area(value)
@@ -72,7 +72,7 @@ class Block:
     def __hash__(self) -> int:
         return hash(self._name)
 
-    def __eq__(self, other: 'Block') -> bool:
+    def __eq__(self, other: 'Module') -> bool:
         return self._name == other._name
 
     @property
@@ -107,7 +107,7 @@ class Block:
 
     # Getters for area
     def area(self, region: str | None = None) -> float:
-        """Returns the area of a block associated to a region.
+        """Returns the area of a module associated to a region.
         If no region is specified, the total area is returned."""
         if region is None:
             if self._total_area < 0:
@@ -132,14 +132,14 @@ class Block:
 
     @property
     def area_rectangles(self) -> float:
-        """Returns the total area of the rectangles of the block"""
+        """Returns the total area of the rectangles of the module"""
         if self._area_rectangles < 0:
             self._area_rectangles = sum(r.area for r in self.rectangles)
         return self._area_rectangles
 
     def add_rectangle(self, r: Rectangle) -> None:
         """
-        Adds a rectangle to the block
+        Adds a rectangle to the module
         :param r: the rectangle
         """
         self.rectangles.append(r)
@@ -147,7 +147,7 @@ class Block:
 
     def name_rectangles(self) -> None:
         """
-        Defines the names of the rectangles (block[idx] or simply block)
+        Defines the names of the rectangles (module[idx] or simply module)
         """
         if self.num_rectangles == 1:
             self.rectangles[0].name = self.name
@@ -159,11 +159,11 @@ class Block:
     def add_allocation(self, region: str, usage: float) -> None:
         """
         Adds an allocation to a region
-        :param region: name of the region where the block must be allocated (a rectangle in the layout)
+        :param region: name of the region where the module must be allocated (a rectangle in the layout)
         :param usage: usage of the region (ratio between 0 and 1)
         """
         assert 0 <= usage <= 1, "Invalid usage specification of a region"
-        assert region not in self._alloc, f"Duplicated region allocation in block {self.name}: {region}"
+        assert region not in self._alloc, f"Duplicated region allocation in module {self.name}: {region}"
         self._alloc[region] = usage
         self._total_area = -1
 
@@ -176,7 +176,7 @@ class Block:
 
     @staticmethod
     def _read_region_area(area: float | dict[str, float]) -> dict[str, float]:
-        """Treats the area of a block as a float or as a dictionary of {region: float},
+        """Treats the area of a module as a float or as a dictionary of {region: float},
         where region is a string
         :param area: area of the region. If only one number is specified, the area is
         assigned to the ground region.
@@ -197,22 +197,22 @@ class Block:
 
     def create_square(self) -> None:
         """
-        Creates a square for the block with the total area (and removes the previous rectangles)
+        Creates a square for the module with the total area (and removes the previous rectangles)
         """
-        assert self.center is not None, f"Cannot calculate square for block {self.name}. Missing center."
+        assert self.center is not None, f"Cannot calculate square for module {self.name}. Missing center."
         area = self.area()
-        assert area > 0, f"Cannot calculate square for block {self.name}. Area is zero."
+        assert area > 0, f"Cannot calculate square for module {self.name}. Area is zero."
         side = math.sqrt(area)
-        assert self.center is not None, f"Undefined center for block {self.name}"
+        assert self.center is not None, f"Undefined center for module {self.name}"
         self._rectangles = []
         self.add_rectangle(Rectangle(**{KW_CENTER: self.center, KW_SHAPE: Shape(side, side)}))
 
     def calculate_center_from_rectangles(self) -> None:
         """
         Calculates the center from the rectangles. It raises an exception in case there are no rectangles.
-        :return: the center of the block .
+        :return: the center of the module .
         """
-        assert self.num_rectangles > 0, f"No rectangles in block {self.name}"
+        assert self.num_rectangles > 0, f"No rectangles in module {self.name}"
         sum_x, sum_y, area = 0, 0, 0
         for r in self.rectangles:
             sum_x += r.area * r.center.x

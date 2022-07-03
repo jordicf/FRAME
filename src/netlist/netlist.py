@@ -6,12 +6,12 @@ import networkx as nx
 from typing import TextIO
 from io import StringIO
 
-from keywords import KW_BLOCKS, KW_EDGES
-from block import Block
+from keywords import KW_MODULES, KW_EDGES
+from module import Module
 from geometry import Rectangle
 from netlist_types import Edge, HyperEdge
 from yaml_read_netlist import parse_yaml_netlist
-from yaml_write_netlist import dump_yaml_blocks, dump_yaml_edges
+from yaml_write_netlist import dump_yaml_modules, dump_yaml_edges
 from ruamel.yaml import YAML
 
 
@@ -23,10 +23,10 @@ class Netlist:
     Class to represent a netlist
     """
 
-    _blocks: list[Block]  # List of blocks
-    _edges: list[HyperEdge]  # List of edges, with references to blocks
+    _modules: list[Module]  # List of modules
+    _edges: list[HyperEdge]  # List of edges, with references to modules
     _rectangles: list[Rectangle]  # List of rectangles
-    _name2block: dict[str, Block]  # Map from block names to blocks
+    _name2module: dict[str, Module]  # Map from module names to modules
     _G: nx.Graph  # A graph representation of the netlist (star model for hyperedges with more than 2 pins)
     _adj: AdjList  # Adjacency list of _G (edge weights)
     _mass: list[float]  # Mass (size) of each node in _G
@@ -38,34 +38,34 @@ class Netlist:
         :param from_text: if asserted, the stream is simply a text (not a file).
         """
 
-        self._blocks, _named_edges = parse_yaml_netlist(stream, from_text)
-        self._name2block = {b.name: b for b in self._blocks}
+        self._modules, _named_edges = parse_yaml_netlist(stream, from_text)
+        self._name2module = {b.name: b for b in self._modules}
 
         # Edges
         self._edges = []
         for e in _named_edges:
-            blocks = []
-            for b in e.blocks:
-                assert b in self._name2block, f'Unknown block {b} in edge'
-                blocks.append(self._name2block[b])
+            modules = []
+            for b in e.modules:
+                assert b in self._name2module, f'Unknown module {b} in edge'
+                modules.append(self._name2module[b])
             assert e.weight > 0, f'Incorrect edge weight {e.weight}'
-            self._edges.append(HyperEdge(blocks, e.weight))
+            self._edges.append(HyperEdge(modules, e.weight))
 
         # Create rectangles
-        self._rectangles = [r for b in self.blocks for r in b.rectangles]
+        self._rectangles = [r for b in self.modules for r in b.rectangles]
 
         # Create graph
         self._build_graph()
 
     @property
-    def num_blocks(self) -> int:
-        """Number of blocks of the netlist"""
-        return len(self._blocks)
+    def num_modules(self) -> int:
+        """Number of modules of the netlist"""
+        return len(self._modules)
 
     @property
-    def blocks(self) -> list[Block]:
-        """List of blocks of the netlist"""
-        return self._blocks
+    def modules(self) -> list[Module]:
+        """List of modules of the netlist"""
+        return self._modules
 
     @property
     def edges(self) -> list[HyperEdge]:
@@ -74,12 +74,12 @@ class Netlist:
 
     @property
     def num_rectangles(self) -> int:
-        """Number of rectangles of all blocks of the netlist"""
+        """Number of rectangles of all modules of the netlist"""
         return len(self.rectangles)
 
     @property
     def rectangles(self) -> list[Rectangle]:
-        """Rectangles of all blocks of the netlist"""
+        """Rectangles of all modules of the netlist"""
         return self._rectangles
 
     @property
@@ -88,21 +88,21 @@ class Netlist:
         return self._adj
 
     @property
-    def block_sizes(self) -> list[float]:
-        """List of block sizes"""
+    def module_sizes(self) -> list[float]:
+        """List of module sizes"""
         return self._mass
 
-    def create_squares(self) -> list[Block]:
+    def create_squares(self) -> list[Module]:
         """
-        Creates a default rectangle (square) for each block that has no rectangles
-        :return: The list of blocks for which a square has been created.
+        Creates a default rectangle (square) for each module that has no rectangles
+        :return: The list of modules for which a square has been created.
         """
-        blocks = []
-        for b in self.blocks:
+        modules = []
+        for b in self.modules:
             if b.num_rectangles == 0:
                 b.create_square()
-                blocks.append(b)
-        return blocks
+                modules.append(b)
+        return modules
 
     def dump_yaml_netlist(self, filename: str = None) -> None | str:
         """
@@ -111,7 +111,7 @@ class Netlist:
         :param filename: name of the output file
         """
         data = {
-            KW_BLOCKS: dump_yaml_blocks(self.blocks),
+            KW_MODULES: dump_yaml_modules(self.modules),
             KW_EDGES: dump_yaml_edges(self.edges)
         }
 
@@ -135,34 +135,34 @@ class Netlist:
         self._G = nx.Graph()
         node_id = 0
         # The real nodes
-        for b in self.blocks:
+        for b in self.modules:
             self._G.add_node(b.name, hypernode=False, id=node_id)
             node_id += 1
 
         fake_id = 0
         for e in self.edges:
-            if len(e.blocks) == 2:  # Normal edge (2 pins)
-                self._G.add_edge(e.blocks[0].name, e.blocks[1].name, weight=e.weight)
+            if len(e.modules) == 2:  # Normal edge (2 pins)
+                self._G.add_edge(e.modules[0].name, e.modules[1].name, weight=e.weight)
             else:  # Hyperedge (more than 2 pins)
                 # Generate a name for the hypernode (not colliding with other nodes)
                 while True:
                     fake_b = "_hyper_" + str(fake_id)
                     fake_id += 1
-                    if fake_b not in self._name2block:
+                    if fake_b not in self._name2module:
                         break
                 # Create the center of the hyperedge
                 self._G.add_node(fake_b, hypernode=True, id=node_id)
                 node_id += 1
                 # Add edges from the center to each node
-                for b in e.blocks:
+                for b in e.modules:
                     self._G.add_edge(fake_b, b.name, weight=e.weight)
 
         self._adj = [[] for _ in range(node_id)]  # Adjacency list (list of lists)
         self._mass = [0.0] * node_id  # List of masses (initially all zero)
 
-        for name, block in self._name2block.items():
+        for name, module in self._name2module.items():
             ident = self._G.nodes[name]['id']
-            self._mass[ident] = block.area()
+            self._mass[ident] = module.area()
 
         for b, nbrs in self._G.adj.items():
             idx = self._G.nodes[b]['id']

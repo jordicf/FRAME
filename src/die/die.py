@@ -1,24 +1,10 @@
-import yaml
-from typing import List, Dict, Set, Deque, NamedTuple
-from fp_types import valid_identifier, is_number, string_is_number, Point, Shape
-from fp_keywords import KW_WIDTH, KW_HEIGHT, KW_RECTANGLES, KW_CENTER, KW_SHAPE, KW_REGION, GROUND_REGION
-from geometry import Shape, Rectangle
+from typing import TextIO
+from yaml_parse_die import parse_yaml_die
+from typing import Set, Deque, NamedTuple
+from keywords import KW_CENTER, KW_SHAPE, KW_REGION, KW_GROUND
+from geometry import Shape, Rectangle, Point
 from collections import deque
-
-
-def string_die(die: str) -> Shape | None:
-    """
-    Parses the die string of the form <width>x<height> or from a filename
-    :param die: the die string or filename
-    :return: a shape if it has the form <width>x<height>, or None otherwise
-    """
-    numbers = die.rsplit('x')
-    if len(numbers) == 2 and string_is_number(numbers[0]) and string_is_number(numbers[1]):
-        w, h = float(numbers[0]), float(numbers[1])
-        assert w > 0 and h > 0, "The width and height of the layout must be positive"
-        return Shape(w, h)
-    return None
-
+from itertools import combinations
 
 class GroundRegion(NamedTuple):
     rmin: int
@@ -39,8 +25,7 @@ class Die:
     """
     Class to represent the die (ground and tagged rectangles)
     """
-    _width: float  # Width of the die
-    _height: float  # Height of the die
+    _shape: Shape  # Width of the die
     _regions: list[Rectangle]  # List of non-ground regions
     _ground_regions: list[Rectangle]  # List of ground regions
     _epsilon: float  # Precision when dealing with coordinates
@@ -48,64 +33,38 @@ class Die:
     _y: list[float]  # List of y coordinates of potential rectangles
     _cells: [list[list[bool]]]  # Matrix of rectangles (True occupied, False available)
 
-    def __init__(self, filename_or_string: str):
+    def __init__(self, stream: str | TextIO, from_text: bool = False):
         """
-        Constructor of a die
-        :param filename_or_string: name of the YAML file (or string <width>x<height>)
+        Constructor of a die from a file or from a string of text
+        :param stream: name of the YAML file (str) or handle to the file
+        :param from_text: if asserted, the stream is simply a text (not a file).
         """
-        shape: Optional[Shape] = string_die(filename_or_string)
-        if shape is None:
-            with open(filename_or_string) as f:
-                self._parse_die(yaml.safe_load(f.read()))
-        else:
-            self._parse_die({KW_WIDTH: shape.w, KW_HEIGHT: shape.h})
-        self._epsilon = min(self._width, self._height) * 10e-12
+        self._shape, self._regions = parse_yaml_die(stream, from_text)
+        self._epsilon = min(self.width, self.height) * 10e-12
         self._calculate_region_points()
         self._calculate_cell_matrix()
         self._calculate_ground_rectangles()
+        self._check_rectangles()
 
     @property
     def width(self) -> float:
-        return self._width
+        """Returns the width of the die."""
+        return self._shape.w
 
     @property
     def height(self) -> float:
-        return self._height
+        """Returns the height of the die."""
+        return self._shape.h
 
-    def _parse_die(self, tree: Dict):
-        """
-        Parses the regions of the die
-        :param tree: YAML tree
-        """
-        assert isinstance(tree, dict), "The die is not a dictionary"
-        for key in tree:
-            assert key in [KW_WIDTH, KW_HEIGHT, KW_RECTANGLES], f"Unknown keyword in die: {key}"
+    @property
+    def regions(self) -> list[Rectangle]:
+        """Returns the list of non-ground regions."""
+        return self._regions
 
-        assert KW_WIDTH in tree and KW_HEIGHT in tree, "Wrong format of the die: Missing width or height"
-        self._width, self._height = tree[KW_WIDTH], tree[KW_HEIGHT]
-        assert is_number(self._width) and self._width > 0, "Wrong specification of the die width"
-        assert is_number(self._height) and self._height > 0, "Wrong specification of the die height"
-
-        self._regions = []
-        if KW_RECTANGLES in tree:
-            rlist = tree[KW_RECTANGLES]
-            assert isinstance(rlist, list) and len(rlist) > 0, f"Incorrect specification of die rectangles"
-            if is_number(rlist[0]):
-                rlist = [rlist]  # List with only one rectangle
-            for r in rlist:
-                self._parse_die_rectangle(r)
-
-    def _parse_die_rectangle(self, r: List):
-        """
-        Parses a rectangle
-        :param r: a YAML description of the rectangle (a list with 5 values).
-        """
-        assert isinstance(r, list) and len(r) == 5, "Incorrect format of die rectangle"
-        for i in range(4):
-            assert is_number(r[i]) and r[i] >= 0, "Incorrect value for die rectangle"
-        assert isinstance(r[4], str) and valid_identifier(r[4])
-        kwargs = {KW_CENTER: Point(r[0], r[1]), KW_SHAPE: Shape(r[2], r[3]), KW_REGION: r[4]}
-        self._regions.append(Rectangle(**kwargs))
+    @property
+    def ground_regions(self) -> list[Rectangle]:
+        """Returns the list of ground regions."""
+        return self._ground_regions
 
     def _calculate_region_points(self):
         """
@@ -118,8 +77,8 @@ class Die:
             x.append(bb[1].x)
             y.append(bb[0].y)
             y.append(bb[1].y)
-        x.append(self._width)
-        y.append(self._height)
+        x.append(self.width)
+        y.append(self.height)
         x.sort()
         y.sort()
         # Remove duplicates
@@ -136,7 +95,7 @@ class Die:
         """
         Calculates the matrix of cells. It indicates which cells are occupied by regions
         """
-        self._cells = [[False for x in range(len(self._x) - 1)] for y in range(len(self._y) - 1)]
+        self._cells = [[False] * (len(self._x) - 1) for _ in range(len(self._y) - 1)]
         for i in range(len(self._x) - 1):
             x = (self._x[i] + self._x[i + 1]) / 2
             for j in range(len(self._y) - 1):
@@ -152,7 +111,7 @@ class Die:
             self._ground_regions.append(g_rect)
             g_rect = self._find_largest_ground_region()
 
-    def _find_largest_ground_region(self) -> Optional[Rectangle]:
+    def _find_largest_ground_region(self) -> Rectangle | None:
         """
         Calculates the largest non-occupied rectangular region of the die
         :return: the largest region
@@ -175,7 +134,7 @@ class Die:
             return None
 
         max_area = -1
-        best_reg: Optional[GroundRegion] = None
+        best_reg: GroundRegion | None = None
         for reg in all_regions:
             if reg.area > max_area:
                 max_area = reg.area  # type: ignore
@@ -190,13 +149,13 @@ class Die:
         y_center = (self._y[best_reg.rmin] + self._y[best_reg.rmax + 1]) / 2
         width = self._x[best_reg.cmax + 1] - self._x[best_reg.cmin]
         height = self._y[best_reg.rmax + 1] - self._y[best_reg.rmin]
-        kwargs = {KW_CENTER: Point(x_center, y_center), KW_SHAPE: Shape(width, height), KW_REGION: GROUND_REGION}
+        kwargs = {KW_CENTER: Point(x_center, y_center), KW_SHAPE: Shape(width, height), KW_REGION: KW_GROUND}
         return Rectangle(**kwargs)
 
     def _expand_rectangle(self, r: GroundRegion) -> Set[GroundRegion]:
         """
         Expands a rectangle of regions and generates all the valid regions.
-        The expansion is done by increasing rows and columns.
+        The expansion is done by increasing rows and columns
         :param r: a ground region
         :return: the set of rectangles of ground regions
         """
@@ -237,7 +196,25 @@ class Die:
 
         return g_regions
 
+    def _check_rectangles(self) -> None:
+        """
+        Checks that the list of rectangles is correct, i.e., they do not overlap and the sum of the
+        areas is equal to the area of the die. An assertion is raised of something is wrong.
+        """
+        all_rectangles = self.regions + self.ground_regions
+        die = Rectangle(center=Point(self.width / 2, self.height / 2), shape=Shape(self.width, self.height))
 
-if __name__ == "__main__":
-    D = Die("../examples/basic.lay")
-    print(D._ground_regions())
+        # Check that all rectangles are inside
+        for r in all_rectangles:
+            ll, ur = r.bounding_box
+            assert die.inside(ll) and die.inside(ur), "Some rectangle is outside the die"
+
+        # Check that no rectangles overlap
+        pairs = list(combinations(all_rectangles, 2))
+        for r1, r2 in pairs:
+            assert not r1.overlap(r2), "Some rectangles overlap"
+
+        # Check that the total area of the rectangles is equal to the area of the die
+        area_rect = sum(r.area for r in all_rectangles)
+        assert abs(area_rect - die.area) < self._epsilon, "Incorrect total area of rectangles"
+
