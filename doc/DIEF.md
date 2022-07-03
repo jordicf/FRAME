@@ -1,4 +1,4 @@
-<img src="https://www.cs.upc.edu/~jordicf/Research/FRAME/doc/Frame.png" alt="drawing" style="height: 35px;"/>
+<img src="pict/Frame.png" alt="drawing" style="height: 35px;"/>
 
 # Die Exchange Format (DIEF)
 **Author:** [Jordi Cortadella](https://www.cs.upc.edu/~jordicf)
@@ -15,9 +15,9 @@ figure.
 
 <figure>
 <p style="text-align:center">
-<img src="https://www.cs.upc.edu/~jordicf/Research/fpopt/doc/FPGA_structure.png" alt="drawing" style="height: 200px;"/>
+<img src="pict/FPGA_structure.png" alt="FPGA die" style="height: 200px;"/>
 </p>
-<figcaption style="text-align:center"><b>Die with dedicated regions</b></figcaption>
+<figcaption style="text-align:center"><b>FPGA die</b></figcaption>
 </figure>
 
 Here is an example of a die with two dedicated regions. The only mandatory attributes are `width` and `height`.
@@ -26,7 +26,7 @@ Only the non-ground rectangles are to be specified. Each rectangle is described 
 
 <figure>
 <p style="text-align:center">
-<img src="https://www.cs.upc.edu/~jordicf/Research/fpopt/doc/Die.png" alt="drawing" style="height: 200px;"/>
+<img src="pict/Die.png" alt="Die specification" style="height: 200px;"/>
 </p>
 <figcaption style="text-align:center"><b>Die specified with two non-ground regions</b></figcaption>
 </figure>
