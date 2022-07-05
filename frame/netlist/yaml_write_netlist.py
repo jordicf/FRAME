@@ -1,6 +1,7 @@
-from keywords import KW_AREA, KW_FIXED, KW_CENTER, KW_MIN_SHAPE, KW_RECTANGLES, KW_GROUND
+from ..utils.keywords import KW_AREA, KW_FIXED, KW_CENTER, KW_MIN_SHAPE, KW_RECTANGLES, KW_GROUND
+from ..geometry.geometry import Rectangle
+
 from module import Module
-from geometry import Rectangle
 from yaml_read_netlist import YamlDict, YamlSeq
 from netlist_types import HyperEdge
 

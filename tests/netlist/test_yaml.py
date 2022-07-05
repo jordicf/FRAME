@@ -1,6 +1,6 @@
 import unittest
 
-from netlist import Netlist
+from frame.netlist.netlist import Netlist
 
 
 def getkey(i):

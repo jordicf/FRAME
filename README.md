@@ -29,3 +29,26 @@ FPGA die with slices dedicated to BRAMs or DSPs, as shown in the figure below.
 
 Modules may use resources from different regions and floorplanning must take into account 
 where these resources are located on the die.
+
+## Installation for development
+
+Install [Python 3](https://www.python.org/downloads/) and [Git](https://git-scm.com/download/).
+Then, open a terminal and execute the following commands, depending on your operating system:
+
+#### Linux or macOS
+```
+git clone https://github.com/jordicf/FRAME.git
+cd FRAME
+python -m venv venv
+source venv/bin/activate
+pip install -e .
+```
+
+#### Windows
+```
+git clone https://github.com/jordicf/FRAME.git
+cd FRAME
+python -m venv venv
+.\venv\Scripts\activate
+pip install -e .
+```

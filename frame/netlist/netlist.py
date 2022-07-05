@@ -2,17 +2,19 @@
 Module to represent netlists
 """
 
-import networkx as nx
 from typing import TextIO
 from io import StringIO
 
-from keywords import KW_MODULES, KW_EDGES
-from module import Module
-from geometry import Rectangle
-from netlist_types import Edge, HyperEdge
+import networkx as nx
+from ruamel.yaml import YAML
+
+from ..utils.keywords import KW_MODULES, KW_EDGES
+from ..geometry.geometry import Rectangle
+
 from yaml_read_netlist import parse_yaml_netlist
 from yaml_write_netlist import dump_yaml_modules, dump_yaml_edges
-from ruamel.yaml import YAML
+from netlist_types import Edge, HyperEdge
+from module import Module
 
 
 AdjList = list[list[Edge]]

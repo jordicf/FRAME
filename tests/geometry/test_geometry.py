@@ -1,6 +1,6 @@
 import unittest
 
-from geometry import Point, Shape, Rectangle
+from frame.geometry.geometry import Point, Shape, Rectangle
 
 
 class TestGeometry(unittest.TestCase):
