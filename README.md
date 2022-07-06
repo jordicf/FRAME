@@ -52,3 +52,16 @@ python -m venv venv
 .\venv\Scripts\activate
 pip install -e .
 ```
+
+If you use PyCharm, to configure the project Python interpreter go to File | Settings... |
+Project: FRAME | Python Interpreter.
+Then click the gears icon, Add..., and choose Existing environment and select Interpreter as the one
+in the `FRAME/venv` folder. 
+
+## Testing
+
+To run all the tests, execute the following command from the project folder:
+
+```
+python -m unittest discover -v -s tests
+```
