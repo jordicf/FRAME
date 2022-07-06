@@ -7,7 +7,7 @@
 Here we consider a simplified floorplanning model where we have to place rectangular modules
 (blocks) in a cell grid.
 
-Each cell $c$ is characterized by four parameters: the coordinates of the center, $(X_c, Y_c)$, and
+Each cell $c$ is characterized by four parameters: the coordinates of the center, $X_c$ and $Y_c$, and
 its shape (width and height), $W_c$ and $H_c$. We define the area of the cell as $A_c = W_c H_c$.
 
 The input of the model is thus the area of the blocks to place, the wire costs per unit length
@@ -18,7 +18,7 @@ and dispersion.
 
 #### Variables
 
-* For each block $b$ we use the variables $(x_b, y_b)$ to represent the centroid of the block.
+* For each block $b$ we use the variables $x_b$ and $y_b$ to represent the centroid of the block.
 
 * For each block $b$ we use the variables $dx_b$ and $dy_b$ to represent the dispersion of the
 block.
