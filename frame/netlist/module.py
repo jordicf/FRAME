@@ -25,7 +25,7 @@ class Module:
     _rectangles: list[Rectangle]  # Rectangles of the module (if defined)
     _area_rectangles: float  # Total area of the rectangles (negative if not calculated).
     # Allocation of regions. This dictionary receives the name of a rectangle (from the die)
-    # as key and stores the ratio of ocupation of the rectangle by the module (a value in [0,1]).
+    # as key and stores the ratio of occupation of the rectangle by the module (a value in [0,1]).
     _area_rectangles: float
     _alloc: dict[str, float]  # Allocation to regions (rectangles) defined in the die
 

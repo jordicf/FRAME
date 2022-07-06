@@ -107,7 +107,7 @@ def parse_yaml_center(center: list[float], name: str) -> Point:
     """
     Parses the center of a module
     :param center: module center [x, y]
-    :param name: name of the boock
+    :param name: name of the block
     :return: a Point with (x,y)
     """
     assert isinstance(center, list) and len(center) == 2 and is_number(center[0]) and is_number(center[1]), \
@@ -168,7 +168,7 @@ def parse_yaml_rectangle(r: YamlSeq, fixed: bool, name: str) -> Rectangle:
     """Parses a rectangle
     :param r: a YAML description of the rectangle (a list with 4 values)
     Optionally, it may contain a fifth parameter (string) specifying a region
-    :param fixed: Indicates wheter the rectangle should be fixed
+    :param fixed: Indicates whether the rectangle should be fixed
     :param name: name of the module
     :return: a rectangle
     """

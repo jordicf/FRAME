@@ -4,7 +4,7 @@ from typing import Any
 
 def valid_identifier(ident: Any) -> bool:
     """
-    Checks whether the argumetn is a string and is a valid identifier.
+    Checks whether the argument is a string and is a valid identifier.
     The first character must be a letter or '_'. The remaining characters can also be digits
     :param ident: identifier.
     :return: True if valid, and False otherwise.
