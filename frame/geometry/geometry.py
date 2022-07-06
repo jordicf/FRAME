@@ -1,21 +1,97 @@
 """
 Module to represent points, shapes and rectangles
 """
-
+from __future__ import annotations
 from typing import NamedTuple, Tuple, Any
 
 from ..utils.keywords import KW_FIXED, KW_CENTER, KW_SHAPE, KW_REGION, KW_NAME, KW_GROUND
 from ..utils.utils import valid_identifier
 
 
-# Representation of a point
-class Point(NamedTuple):
-    x: float
-    y: float
+class Point:
+    """
+    A class to represent a two-dimensional point, and operate with them
+    """
+    def __init__(self, x: Point | float | None = None, y: float | None = None) -> None:
+        """
+
+        :param x:
+        :param y:
+        """
+        if x is None:  # x and y are None
+            self.x, self.y = 0, 0
+        elif y is None:  # x is a Point or a number and y is None
+            if isinstance(x, Point):
+                self.x, self.y = x.x, x.y
+            else:
+                self.x, self.y = x, x
+        else:  # x and y are numbers
+            self.x, self.y = x, y
+
+    def __eq__(self, other: Point) -> bool:
+        """Return self == other."""
+        return self.x == other.x and self.y == other.y
+
+    def __neg__(self) -> Point:
+        """Return -self."""
+        return Point(-self.x, -self.y)
+
+    def __add__(self, other: float | Point) -> Point:
+        """Return self + other."""
+        other = Point(other)
+        return Point(self.x + other.x, self.y + other.y)
+
+    __radd__ = __add__
+
+    def __sub__(self, other: float | Point) -> Point:
+        """Return self - other."""
+        other = Point(other)
+        return Point(self.x, self.y) + -other
+
+    def __rsub__(self, other: float | Point) -> Point:
+        """Return other - self."""
+        other = Point(other)
+        return other - self
+
+    def __mul__(self, other: float | Point) -> Point:
+        """Return self*other using component-wise multiplication. other can either be a number or another point."""
+        other = Point(other)
+        return Point(self.x*other.x, self.y*other.y)
+
+    __rmul__ = __mul__
+
+    def __pow__(self, exponent: float) -> Point:
+        """Return self**exponent using component-wise exponentiation."""
+        return Point(self.x**exponent, self.y**exponent)
+
+    def __truediv__(self, other: float | Point) -> Point:
+        """Return self / other using component-wise true division. other can either be a number or another point."""
+        other = Point(other)
+        return Point(self.x/other.x, self.y/other.y)
+
+    def __rtruediv__(self, other: float | Point):
+        """Return other / self using component-wise true division. other can either be a number or another point."""
+        other = Point(other)
+        return Point(other.x/self.x, other.y/self.y)
+
+    def __and__(self, other: Point) -> float:
+        """Dot product between self and other."""
+        return self.x*other.x + self.y*other.y
+
+    def __str__(self) -> str:
+        return f"Point(x={self.x}, y={self.y})"
+
+    __repr__ = __str__
+
+    def __iter__(self):
+        yield self.x
+        yield self.y
 
 
-# Representation of a shape (width and height)
 class Shape(NamedTuple):
+    """
+    A class to represent a two-dimensional rectilinear shape (width and height)
+    """
     w: float
     h: float
 
