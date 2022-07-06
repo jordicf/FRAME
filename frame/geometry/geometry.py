@@ -12,17 +12,30 @@ class Point:
     """
     A class to represent a two-dimensional point, and operate with them
     """
-    def __init__(self, x: Point | float | None = None, y: float | None = None) -> None:
+    def __init__(self, x: Point | tuple[float, float] | float | None = None, y: float | None = None) -> None:
         """
+        Constructor of a Point. See the example for ways of constructing it.
 
-        :param x:
-        :param y:
+        :param x: a Point or tuple[float, float], a float, or None.
+        :param y: None if x is a Point, tuple[float, float] or None, or a float if x is a float.
+
+        :Example:
+        >>> Point()
+        Point(x=0, y=0)
+        >>> Point(1)
+        Point(x=1, y=1)
+        >>> Point(1, 2)
+        Point(x=1, y=2)
+        >>> Point((1, 2))
+        Point(x=1, y=2)
         """
         if x is None:  # x and y are None
             self.x, self.y = 0, 0
         elif y is None:  # x is a Point or a number and y is None
             if isinstance(x, Point):
                 self.x, self.y = x.x, x.y
+            elif isinstance(x, tuple):
+                self.x, self.y = x
             else:
                 self.x, self.y = x, x
         else:  # x and y are numbers
@@ -199,7 +212,7 @@ class Rectangle:
         bb = self.bounding_box
         return bb[0].x <= p.x <= bb[1].x and bb[0].y <= p.y <= bb[1].y
 
-    def overlap(self, r: 'Rectangle') -> bool:
+    def overlap(self, r: Rectangle) -> bool:
         """
         Checks whether two rectangles overlap. They are considered not to overlap if they touch each other
         :param r: the other rectangle.
