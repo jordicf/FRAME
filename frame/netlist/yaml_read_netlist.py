@@ -11,8 +11,8 @@ from ..utils.keywords import KW_RECTANGLES, KW_CENTER, KW_SHAPE, KW_FIXED, KW_RE
 from ..utils.utils import valid_identifier, is_number
 from ..geometry.geometry import Rectangle, Shape, Point
 
-from module import Module
-from netlist_types import NamedHyperEdge
+from .module import Module
+from .netlist_types import NamedHyperEdge
 
 YamlDict = dict
 YamlSeq = list

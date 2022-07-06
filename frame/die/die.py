@@ -2,10 +2,11 @@ from typing import Set, Deque, NamedTuple, TextIO
 from collections import deque
 from itertools import combinations
 
-from .yaml_parse_die import parse_yaml_die
-
 from ..utils.keywords import KW_CENTER, KW_SHAPE, KW_REGION, KW_GROUND
 from ..geometry.geometry import Shape, Rectangle, Point
+
+from .yaml_parse_die import parse_yaml_die
+
 
 class GroundRegion(NamedTuple):
     rmin: int

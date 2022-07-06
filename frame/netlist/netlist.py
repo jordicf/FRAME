@@ -11,10 +11,10 @@ from ruamel.yaml import YAML
 from ..utils.keywords import KW_MODULES, KW_EDGES
 from ..geometry.geometry import Rectangle
 
-from yaml_read_netlist import parse_yaml_netlist
-from yaml_write_netlist import dump_yaml_modules, dump_yaml_edges
-from netlist_types import Edge, HyperEdge
-from module import Module
+from .yaml_read_netlist import parse_yaml_netlist
+from .yaml_write_netlist import dump_yaml_modules, dump_yaml_edges
+from .netlist_types import Edge, HyperEdge
+from .module import Module
 
 
 AdjList = list[list[Edge]]

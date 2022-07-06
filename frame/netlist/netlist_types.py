@@ -1,6 +1,6 @@
 from typing import NamedTuple
 
-from module import Module
+from .module import Module
 
 
 # Representation of an edge in a graph (possibly obtained from a hypergraph).
