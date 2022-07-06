@@ -79,7 +79,7 @@ The value of $\alpha$ coincides with the expected behavior of the competing obje
 before.
 
 We observe that the total dispersion is the same with values of $\alpha$ equal to 0 and 0.1, and
-that the total wire length is 0 for $\alpha$ equal or greater than 0.6.
+that the total wire length is 0 for $\alpha$ equal or greater than 0.5.
 
 ### Discussion
 
@@ -93,6 +93,6 @@ differentiability, although this might not be a huge problem.
 
 * We observe that the minimization of the total dispersion tends to focus on the blocks with more
 area. This makes the model ignore the blocks with less area, and they end up having strange shapes,
-sometimes even not connected (for example, see the block with area 1 with $\alpha$ equal to 0.4).
+sometimes even not connected (for example, see the block with area 1 with $\alpha$ equal to 0.2).
 A better model could possibly be obtained by considering the *normalized dispersion*, which we
 define as the dispersion divided of the block divided by its area.
