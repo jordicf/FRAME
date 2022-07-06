@@ -232,3 +232,5 @@ class Rectangle:
         if self.fixed:
             s += f" {KW_FIXED}"
         return s
+
+    __repr__ = __str__
