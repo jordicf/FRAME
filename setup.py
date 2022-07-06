@@ -1,4 +1,8 @@
-#!/usr/bin/env python
+"""
+Setup script.
+
+It sets up the FRAME package and its subpackages, and specifies metadata and third party dependencies.
+"""
 
 from distutils.core import setup
 
@@ -20,6 +24,5 @@ setup(name='frame',
           "numpy",
           "gekko",
           "matplotlib",
-          "seaborn",
-      ]
+          "seaborn"]
       )
