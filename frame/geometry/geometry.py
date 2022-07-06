@@ -4,8 +4,8 @@ Module to represent points, shapes and rectangles
 
 from typing import NamedTuple, Tuple, Any
 
-from keywords import KW_FIXED, KW_CENTER, KW_SHAPE, KW_REGION, KW_NAME, KW_GROUND
-from utils import valid_identifier
+from ..utils.keywords import KW_FIXED, KW_CENTER, KW_SHAPE, KW_REGION, KW_NAME, KW_GROUND
+from ..utils.utils import valid_identifier
 
 
 # Representation of a point

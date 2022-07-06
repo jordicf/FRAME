@@ -1,8 +1,8 @@
 import math
 
-from geometry import Point, Shape, Rectangle
-from keywords import KW_CENTER, KW_SHAPE, KW_MIN_SHAPE, KW_AREA, KW_FIXED, KW_FAKE, KW_GROUND
-from utils import valid_identifier, is_number
+from ..geometry.geometry import Point, Shape, Rectangle
+from ..utils.keywords import KW_CENTER, KW_SHAPE, KW_MIN_SHAPE, KW_AREA, KW_FIXED, KW_FAKE, KW_GROUND
+from ..utils.utils import valid_identifier, is_number
 
 
 class Module:

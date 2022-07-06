@@ -1,7 +1,42 @@
 import unittest
 
-from die import Die
-from geometry import Point, Shape
+from frame.die.die import Die
+from frame.geometry.geometry import Point, Shape
+
+
+die1 = """
+width: 30
+height: 50
+"""
+
+die2 = """
+width: 30
+height: -20
+"""
+
+die3="""
+width: 30
+height: 20
+rectangles: [[5,8,10,12,'BRAM']]
+"""
+
+die4="""
+width: 30
+height: 20
+rectangles: [[5,8,10,12,'BRAM'], [28,10,10,10,'DSP']]
+"""
+
+die5="""
+width: 30
+height: 20
+rectangles: [[5,8,10,12,'BRAM'], [25,14,10,12,'DSP']]
+"""
+
+die6="""
+width: 30
+height: 20
+rectangles: [[5,8,10,12,'BRAM'], [25,14,10,12,'Ground']]
+"""
 
 
 class MyTestCase(unittest.TestCase):
@@ -43,37 +78,3 @@ class MyTestCase(unittest.TestCase):
 
 if __name__ == '__main__':
     unittest.main()
-
-die1 = """
-width: 30
-height: 50
-"""
-
-die2 = """
-width: 30
-height: -20
-"""
-
-die3="""
-width: 30
-height: 20
-rectangles: [[5,8,10,12,'BRAM']]
-"""
-
-die4="""
-width: 30
-height: 20
-rectangles: [[5,8,10,12,'BRAM'], [28,10,10,10,'DSP']]
-"""
-
-die5="""
-width: 30
-height: 20
-rectangles: [[5,8,10,12,'BRAM'], [25,14,10,12,'DSP']]
-"""
-
-die6="""
-width: 30
-height: 20
-rectangles: [[5,8,10,12,'BRAM'], [25,14,10,12,'Ground']]
-"""

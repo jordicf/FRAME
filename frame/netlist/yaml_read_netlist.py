@@ -6,12 +6,13 @@ from typing import Any, TextIO, cast
 
 from ruamel.yaml import YAML
 
-from keywords import KW_RECTANGLES, KW_CENTER, KW_SHAPE, KW_FIXED, KW_REGION, \
+from ..utils.keywords import KW_RECTANGLES, KW_CENTER, KW_SHAPE, KW_FIXED, KW_REGION, \
     KW_MODULES, KW_EDGES, KW_AREA, KW_MIN_SHAPE
-from geometry import Rectangle, Shape, Point
+from ..utils.utils import valid_identifier, is_number
+from ..geometry.geometry import Rectangle, Shape, Point
+
 from module import Module
 from netlist_types import NamedHyperEdge
-from utils import valid_identifier, is_number
 
 YamlDict = dict
 YamlSeq = list

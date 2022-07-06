@@ -1,6 +1,7 @@
 /Pipfile
 /Pipfile.lock
-/.idea/FRAME.iml
-/.idea/misc.xml
-/.idea/modules.xml
-/.idea/.name
+.idea
+.vscode
+__pycache__
+venv
+frame.egg-info

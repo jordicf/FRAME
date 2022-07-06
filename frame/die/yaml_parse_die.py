@@ -1,8 +1,10 @@
 from typing import TextIO
+
 from ruamel.yaml import YAML
-from keywords import KW_WIDTH, KW_HEIGHT, KW_REGION, KW_RECTANGLES, KW_GROUND, KW_CENTER, KW_SHAPE
-from geometry import Point, Shape, Rectangle
-from utils import is_number, string_is_number, valid_identifier
+
+from ..utils.keywords import KW_WIDTH, KW_HEIGHT, KW_REGION, KW_RECTANGLES, KW_GROUND, KW_CENTER, KW_SHAPE
+from ..geometry.geometry import Point, Shape, Rectangle
+from ..utils.utils import is_number, string_is_number, valid_identifier
 
 
 def string_die(die: str) -> Shape | None:

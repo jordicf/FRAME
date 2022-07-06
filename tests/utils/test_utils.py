@@ -1,6 +1,6 @@
 import unittest
 
-from utils import valid_identifier, string_is_number, is_number
+from frame.utils.utils import valid_identifier, string_is_number, is_number
 
 
 class TestUtils(unittest.TestCase):
