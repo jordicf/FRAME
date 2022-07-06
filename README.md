@@ -41,6 +41,7 @@ git clone https://github.com/jordicf/FRAME.git
 cd FRAME
 python -m venv venv
 source venv/bin/activate
+pip install setuptools
 pip install -e .
 ```
 
@@ -50,6 +51,7 @@ git clone https://github.com/jordicf/FRAME.git
 cd FRAME
 python -m venv venv
 .\venv\Scripts\activate
+pip install setuptools
 pip install -e .
 ```
 

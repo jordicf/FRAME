@@ -4,7 +4,7 @@ Setup script.
 It sets up the FRAME package and its subpackages, and specifies metadata and third party dependencies.
 """
 
-from distutils.core import setup
+from setuptools import setup
 
 setup(name='frame',
       version='0.1',
