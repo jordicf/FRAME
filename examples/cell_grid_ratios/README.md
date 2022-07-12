@@ -15,26 +15,28 @@ between each pair of blocks, the number of rows and columns in the cell grid and
 cells. We will also use an $\alpha$ parameter to balance the trade-off between the total wire length
 and dispersion.
 
-
 #### Variables
 
 * For each block $b$ we use the variables $x_b$ and $y_b$ to represent the centroid of the block.
-
 * For each block $b$ we use the variables $dx_b$ and $dy_b$ to represent the dispersion of the
-block.
-
+  block.
 * For each block $b$ and each cell $c$ we use the variable $a_{bc} \in [0, 1]$ that represents the
-ratio of $A_c$ used by block $b$.
+  ratio of $A_c$ used by block $b$.
 
 #### Constraints
 
-* Cells cannot be over-occupied: $$\forall c: \sum_{b} a_{bc} \le 1$$
-
-* A block must have sufficient area: $$\forall b: \sum_{c} a_{bc} \ge A_b$$
-
-* Centroid of a block: $$\forall b: x_b = \frac{1}{A_b} \sum_{c} A_c X_c a_{bc}\qquad y_b = \frac{1}{A_b} \sum_{c} A_c Y_c a_{bc}$$
-
-* Dispersion of a block: $$\forall b: dx_b = \sum_{c} A_c a_{bc} (x_b - X_c)^2\qquad dy_b = \sum_{c} A_c a_{bc} (y_b - Y_c)^2$$
+* Cells cannot be over-occupied: $$
+  \forall c: \sum_{b} a_{bc} \le 1
+  $$
+* A block must have sufficient area: $$
+  \forall b: \sum_{c} a_{bc} \ge A_b
+  $$
+* Centroid of a block: $$
+  \forall b: x_b = \frac{1}{A_b} \sum_{c} A_c X_c a_{bc}\qquad y_b = \frac{1}{A_b} \sum_{c} A_c Y_c a_{bc}
+  $$
+* Dispersion of a block: $$
+  \forall b: dx_b = \sum_{c} A_c a_{bc} (x_b - X_c)^2\qquad dy_b = \sum_{c} A_c a_{bc} (y_b - Y_c)^2
+  $$
 
 #### Cost function
 
@@ -42,11 +44,15 @@ The cost function is multi-objective. It tries to minimize:
 
 * the total wirelength:
 
-$$\mathrm{WL} = \sum_{e=(b_i, b_j)} c_e ((x_{b_i}-x_{b_j})^2+(y_{b_i}-y_{b_j})^2)$$
+$$
+\mathrm{WL} = \sum_{e=(b_i, b_j)} c_e ((x_{b_i}-x_{b_j})^2+(y_{b_i}-y_{b_j})^2)
+$$
 
 * the total dispersion of the blocks:
 
-$$\mathrm{D} = \sum_{b} (dx_b + dy_b)$$
+$$
+\mathrm{D} = \sum_{b} (dx_b + dy_b)
+$$
 
 Note that those are competing objectives. On the one hand, to reduce wirelength, the blocks get very
 disperse to try to have all the centroids in the same point. On the other hand, to reduce the
@@ -54,8 +60,9 @@ dispersion of the blocks, they get compact and the centroids move farther apart.
 trade-off between both objectives we use a hyperparameter $\alpha \in [0, 1]$, so the cost function
 to minimize is:
 
-$$\alpha \mathrm{WL} + (1-\alpha) \mathrm{D}$$
-
+$$
+\alpha \mathrm{WL} + (1-\alpha) \mathrm{D}
+$$
 
 ### Results over a small example
 
@@ -84,15 +91,42 @@ that the total wire length is 0 for $\alpha$ equal or greater than 0.5.
 ### Discussion
 
 * The model is non-convex, so the solution is almost surely not the global optimum. Therefore, the
-initial value of the variables is important. Spectral placement algorithms could be used to guess an
-initial location of the blocks with the hope of getting a lower local optimum.
-
+  initial value of the variables is important. Spectral placement algorithms could be used to guess an
+  initial location of the blocks with the hope of getting a lower local optimum.
 * Using the Euclidean distance to measure the dispersion pushes the blocks to take a circular shape.
-We could try to use other distances, such as Manhattan's or Chebyshev's, but we would lose
-differentiability, although this might not be a huge problem.
-
+  We could try to use other distances, such as Manhattan's or Chebyshev's, but we would lose
+  differentiability, although this might not be a huge problem.
 * We observe that the minimization of the total dispersion tends to focus on the blocks with more
-area. This makes the model ignore the blocks with less area, and they end up having strange shapes,
-sometimes even not connected (for example, see the block with area 1 with $\alpha$ equal to 0.2).
-A better model could possibly be obtained by considering the *normalized dispersion*, which we
-define as the dispersion divided of the block divided by its area.
+  area. This makes the model ignore the blocks with less area, and they end up having strange shapes,
+  sometimes even not connected (for example, see the block with area 1 with $\alpha$ equal to 0.2).
+  A better model could possibly be obtained by considering the *normalized dispersion*, which we
+  define as the dispersion divided of the block divided by its area.
+
+## Extensions
+
+### Normalized dispersion
+
+<img src="results/fp-nd-eu-0.00.png"/>
+<img src="results/fp-nd-eu-0.01.png"/>
+<img src="results/fp-nd-eu-0.02.png"/>
+<img src="results/fp-nd-eu-0.03.png"/>
+<img src="results/fp-nd-eu-0.04.png"/>
+<img src="results/fp-nd-eu-0.05.png"/>
+<img src="results/fp-nd-eu-0.06.png"/>
+<img src="results/fp-nd-eu-0.07.png"/>
+<img src="results/fp-nd-eu-0.08.png"/>
+<img src="results/fp-nd-eu-0.09.png"/>
+<img src="results/fp-nd-eu-0.1.png"/>
+<img src="results/fp-nd-eu-0.2.png"/>
+<img src="results/fp-nd-eu-0.3.png"/>
+<img src="results/fp-nd-eu-0.4.png"/>
+<img src="results/fp-nd-eu-0.5.png"/>
+<img src="results/fp-nd-eu-0.6.png"/>
+<img src="results/fp-nd-eu-0.7.png"/>
+<img src="results/fp-nd-eu-0.8.png"/>
+<img src="results/fp-nd-eu-0.9.png"/>
+<img src="results/fp-nd-eu-1.0.png"/>
+
+---
+
+

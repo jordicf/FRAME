@@ -1,28 +1,46 @@
 """
 Setup script.
 
-It sets up the FRAME package and its subpackages, and specifies metadata and third party dependencies.
+It sets up both the FRAME Python package (and subpackages) and the FRAME command-line utility,
+and specifies metadata and third party dependencies.
 """
 
 from setuptools import setup
 
-setup(name='frame',
-      version='0.1',
-      description='Floorplanning with RectilineAr ModulEs',
-      url='https://github.com/jordicf/FRAME',
-      packages=[
-        'frame',
-        'frame.die',
-        'frame.geometry',
-        'frame.netlist',
-        'frame.geometry',
-        'frame.netlist',
-        'frame.utils'],
-      install_requires=[
-          "networkx",
-          "ruamel.yaml",
-          "numpy",
-          "gekko",
-          "matplotlib",
-          "seaborn"]
+NAME = 'frame'
+DESCRIPTION = 'Floorplanning with RectilineAr ModulEs'
+URL = 'https://github.com/jordicf/FRAME'
+VERSION = '0.1'
+
+PACKAGES = [
+    'frame',
+    'frame.die',
+    'frame.geometry',
+    'frame.netlist',
+    'frame.utils',
+    'tools.hello'
+]
+
+INSTALL_REQUIRES = [
+    "networkx",
+    "ruamel.yaml",
+    "numpy",
+    "gekko",
+    "matplotlib",
+    "seaborn"
+]
+
+ENTRY_POINTS = {
+    "console_scripts": [
+        "frame = tools.frame:main"
+    ]
+}
+
+setup(name=NAME,
+      description=DESCRIPTION,
+      url=URL,
+      version=VERSION,
+      packages=PACKAGES,
+      install_requires=INSTALL_REQUIRES,
+      entry_points=ENTRY_POINTS
       )
