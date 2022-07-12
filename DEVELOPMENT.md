@@ -1,4 +1,4 @@
-# `FRAME` Development
+# FRAME Development
 
 `FRAME` is both a Python library (the `frame` package and its subpackages) and a set of tools
 accessible from the `frame` command-line utility.
@@ -58,7 +58,7 @@ folder. Note that the module name should be the one that appears in the
 ### Adding a new subpackage
 
 To add a new subpackage to the `frame` Python package, create a new directory inside the
-[`frame` top-level directory](frame). This new folder should contain an empty `__init__.py`
+[`frame` directory](frame). This new folder should contain an empty `__init__.py`
 file, and all the Python code of the new subpackage. Then, add the subpackage name (prefixed with
 `frame.`) in the `PACKAGES` list of the [`setup.py` script](setup.py).  Finally, re-execute
 `pip install -e .` from the top-level project folder.
@@ -71,9 +71,9 @@ contain an empty `__init__.py` file too, and the scripts defining the unit tests
 ### Adding a new tool
 
 To add a new tool to the `frame` command-line utility, create a new directory inside the
-[`tools` top-level directory](tools). This new folder should contain an empty `__init__.py`
-file, and all the Python code of the new tool. In particular, the main function of the tool should
-have the following signature:
+[`tools` directory](tools). This new folder should contain an empty `__init__.py` file, and all the 
+code of the new tool. In particular, the main function of the tool should have the following
+signature:
 
 ```python
 main(prog: str | None = None, args: list[str] | None = None)
