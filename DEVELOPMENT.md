@@ -51,27 +51,27 @@ python -m unittest discover -v -t . -s tests
 ### Adding third-party dependencies
 
 To add a third-party dependency, add the module name in the `INSTALL_REQUIRES` list of the
-[`setup.py` script](../../setup.py) and re-execute `pip install -e .` from the top-level project
+[`setup.py` script](setup.py) and re-execute `pip install -e .` from the top-level project
 folder. Note that the module name should be the one that appears in the
 [Python Package Index](https://pypi.org/).
 
 ### Adding a new subpackage
 
 To add a new subpackage to the `frame` Python package, create a new directory inside the
-[`frame` top-level directory](../../frame). This new folder should contain an empty `__init__.py`
+[`frame` top-level directory](frame). This new folder should contain an empty `__init__.py`
 file, and all the Python code of the new subpackage. Then, add the subpackage name (prefixed with
-`frame.`) in the `PACKAGES` list of the [`setup.py` script](../../setup.py).  Finally, re-execute
+`frame.`) in the `PACKAGES` list of the [`setup.py` script](setup.py).  Finally, re-execute
 `pip install -e .` from the top-level project folder.
 
 To add unit tests for the new subpackage, create a new directory inside the
-[`tests/frame` folder](../../tests/frame) with the name of the subpackage. This folder should
+[`tests/frame` folder](tests/frame) with the name of the subpackage. This folder should
 contain an empty `__init__.py` file too, and the scripts defining the unit tests using the
 [`unittest` unit testing framework](https://docs.python.org/3/library/unittest.html).
 
 ### Adding a new tool
 
 To add a new tool to the `frame` command-line utility, create a new directory inside the
-[`tools` top-level directory](../../tools). This new folder should contain an empty `__init__.py`
+[`tools` top-level directory](tools). This new folder should contain an empty `__init__.py`
 file, and all the Python code of the new tool. In particular, the main function of the tool should
 have the following signature:
 
@@ -82,12 +82,12 @@ main(prog: str | None = None, args: list[str] | None = None)
 where `prog` will be the name of the tool to be used in the command-line, and `args` is the list
 of arguments passed to the tool. These arguments should be parsed using the
 [`argparse` module](https://docs.python.org/3/library/argparse.html).  Then, add the tool name
-(prefixed with `tools.`) in the `PACKAGES` list of the [`setup.py` script](../../setup.py), and
+(prefixed with `tools.`) in the `PACKAGES` list of the [`setup.py` script](setup.py), and
 specify the tool name and the main function to call in the `TOOLS` dictionary in
-[`tools/frame.py`](../../tools/frame.py). Finally, re-execute `pip install -e .` from the top-level
+[`tools/frame.py`](tools/frame.py). Finally, re-execute `pip install -e .` from the top-level
 project folder.
 
 To add unit tests for the new tool, create a new directory inside the
-[`tests` folder](../../tests) with the name of the tool. This folder should
+[`tests` folder](tests) with the name of the tool. This folder should
 contain an empty `__init__.py` file too, and the scripts defining the unit tests using the
 [`unittest` unit testing framework](https://docs.python.org/3/library/unittest.html).
