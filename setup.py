@@ -27,13 +27,12 @@ INSTALL_REQUIRES = [
     "numpy",
     "gekko",
     "matplotlib",
-    "seaborn"
+    "seaborn",
+    "distinctipy"
 ]
 
 ENTRY_POINTS = {
-    "console_scripts": [
-        "frame = tools.frame:main"
-    ]
+    "console_scripts": ["frame = tools.frame:main"]
 }
 
 setup(name=NAME,
