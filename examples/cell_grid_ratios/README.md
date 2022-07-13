@@ -101,32 +101,3 @@ that the total wire length is 0 for $\alpha$ equal or greater than 0.5.
   sometimes even not connected (for example, see the block with area 1 with $\alpha$ equal to 0.2).
   A better model could possibly be obtained by considering the *normalized dispersion*, which we
   define as the dispersion divided of the block divided by its area.
-
-## Extensions
-
-### Normalized dispersion
-
-<img src="results/fp-nd-eu-0.00.png"/>
-<img src="results/fp-nd-eu-0.01.png"/>
-<img src="results/fp-nd-eu-0.02.png"/>
-<img src="results/fp-nd-eu-0.03.png"/>
-<img src="results/fp-nd-eu-0.04.png"/>
-<img src="results/fp-nd-eu-0.05.png"/>
-<img src="results/fp-nd-eu-0.06.png"/>
-<img src="results/fp-nd-eu-0.07.png"/>
-<img src="results/fp-nd-eu-0.08.png"/>
-<img src="results/fp-nd-eu-0.09.png"/>
-<img src="results/fp-nd-eu-0.1.png"/>
-<img src="results/fp-nd-eu-0.2.png"/>
-<img src="results/fp-nd-eu-0.3.png"/>
-<img src="results/fp-nd-eu-0.4.png"/>
-<img src="results/fp-nd-eu-0.5.png"/>
-<img src="results/fp-nd-eu-0.6.png"/>
-<img src="results/fp-nd-eu-0.7.png"/>
-<img src="results/fp-nd-eu-0.8.png"/>
-<img src="results/fp-nd-eu-0.9.png"/>
-<img src="results/fp-nd-eu-1.0.png"/>
-
----
-
-
