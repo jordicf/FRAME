@@ -9,7 +9,7 @@ import tools.hello.hello
 TOOLS = {"hello": tools.hello.hello.main}
 
 
-def main():
+def main() -> None:
     """Main function."""
     parser = argparse.ArgumentParser(prog="frame")
     parser.add_argument("tool", choices=TOOLS.keys(), nargs=argparse.REMAINDER, help="tool to execute")
