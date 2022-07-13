@@ -2,6 +2,8 @@
 
 # FRAME: Floorplanning with RectilineAr ModulEs
 
+[![Lint & Test](https://github.com/jordicf/FRAME/actions/workflows/python-app.yml/badge.svg?branch=master)](https://github.com/jordicf/FRAME/actions/workflows/python-app.yml)
+
 `FRAME` is a framework for chip planning where modules can be implemented as rectilinear
 blocks.
 

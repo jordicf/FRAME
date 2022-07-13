@@ -11,7 +11,7 @@ TOOLS = {"hello": tools.hello.hello.main,
          "draw": tools.draw.draw.main}
 
 
-def main():
+def main() -> None:
     """Main function."""
     parser = argparse.ArgumentParser(prog="frame")
     parser.add_argument("tool", choices=TOOLS.keys(), nargs=argparse.REMAINDER, help="tool to execute")

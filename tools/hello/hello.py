@@ -1,7 +1,7 @@
 from argparse import ArgumentParser
 
 
-def hello(name: str | None = None):
+def hello(name: str | None = None) -> str:
     """
     Returns a string saying hello.
 
@@ -13,7 +13,7 @@ def hello(name: str | None = None):
     return f"Hello {name}!"
 
 
-def parse_options(prog: str | None = None, args: list[str] | None = None):
+def parse_options(prog: str | None = None, args: list[str] | None = None) -> dict[str, any]:
     """
     Parse the command-line arguments for the tool.
 
@@ -26,7 +26,7 @@ def parse_options(prog: str | None = None, args: list[str] | None = None):
     return vars(parser.parse_args(args))
 
 
-def main(prog: str | None = None, args: list[str] | None = None):
+def main(prog: str | None = None, args: list[str] | None = None) -> None:
     """Main function."""
     options = parse_options(prog, args)
     name = options["name"]
