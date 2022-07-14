@@ -2,7 +2,7 @@
 
 ## Problem Statement
 
-Given a fuzzy (non-necessarily uniform) grid of rectangles, each one with a particular density for every module, and a particular module to normalize, finds the set of rectangles that best conform to that shape. The definition of "best conforms" depends on the parameters set.
+Given a (non-necessarily uniform) grid of rectangles, each one with a particular density for every module, and a particular module to normalize, finds the set of rectangles that best conform to the shape of that module. The definition of "best conforms" depends on the parameters set.
 
 ## Installation
 
@@ -28,23 +28,50 @@ Options:
 
 ### Minarea option
 
-\textbf{Maximize} \hspace{10px} $ (\sum A_i p_i x_i) / (\sum A_i x_i)$
+When running the minarea option, the program tries to maximize the density of the enclosed area all while ensuring the total area is at least a percentage of the original area. It's called minarea because, in practice, this option finds the minimum area with the maximum density.
 
-\textbf{Subject To} \hspace{3px} $\sum A_i x_i \geq 0.89 \sum A_i p_i$
+**Maximize** $(\sum A_i p_i x_i) / (\sum A_i x_i)$
+
+**Subject To** $\sum A_i x_i \geq 0.89 \sum A_i p_i$
 
 ### Maxdiff option
 
-\textbf{Maximize} \hspace{10px} $3\sum A_i p_i x_i - \sum A_i x_i$
+When running the maxdiff option, the program maximizes the difference between the area inside and the area outside of the rectangle.
+
+The area inside the rectangles can be written as $\sum A_i p_i x_i$, the area outside of the area is $\sum A_i p_i (1 - x_i)$, and the area inside the rectangles that's not part of the module is $\sum A_i (1 - p_i) x_i$. The difference is:
+
+**Maximize** $\sum A_i p_i x_i - \sum A_i p_i (1 - x_i) - \sum A_i (1 - p_i) x_i$
+
+Simplifying down the formula, we get:
+
+**Maximize** $3\sum A_i p_i x_i - \sum A_i x_i - \sum A_i p_i$
+
+Note how $\sum A_i p_i$ is just a constant (does not depend on any variable of the model) and therefore we can simplify it down to:
+
+**Maximize** $3\sum A_i p_i x_i - \sum A_i x_i$
 
 ### Minerr option
 
-\textbf{Maximize} \hspace{10px} $2\sum A_i p_i x_i - \sum A_i x_i$
+When running the minerr option, the program minimizes the error. The error is just the last two terms in the original formulation of the last option. Simplifying:
+
+**Maximize** $2\sum A_i p_i x_i - \sum A_i x_i$
 
 ### sf option
 
-$\begin{cases} 
-{\text{Maximize \hspace{10px}}  (\sum A_i p_i x_i) / (\sum A_i x_i)\\
-\text{Subject To \hspace{3px}} \sum A_i x_i \geq d \sum A_i p_i}  \hspace{30px} & d < 1\\ \\
- {\text{Maximize} \hspace{10px} d\sum A_i p_i x_i - \sum A_i x_i} & d \geq 1
-\end{cases}$
+The sf option is a generalitazion of the other two options.
 
+if d < 1 then:
+
+.  **Maximize**  $(\sum A_i p_i x_i) / (\sum A_i x_i)$
+
+.  **Subject To** $\sum A_i x_i \geq d \sum A_i p_i$
+
+else:
+
+.  **Maximize** $d\sum A_i p_i x_i - \sum A_i x_i$
+
+If $d < 1$, the option runs just as the minarea option, except the arbitrary 0.89 constant is changed to whatever value you set for $d$.
+
+If $d \geq 1$, the option runs just as the maxdiff or the minerr options, but changing the 3 or 2 constant respectively with $d$.
+
+This option was added for testing purposes, and is not really recomended.
