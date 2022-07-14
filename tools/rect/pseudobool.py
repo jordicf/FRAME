@@ -1,3 +1,5 @@
+import collections
+
 class Literal:
     def __init__(self, var: str, sign: bool = True) -> None:
         self.v = str(var)
@@ -61,7 +63,7 @@ class Term:
 class Expr:
     def __init__(self, c: int = 0, t: dict = {}) -> None:
         self.c = int(c)
-        self.t = {}
+        self.t = collections.OrderedDict()
         for v in t:
             self.t[v] = Term(t[v].l, t[v].c)
     def __add__(self, term):
@@ -210,6 +212,7 @@ class Ineq:
         if (s > self.rhs or (s >= self.rhs and self.op == ">=")):
             return False
         self.clause = clause
+        self.clause.sort()
         return True
     def tostr(self) -> str:
         if self.clause != None:
