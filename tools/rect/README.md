@@ -28,23 +28,24 @@ Options:
 
 ### Minarea option
 
-\textbf{Maximize} \hspace{10px} $ (\sum A_i p_i x_i) / (\sum A_i x_i)$
+**Maximize** $(\sum A_i p_i x_i) / (\sum A_i x_i)$
 
-\textbf{Subject To} \hspace{3px} $\sum A_i x_i \geq 0.89 \sum A_i p_i$
+**Subject To** $\sum A_i x_i \geq 0.89 \sum A_i p_i$
 
 ### Maxdiff option
 
-\textbf{Maximize} \hspace{10px} $3\sum A_i p_i x_i - \sum A_i x_i$
+**Maximize** $3\sum A_i p_i x_i - \sum A_i x_i$
 
 ### Minerr option
 
-\textbf{Maximize} \hspace{10px} $2\sum A_i p_i x_i - \sum A_i x_i$
+**Maximize** $2\sum A_i p_i x_i - \sum A_i x_i$
 
 ### sf option
 
-$\begin{cases} 
-{\text{Maximize \hspace{10px}}  (\sum A_i p_i x_i) / (\sum A_i x_i)\\
-\text{Subject To \hspace{3px}} \sum A_i x_i \geq d \sum A_i p_i}  \hspace{30px} & d < 1\\ \\
- {\text{Maximize} \hspace{10px} d\sum A_i p_i x_i - \sum A_i x_i} & d \geq 1
-\end{cases}$
+if d < 1 then:
+  **Maximize**  $(\sum A_i p_i x_i) / (\sum A_i x_i)$
+  **Subject To** $\sum A_i x_i \geq d \sum A_i p_i}$
+else:
+  **Maximize** $d\sum A_i p_i x_i - \sum A_i x_i}$
+
 
