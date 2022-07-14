@@ -204,16 +204,16 @@ def solve(ratio, dif, nboxes):
             else:
                 s += "."
         print(s)
-    print("Selected area:    " + str(float(sm.eval_expr(selarea)) / float(factor)))
-    print("Real area:        " + str(float(sm.eval_expr(realarea)) / float(factor)))
+    print("Selected area:    " + str(float(sm.evalExpr(selarea)) / float(factor)))
+    print("Real area:        " + str(float(sm.evalExpr(realarea)) / float(factor)))
     print("Theoretical area: " + str(theoreticalBestArea / float(factor)))
-    print("Error objective:  " + str(sm.eval_expr(obj)))
+    print("Error objective:  " + str(sm.evalExpr(obj)))
     # Min area approach
     if f < 1:
-        return ( sm.eval_expr( selarea ) + 1, sm.eval_expr( realarea ) )
+        return ( sm.evalExpr( selarea ) + 1, sm.evalExpr( realarea ) )
     # Min error approach
     else:
-        return (sm.eval_expr(obj) + 1, 1)
+        return (sm.evalExpr(obj) + 1, 1)
 
 def getFile():
     outstr = str(ifile['Width']) + " " + str(ifile['Height']) + " " + str(len(input_problem)) + "\n"

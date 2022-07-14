@@ -99,7 +99,7 @@ class SATManager:
         if not lit.s:
             return 1 - self.model[lit.v]
         return self.model[lit.v]
-    def eval_expr(self, expr: Expr) -> float:
+    def evalExpr(self, expr: Expr) -> float:
         s = expr.c
         for t in expr.t:
             if self.value(expr.t[t].l) == None:
