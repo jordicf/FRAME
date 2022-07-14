@@ -43,9 +43,13 @@ Options:
 ### sf option
 
 if d < 1 then:
+
 .  **Maximize**  $(\sum A_i p_i x_i) / (\sum A_i x_i)$
+
 .  **Subject To** $\sum A_i x_i \geq d \sum A_i p_i$
+
 else:
+
 .  **Maximize** $d\sum A_i p_i x_i - \sum A_i x_i$
 
 
