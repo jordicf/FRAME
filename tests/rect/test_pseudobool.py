@@ -1,5 +1,7 @@
 import unittest
-import pseudobool
+import tools.rect.pseudobool
+
+pseudobool = tools.rect.pseudobool
 
 class TestPseudoboolean(unittest.TestCase):
 
