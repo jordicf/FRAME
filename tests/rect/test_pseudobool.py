@@ -27,9 +27,9 @@ class TestPseudoboolean(unittest.TestCase):
         b = pseudobool.Literal('b')
         c = pseudobool.Literal('c')
         i = a + 4 * b + 5 * c >= 3
-        self.assertEqual(i.tostr(), '1 a + 5 c + 4 b + 0.0 >= 3')
+        self.assertEqual(i.tostr(), '1 a + 4 b + 5 c + 0.0 >= 3')
         self.assertTrue(i.isclause())
-        self.assertEqual(i.tostr(), '1 c + 1 b >= 1')
+        self.assertEqual(i.tostr(), '1 b + 1 c >= 1')
 
 if __name__ == '__main__':
     unittest.main()
