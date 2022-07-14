@@ -2,7 +2,7 @@
 
 ## Problem Statement
 
-Given a fuzzy (non-necessarily uniform) grid of rectangles, each one with a particular density for every module, and a particular module to normalize, finds the set of rectangles that best conform to that shape. The definition of "best conforms" depends on the parameters set.
+Given a (non-necessarily uniform) grid of rectangles, each one with a particular density for every module, and a particular module to normalize, finds the set of rectangles that best conform to the shape of that module. The definition of "best conforms" depends on the parameters set.
 
 ## Installation
 
