@@ -10,3 +10,10 @@ models/rect/greedy.exe
 models/rect/tmp.cnf
 models/rect/output.out
 models/rect/tofind.txt
+tools/rect/greedy.exe
+tools/rect/output.out
+tools/rect/pseudobool.pyc
+tools/rect/satmanager.pyc
+tools/rect/tmp.cnf
+tools/rect/satmanager.pyc
+tools/rect/pseudobool.pyc
