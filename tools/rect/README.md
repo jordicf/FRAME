@@ -28,19 +28,37 @@ Options:
 
 ### Minarea option
 
+When running the minarea option, the program tries to maximize the density of the enclosed area all while ensuring the total area is at least a percentage of the original area. It's called minarea because, in practice, this option finds the minimum area with the maximum density.
+
 **Maximize** $(\sum A_i p_i x_i) / (\sum A_i x_i)$
 
 **Subject To** $\sum A_i x_i \geq 0.89 \sum A_i p_i$
 
 ### Maxdiff option
 
+When running the maxdiff option, the program maximizes the difference between the area inside and the area outside of the rectangle.
+
+The area inside the rectangles can be written as $\sum A_i p_i x_i$, the area outside of the area is $\sum A_i p_i (1 - x_i)$, and the area inside the rectangles that's not part of the module is $\sum A_i (1 - p_i) x_i$. The difference is:
+
+**Maximize** $\sum A_i p_i x_i - \sum A_i p_i (1 - x_i) - \sum A_i (1 - p_i) x_i$
+
+Simplifying down the formula, we get:
+
+**Maximize** $3\sum A_i p_i x_i - \sum A_i x_i - \sum A_i p_i$
+
+Note how $\sum A_i p_i$ is just a constant (does not depend on any variable of the model) and therefore we can simplify it down to:
+
 **Maximize** $3\sum A_i p_i x_i - \sum A_i x_i$
 
 ### Minerr option
 
+When running the minerr option, the program minimizes the error. The error is just the last two terms in the original formulation of the last option. Simplifying:
+
 **Maximize** $2\sum A_i p_i x_i - \sum A_i x_i$
 
 ### sf option
+
+The sf option is a generalitazion of the other two options.
 
 if d < 1 then:
 
@@ -52,4 +70,8 @@ else:
 
 .  **Maximize** $d\sum A_i p_i x_i - \sum A_i x_i$
 
+If $d < 1$, the option runs just as the minarea option, except the arbitrary 0.89 constant is changed to whatever value you set for $d$.
 
+If $d \geq 1$, the option runs just as the maxdiff or the minerr options, but changing the 3 or 2 constant respectively with $d$.
+
+This option was added for testing purposes, and is not really recomended.
