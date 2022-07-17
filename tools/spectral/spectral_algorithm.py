@@ -7,7 +7,7 @@ modified to incorporate the mass of each node. The mass is interpreted as the mu
 import math
 import random
 from frame.utils.utils import Vector, Matrix
-from spectral import AdjEdge, AdjList
+from .spectral_types import AdjEdge, AdjList
 
 
 def spectral_layout_unit_square(adj: AdjList, mass: Vector, dim: int = 2) -> Matrix:

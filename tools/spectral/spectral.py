@@ -5,23 +5,14 @@ modified to incorporate the mass of each node. The mass is interpreted as the mu
 """
 import networkx as nx
 from argparse import ArgumentParser
-from typing import TextIO, NamedTuple, Any
+from typing import TextIO, Any
 
 from frame.die.die import Die
 from frame.geometry.geometry import Point, Shape
 from frame.netlist.netlist import Netlist
-from spectral_algorithm import spectral_layout_unit_square
-
-
-# Representation of an edge in the adjacency list of a graph (possibly obtained from a hypergraph).
-# The edge represents the target node in an adjacency list
-class AdjEdge(NamedTuple):
-    node: int  # target node
-    weight: float  # Weight of the edge
-
-
-AdjList = list[list[AdjEdge]]
-Vector = list[float]
+from frame.utils.utils import Vector
+from .spectral_types import AdjEdge, AdjList
+from .spectral_algorithm import spectral_layout_unit_square
 
 
 class Spectral(Netlist):

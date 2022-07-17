@@ -2,13 +2,18 @@
 
 import argparse
 
-import tools.draw.draw
-import tools.hello.hello
+import tools.hello.hello  # Fake tool
+import tools.draw.draw  # To draw floorplans
+import tools.spectral.spectral # To find an initial position of modules using spectral methods
+import tools.netgen.netgen # Netlist generator
 
 # Tool names and the entry function they execute.
 # The functions must accept two parameters: the tool name and the command-line arguments passed to it.
 TOOLS = {"hello": tools.hello.hello.main,
-         "draw": tools.draw.draw.main}
+         "draw": tools.draw.draw.main,
+         "spectral": tools.spectral.spectral.main,
+         "netgen": tools.netgen.netgen.main
+         }
 
 
 def main() -> None:

@@ -5,8 +5,8 @@ from __future__ import annotations
 
 from typing import NamedTuple, Tuple, Any
 
-from ..utils.keywords import KW_FIXED, KW_CENTER, KW_SHAPE, KW_REGION, KW_NAME, KW_GROUND
-from ..utils.utils import valid_identifier
+from frame.utils.keywords import KW_FIXED, KW_CENTER, KW_SHAPE, KW_REGION, KW_NAME, KW_GROUND
+from frame.utils.utils import valid_identifier
 
 
 class Point:
