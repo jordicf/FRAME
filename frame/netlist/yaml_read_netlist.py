@@ -93,14 +93,14 @@ def parse_yaml_module(name: str, info: YamlDict) -> Module:
         else:
             assert False, f"Unknown module attribute {key}"
 
-    b = Module(name, **params)
+    m = Module(name, **params)
 
     if KW_RECTANGLES in info:
         rectangles = parse_yaml_rectangles(info[KW_RECTANGLES], cast(bool, params[KW_FIXED]), name)
         for r in rectangles:
-            b.add_rectangle(r)
-        b.name_rectangles()
-    return b
+            m.add_rectangle(r)
+        m.name_rectangles()
+    return m
 
 
 def parse_yaml_center(center: list[float], name: str) -> Point:

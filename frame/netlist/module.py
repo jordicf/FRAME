@@ -124,10 +124,12 @@ class Module:
 
     @property
     def num_rectangles(self) -> int:
+        """Returns the number of rectangles of the module."""
         return len(self.rectangles)
 
     @property
     def rectangles(self) -> list[Rectangle]:
+        """Returns the list of rectangles of the module."""
         return self._rectangles
 
     @property
@@ -159,7 +161,7 @@ class Module:
     def add_allocation(self, region: str, usage: float) -> None:
         """
         Adds an allocation to a region
-        :param region: name of the region where the module must be allocated (a rectangle in the layout)
+        :param region: name of the region where the module must be allocated (a rectangle in the die)
         :param usage: usage of the region (ratio between 0 and 1)
         """
         assert 0 <= usage <= 1, "Invalid usage specification of a region"
@@ -219,6 +221,7 @@ class Module:
             sum_y += r.area * r.center.y
             area += r.area
         self.center = Point(sum_x / area, sum_y / area)
+        return self.center
 
     def __str__(self) -> str:
         s = f"{self.name}: {KW_AREA}={self.area_regions} {KW_CENTER}={self.center}"
