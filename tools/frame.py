@@ -2,9 +2,8 @@
 
 import argparse
 
-import tools.hello.hello
 import tools.draw.draw
-
+import tools.hello.hello
 
 # Tool names and the entry function they execute.
 # The functions must accept two parameters: the tool name and the command-line arguments passed to it.

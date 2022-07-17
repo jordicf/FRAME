@@ -75,10 +75,11 @@ def check_modules(modules: list[Module]) -> None:
     """
     Check that all modules are drawable, i.e., we either have a list of rectangles or a center and an area
     :param modules: list of modules
-    :raises exception: if some of the modules is not drawable
+    :raises exception: if some module is not drawable
     """
     for m in modules:
-        if m.num_rectangles > 0: continue
+        if m.num_rectangles > 0:
+            continue
         assert m.center is not None, f'module {m.name} is not drawable. It has neither center nor rectangles.'
         assert m.area() > 0, f'module {m.name} is not drawable (no area specified).'
 
@@ -122,8 +123,8 @@ def create_canvas(s: Scaling):
     :param s: scaling of the layout
     """
     im = Image.new('RGBA', (s.width + 2 * s.frame, s.height + 2 * s.frame), (0, 0, 0, 255))
-    draw = ImageDraw.Draw(im)
-    return im, draw
+    drawing = ImageDraw.Draw(im)
+    return im, drawing
 
 
 def calculate_centers(e: HyperEdge) -> list[Point]:
@@ -162,23 +163,23 @@ def draw_rectangle(im: Image, r: Rectangle, color, scaling: Scaling, fontsize: i
 def draw_geometry(im: Image, ll: Point, ur: Point, color, scaling: Scaling,
                   name: str, fontsize: int, circle: bool) -> None:
     transp = Image.new('RGBA', im.size, (0, 0, 0, 0))
-    draw = ImageDraw.Draw(transp, "RGBA")
+    drawing = ImageDraw.Draw(transp, "RGBA")
     ll = scale(ll, scaling)
     ur = scale(ur, scaling)
     # Notice that y-coordinates are swapped
     if circle:
-        draw.ellipse((ll.x, ur.y, ur.x, ll.y), fill=color)
+        drawing.ellipse((ll.x, ur.y, ur.x, ll.y), fill=color)
     else:
-        draw.rectangle((ll.x, ur.y, ur.x, ll.y), fill=color)
+        drawing.rectangle((ll.x, ur.y, ur.x, ll.y), fill=color)
     # Now the name
     font = ImageFont.truetype("arial.ttf", fontsize)
     ccolor = distinctipy.get_text_color((color[0] / 255, color[1] / 255, color[2] / 255), threshold=0.6)[0]
     ccolor = round(ccolor * 255)
     ccolor = (ccolor, ccolor, ccolor)
-    txt_w, txt_h = draw.textsize(name, font=font)  # To center the text
+    txt_w, txt_h = drawing.textsize(name, font=font)  # To center the text
     txt_x, txt_y = round((ll.x + ur.x - txt_w) / 2), round((ll.y + ur.y - txt_h) / 2)
-    draw.text((txt_x, txt_y), name, fill=ccolor, font=font, align="center", anchor="ms", stroke_width=1,
-              stroke_fill=ccolor)
+    drawing.text((txt_x, txt_y), name, fill=ccolor, font=font, align="center",
+                 anchor="ms", stroke_width=1, stroke_fill=ccolor)
     im.paste(Image.alpha_composite(im, transp))
 
 
@@ -207,12 +208,12 @@ def draw(options: dict[str, Any]) -> int:
     # Scaling factors
     frame = options['frame']
     scaling = calculate_scaling(die, options['width'], options['height'], frame)
-    im, draw = create_canvas(scaling)
+    im, drawing = create_canvas(scaling)
 
     # Outer frame
-    draw.rectangle((0, 0, scaling.width + 2 * frame, scaling.height + 2 * frame), outline=COLOR_GREY, width=4)
+    drawing.rectangle((0, 0, scaling.width + 2 * frame, scaling.height + 2 * frame), outline=COLOR_GREY, width=4)
     # Inner frame
-    draw.rectangle((frame, frame, scaling.width + frame, scaling.height + frame), outline=COLOR_WHITE, width=2)
+    drawing.rectangle((frame, frame, scaling.width + frame, scaling.height + frame), outline=COLOR_WHITE, width=2)
 
     # Draw rectangles or circles of the modules
     for m in netlist.modules:
@@ -229,10 +230,11 @@ def draw(options: dict[str, Any]) -> int:
         canvas_points = [scale(p, scaling) for p in list_points]
         center = canvas_points[0]
         for pin in canvas_points[1:]:
-            draw.line([(center.x, center.y), (pin.x, pin.y)], fill=COLOR_WHITE, width=3)
+            drawing.line([(center.x, center.y), (pin.x, pin.y)], fill=COLOR_WHITE, width=3)
         if len(canvas_points) > 3:  # Circle in the center
             rad = 8
-            draw.ellipse([center.x - rad, center.y - rad, center.x + rad, center.y + rad], outline=COLOR_WHITE, width=3)
+            drawing.ellipse([center.x - rad, center.y - rad, center.x + rad, center.y + rad],
+                            outline=COLOR_WHITE, width=3)
 
     # Output file
     outfile = options['outfile']
@@ -244,15 +246,15 @@ def draw(options: dict[str, Any]) -> int:
 
 def parse_options(prog: str | None = None, args: list[str] | None = None) -> dict[str, Any]:
     """
-    Parse the command-line arguments for the tool.
-
-    :param prog: tool name.
-    :param args: command-line arguments.
-    :return: a dictionary with the arguments.
+    Parse the command-line arguments for the tool
+    :param prog: tool name
+    :param args: command-line arguments
+    :return: a dictionary with the arguments
     """
     parser = ArgumentParser(prog=prog, description="A floorplan drawing tool", usage='%(prog)s [options]')
     parser.add_argument("netlist", help="input file (netlist)")
-    parser.add_argument("--die", help="Size of the die (width x height) or name of the file", metavar="<width>x<height> or filename")
+    parser.add_argument("--die", help="Size of the die (width x height) or name of the file",
+                        metavar="<width>x<height> or filename")
     parser.add_argument("-o", "--outfile", help="output file (gif)")
     parser.add_argument("--width", type=int, default=0, help="width of the picture (in pixels)")
     parser.add_argument("--height", type=int, default=0, help="height of the picture (in pixels)")

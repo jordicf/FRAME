@@ -40,37 +40,37 @@ class TestPoint(unittest.TestCase):
         self.assertNotEqual(self.p - self.q, self.q - self.p)
 
     def test_mul(self) -> None:
-        self.assertEqual(self.p*2, Point(2, 4))
-        self.assertEqual(self.p*0.5, Point(0.5, 1))
-        self.assertEqual(self.p*1, self.p)
-        self.assertEqual(self.p*-1, -self.p)
-        self.assertEqual(2*self.q, Point(-3, 0))
-        self.assertEqual(0.5*self.q, Point(-0.75, 0))
-        self.assertEqual(1*self.q, self.q)
-        self.assertEqual(-1*self.q, -self.q)
-        self.assertEqual(self.p*self.r, self.r)
-        self.assertEqual(self.p*self.q, self.q*self.p)
+        self.assertEqual(self.p * 2, Point(2, 4))
+        self.assertEqual(self.p * 0.5, Point(0.5, 1))
+        self.assertEqual(self.p * 1, self.p)
+        self.assertEqual(self.p * -1, -self.p)
+        self.assertEqual(2 * self.q, Point(-3, 0))
+        self.assertEqual(0.5 * self.q, Point(-0.75, 0))
+        self.assertEqual(1 * self.q, self.q)
+        self.assertEqual(-1 * self.q, -self.q)
+        self.assertEqual(self.p * self.r, self.r)
+        self.assertEqual(self.p * self.q, self.q * self.p)
 
     def test_pow(self) -> None:
-        self.assertEqual(self.p**2, Point(1, 4))
-        self.assertEqual(self.q**2, Point(2.25, 0))
-        self.assertEqual(self.p**0, self.r + 1)
+        self.assertEqual(self.p ** 2, Point(1, 4))
+        self.assertEqual(self.q ** 2, Point(2.25, 0))
+        self.assertEqual(self.p ** 0, self.r + 1)
 
     def test_div(self) -> None:
-        self.assertEqual(self.p/2, Point(0.5, 1))
-        self.assertEqual(self.p/1, self.p)
-        self.assertEqual(self.p/-1, -self.p)
-        self.assertEqual(self.q/-1.5, Point(1, 0))
-        self.assertEqual(self.r/10, self.r)
-        self.assertEqual(2/self.p, Point(2, 1))
-        self.assertEqual(1/self.p, Point(1, 0.5))
-        self.assertEqual(-1/self.p, Point(-1, -0.5))
+        self.assertEqual(self.p / 2, Point(0.5, 1))
+        self.assertEqual(self.p / 1, self.p)
+        self.assertEqual(self.p / -1, -self.p)
+        self.assertEqual(self.q / -1.5, Point(1, 0))
+        self.assertEqual(self.r / 10, self.r)
+        self.assertEqual(2 / self.p, Point(2, 1))
+        self.assertEqual(1 / self.p, Point(1, 0.5))
+        self.assertEqual(-1 / self.p, Point(-1, -0.5))
         with self.assertRaises(ZeroDivisionError):
-            self.p/0
+            self.p / 0
         with self.assertRaises(ZeroDivisionError):
-            -1.5/self.q
+            -1.5 / self.q
         with self.assertRaises(ZeroDivisionError):
-            10/self.r
+            10 / self.r
 
     def test_dot_product(self) -> None:
         self.assertEqual(self.p & self.q, -1.5)

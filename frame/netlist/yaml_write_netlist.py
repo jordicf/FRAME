@@ -1,9 +1,8 @@
-from ..utils.keywords import KW_AREA, KW_FIXED, KW_CENTER, KW_MIN_SHAPE, KW_RECTANGLES, KW_GROUND
-from ..geometry.geometry import Rectangle
-
 from .module import Module
-from .yaml_read_netlist import YamlDict, YamlSeq
 from .netlist_types import HyperEdge
+from .yaml_read_netlist import YamlDict, YamlSeq
+from ..geometry.geometry import Rectangle
+from ..utils.keywords import KW_AREA, KW_FIXED, KW_CENTER, KW_MIN_SHAPE, KW_RECTANGLES, KW_GROUND
 
 
 def dump_yaml_modules(modules: list[Module]) -> YamlDict:

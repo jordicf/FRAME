@@ -1,7 +1,7 @@
 import unittest
 
-from frame.netlist.module import Module
 from frame.geometry.geometry import Point, Shape, Rectangle
+from frame.netlist.module import Module
 
 
 class Testmodule(unittest.TestCase):

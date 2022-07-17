@@ -1,9 +1,11 @@
 # A drawing tool for rectilinear floorplans
 
 This is a drawing tool for rectilinear floorplans. The tool reads a netlist in which each module can
-be represented by a set of rectangles or by a center and an area. If no rectangles are specified, the module is drawn as a circle.
+be represented by a set of rectangles or by a center and an area. If no rectangles are specified, the module is drawn as
+a circle.
 
 ## Usage
+
 ```
 usage: frame draw [options]
 
@@ -25,9 +27,10 @@ options:
 ```
 
 The option `--die` is used to specify the size of the die. It can be done in two ways:
+
 * By specifiying the width and the height in a string, e.g., `--die 50x40`
 * By specifying the name of a file that describes the die, e.g., `--die die.yml`.
-In this case, the width and height of the die is obtained from the file.
+  In this case, the width and height of the die is obtained from the file.
 
 The option `--outfile` is optional. If not specified, the name of the input file is used and a `.gif`
 suffix is added (substituting the original suffix).

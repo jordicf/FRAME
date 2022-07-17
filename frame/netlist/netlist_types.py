@@ -1,5 +1,4 @@
 from typing import NamedTuple
-
 from .module import Module
 
 

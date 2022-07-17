@@ -2,6 +2,7 @@
 Module to represent points, shapes and rectangles
 """
 from __future__ import annotations
+
 from typing import NamedTuple, Tuple, Any
 
 from ..utils.keywords import KW_FIXED, KW_CENTER, KW_SHAPE, KW_REGION, KW_NAME, KW_GROUND
@@ -12,12 +13,12 @@ class Point:
     """
     A class to represent a two-dimensional point, and operate with them
     """
+
     def __init__(self, x: Point | tuple[float, float] | float | None = None, y: float | None = None) -> None:
         """
-        Constructor of a Point. See the example for ways of constructing it.
-
-        :param x: a Point or tuple[float, float], a float, or None.
-        :param y: None if x is a Point, tuple[float, float] or None, or a float if x is a float.
+        Constructor of a Point. See the example for ways of constructing it
+        :param x: a Point or tuple[float, float], a float, or None
+        :param y: None if x is a Point, tuple[float, float] or None, or a float if x is a float
 
         :Example:
         >>> Point()
@@ -69,27 +70,27 @@ class Point:
     def __mul__(self, other: float | Point) -> Point:
         """Return self*other using component-wise multiplication. other can either be a number or another point."""
         other = Point(other)
-        return Point(self.x*other.x, self.y*other.y)
+        return Point(self.x * other.x, self.y * other.y)
 
     __rmul__ = __mul__
 
     def __pow__(self, exponent: float) -> Point:
         """Return self**exponent using component-wise exponentiation."""
-        return Point(self.x**exponent, self.y**exponent)
+        return Point(self.x ** exponent, self.y ** exponent)
 
     def __truediv__(self, other: float | Point) -> Point:
         """Return self / other using component-wise true division. other can either be a number or another point."""
         other = Point(other)
-        return Point(self.x/other.x, self.y/other.y)
+        return Point(self.x / other.x, self.y / other.y)
 
     def __rtruediv__(self, other: float | Point):
         """Return other / self using component-wise true division. other can either be a number or another point."""
         other = Point(other)
-        return Point(other.x/self.x, other.y/self.y)
+        return Point(other.x / self.x, other.y / self.y)
 
     def __and__(self, other: Point) -> float:
         """Dot product between self and other."""
-        return self.x*other.x + self.y*other.y
+        return self.x * other.x + self.y * other.y
 
     def __str__(self) -> str:
         return f"Point(x={self.x}, y={self.y})"
@@ -121,11 +122,11 @@ class Rectangle:
         """
 
         # Attributes
-        self._center: Point = Point(-1, -1)     # Center of the rectangle
-        self._shape: Shape = Shape(-1, -1)      # Shape: width and height
-        self._fixed: bool = False               # Is the rectangle fixed?
-        self._region: str = KW_GROUND           # Region of the layout to which the rectangle belongs to
-        self._name: str = ""                    # Name of the rectangle
+        self._center: Point = Point(-1, -1)  # Center of the rectangle
+        self._shape: Shape = Shape(-1, -1)  # Shape: width and height
+        self._fixed: bool = False  # Is the rectangle fixed?
+        self._region: str = KW_GROUND  # Region of the layout to which the rectangle belongs to
+        self._name: str = ""  # Name of the rectangle
 
         # Reading parameters and type checking
         for key, value in kwargs.items():

@@ -1,7 +1,9 @@
 import unittest
+
 import tools.rect.pseudobool
 
 pseudobool = tools.rect.pseudobool
+
 
 class TestPseudoboolean(unittest.TestCase):
 
@@ -30,6 +32,7 @@ class TestPseudoboolean(unittest.TestCase):
         self.assertEqual(i.tostr(), '1 a + 4 b + 5 c + 0.0 >= 3')
         self.assertTrue(i.isclause())
         self.assertEqual(i.tostr(), '1 b + 1 c >= 1')
+
 
 if __name__ == '__main__':
     unittest.main()

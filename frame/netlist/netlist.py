@@ -2,22 +2,16 @@
 Module to represent netlists
 """
 
-from typing import TextIO
 from io import StringIO
-
-import networkx as nx
+from typing import TextIO
 from ruamel.yaml import YAML
 
-from ..utils.keywords import KW_MODULES, KW_EDGES
-from ..geometry.geometry import Rectangle
-
+from .module import Module
+from .netlist_types import HyperEdge
 from .yaml_read_netlist import parse_yaml_netlist
 from .yaml_write_netlist import dump_yaml_modules, dump_yaml_edges
-from .netlist_types import Edge, HyperEdge
-from .module import Module
-
-
-AdjList = list[list[Edge]]
+from ..geometry.geometry import Rectangle
+from ..utils.keywords import KW_MODULES, KW_EDGES
 
 
 class Netlist:
@@ -29,9 +23,6 @@ class Netlist:
     _edges: list[HyperEdge]  # List of edges, with references to modules
     _rectangles: list[Rectangle]  # List of rectangles
     _name2module: dict[str, Module]  # Map from module names to modules
-    _G: nx.Graph  # A graph representation of the netlist (star model for hyperedges with more than 2 pins)
-    _adj: AdjList  # Adjacency list of _G (edge weights)
-    _mass: list[float]  # Mass (size) of each node in _G
 
     def __init__(self, stream: str | TextIO, from_text: bool = False):
         """
@@ -55,9 +46,6 @@ class Netlist:
 
         # Create rectangles
         self._rectangles = [r for b in self.modules for r in b.rectangles]
-
-        # Create graph
-        self._build_graph()
 
     @property
     def num_modules(self) -> int:
@@ -83,16 +71,6 @@ class Netlist:
     def rectangles(self) -> list[Rectangle]:
         """Rectangles of all modules of the netlist"""
         return self._rectangles
-
-    @property
-    def adjacency(self) -> AdjList:
-        """Adjacency list of the netlist (including fake nodes for hyperedges)"""
-        return self._adj
-
-    @property
-    def module_sizes(self) -> list[float]:
-        """List of module sizes"""
-        return self._mass
 
     def create_squares(self) -> list[Module]:
         """
@@ -127,47 +105,3 @@ class Netlist:
             return output_str
         with open(filename, 'w') as stream:
             yaml.dump(data, stream)
-
-    def _build_graph(self) -> None:
-        """
-        Creates the associated graph of the netlist. For hyper-edges with more than two pins, an extra node is created
-        (with zero area) that is the center of the star. These nodes have a special attribute (hyper-node) to indicate
-        whether the node is an original node (False) or the center of a hyper-edge (True).
-        """
-        self._G = nx.Graph()
-        node_id = 0
-        # The real nodes
-        for b in self.modules:
-            self._G.add_node(b.name, hypernode=False, id=node_id)
-            node_id += 1
-
-        fake_id = 0
-        for e in self.edges:
-            if len(e.modules) == 2:  # Normal edge (2 pins)
-                self._G.add_edge(e.modules[0].name, e.modules[1].name, weight=e.weight)
-            else:  # Hyperedge (more than 2 pins)
-                # Generate a name for the hypernode (not colliding with other nodes)
-                while True:
-                    fake_b = "_hyper_" + str(fake_id)
-                    fake_id += 1
-                    if fake_b not in self._name2module:
-                        break
-                # Create the center of the hyperedge
-                self._G.add_node(fake_b, hypernode=True, id=node_id)
-                node_id += 1
-                # Add edges from the center to each node
-                for b in e.modules:
-                    self._G.add_edge(fake_b, b.name, weight=e.weight)
-
-        self._adj = [[] for _ in range(node_id)]  # Adjacency list (list of lists)
-        self._mass = [0.0] * node_id  # List of masses (initially all zero)
-
-        for name, module in self._name2module.items():
-            ident = self._G.nodes[name]['id']
-            self._mass[ident] = module.area()
-
-        for b, nbrs in self._G.adj.items():
-            idx = self._G.nodes[b]['id']
-            adj = self._adj[idx]
-            for nbr, attr in nbrs.items():
-                adj.append(Edge(self._G.nodes[nbr]['id'], attr['weight']))

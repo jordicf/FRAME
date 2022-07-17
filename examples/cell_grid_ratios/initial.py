@@ -5,13 +5,13 @@ See README.md for details.
 """
 
 from __future__ import annotations
+
 import os
 
-from gekko import GEKKO
 import numpy as np
+from gekko import GEKKO
 
 from frame.geometry.geometry import Point, Shape, Rectangle
-
 from plots import plot_result
 
 
@@ -39,20 +39,20 @@ def optimize(alpha: float, block_areas: list[float], wire_costs: dict[tuple[int,
     """
 
     # Create (flattened) cell grid
-    cells = [Rectangle()]*(n_rows*n_cols)
+    cells = [Rectangle()] * (n_rows * n_cols)
     for row in range(n_rows):
         for col in range(n_cols):
-            cells[row*n_cols + col] = Rectangle(center=Point((col + 1/2)*cell_width, (row + 1/2)*cell_height),
-                                                shape=Shape(cell_width, cell_height))
+            cells[row * n_cols + col] = Rectangle(center=Point((col + 1 / 2) * cell_width, (row + 1 / 2) * cell_height),
+                                                  shape=Shape(cell_width, cell_height))
 
-    n_cells = n_rows*n_cols
+    n_cells = n_rows * n_cols
     n_blocks = len(block_areas)
 
     g = GEKKO(remote=False)
 
     # Centroid of blocks
-    x = g.Array(g.Var, n_blocks, lb=0, ub=n_rows*cell_width)
-    y = g.Array(g.Var, n_blocks, lb=0, ub=n_cols*cell_width)
+    x = g.Array(g.Var, n_blocks, lb=0, ub=n_rows * cell_width)
+    y = g.Array(g.Var, n_blocks, lb=0, ub=n_cols * cell_width)
 
     # Dispersion of blocks
     dx = g.Array(g.Var, n_blocks, lb=0)
@@ -69,24 +69,25 @@ def optimize(alpha: float, block_areas: list[float], wire_costs: dict[tuple[int,
     # Block constraints
     for b in range(n_blocks):
         # Blocks must have sufficient area
-        g.Equation(g.sum([cells[c].area*a[b][c] for c in range(n_cells)]) >= block_areas[b])
+        g.Equation(g.sum([cells[c].area * a[b][c] for c in range(n_cells)]) >= block_areas[b])
 
         # Centroid of blocks
-        g.Equation(1/block_areas[b]*g.sum([cells[c].area*cells[c].center.x*a[b][c]
-                                           for c in range(n_cells)]) == x[b])
-        g.Equation(1/block_areas[b]*g.sum([cells[c].area*cells[c].center.y*a[b][c]
-                                           for c in range(n_cells)]) == y[b])
+        g.Equation(1 / block_areas[b] * g.sum([cells[c].area * cells[c].center.x * a[b][c]
+                                               for c in range(n_cells)]) == x[b])
+        g.Equation(1 / block_areas[b] * g.sum([cells[c].area * cells[c].center.y * a[b][c]
+                                               for c in range(n_cells)]) == y[b])
 
         # Dispersion of blocks
-        g.Equation(g.sum([cells[c].area*a[b][c]*(x[b] - cells[c].center.x)**2
+        g.Equation(g.sum([cells[c].area * a[b][c] * (x[b] - cells[c].center.x) ** 2
                           for c in range(n_cells)]) == dx[b])
-        g.Equation(g.sum([cells[c].area*a[b][c]*(y[b] - cells[c].center.y)**2
+        g.Equation(g.sum([cells[c].area * a[b][c] * (y[b] - cells[c].center.y) ** 2
                           for c in range(n_cells)]) == dy[b])
 
     # Objective function: alpha WL + (1 - alpha) D
-    g.Minimize(alpha*g.sum([wire_costs[(b1, b2) if b1 < b2 else (b2, b1)]*((x[b1] - x[b2])**2 + (y[b1] - y[b2])**2)
-                            for b1 in range(n_blocks) for b2 in range(n_blocks) if b1 != b2]))
-    g.Minimize((1 - alpha)*g.sum([dx[b] + dy[b] for b in range(n_blocks)]))
+    g.Minimize(
+        alpha * g.sum([wire_costs[(b1, b2) if b1 < b2 else (b2, b1)] * ((x[b1] - x[b2]) ** 2 + (y[b1] - y[b2]) ** 2)
+                       for b1 in range(n_blocks) for b2 in range(n_blocks) if b1 != b2]))
+    g.Minimize((1 - alpha) * g.sum([dx[b] + dy[b] for b in range(n_blocks)]))
 
     g.solve()
 
@@ -103,7 +104,7 @@ def optimize(alpha: float, block_areas: list[float], wire_costs: dict[tuple[int,
         centroids[b] = Point(x[b].value[0], y[b].value[0])
         dispersions[b] = dx[b].value[0] + dy[b].value[0]
 
-    wire_length = sum([wire_costs[(b1, b2) if b1 < b2 else (b2, b1)]*(
+    wire_length = sum([wire_costs[(b1, b2) if b1 < b2 else (b2, b1)] * (
             (centroids[b1] - centroids[b2]) & (centroids[b1] - centroids[b2]))
                        for b1 in range(n_blocks) for b2 in range(n_blocks) if b1 != b2])
 

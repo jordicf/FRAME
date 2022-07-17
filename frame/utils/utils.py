@@ -1,6 +1,9 @@
 import re
 from typing import Any
 
+Vector = list[float]
+Matrix = list[Vector]
+
 
 def valid_identifier(ident: Any) -> bool:
     """

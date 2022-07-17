@@ -3,9 +3,9 @@ from argparse import ArgumentParser
 
 def hello(name: str | None = None) -> str:
     """
-    Returns a string saying hello.
+    Returns a string saying hello
 
-    :param name: Optional name to say hello to someone in particular.
+    :param name: Optional name to say hello to someone in particular
     :return: None
     """
     if name is None:
@@ -15,11 +15,10 @@ def hello(name: str | None = None) -> str:
 
 def parse_options(prog: str | None = None, args: list[str] | None = None) -> dict[str, any]:
     """
-    Parse the command-line arguments for the tool.
-
-    :param prog: tool name.
-    :param args: command-line arguments.
-    :return: a dictionary with the arguments.
+    Parse the command-line arguments for the tool
+    :param prog: tool name
+    :param args: command-line arguments
+    :return: a dictionary with the arguments
     """
     parser = ArgumentParser(prog=prog, description="Says hello.")
     parser.add_argument("-n", "--name", type=str, help="name to say hello")

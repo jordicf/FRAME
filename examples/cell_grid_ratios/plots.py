@@ -1,7 +1,7 @@
-import numpy as np
-from matplotlib import rcParams
 import matplotlib.pyplot as plt
+import numpy as np
 import seaborn as sns
+from matplotlib import rcParams
 
 rcParams['font.family'] = 'monospace'
 
@@ -23,23 +23,24 @@ def plot_result(block_areas: list[float], wire_costs: dict[tuple[int, int], floa
 
     # Create one subplot for each block, and an additional narrow one for the color bar
     fig, axs = plt.subplots(1, n_blocks + 1,
-                            figsize=(n_blocks*n_cols/2, n_rows/2),
-                            gridspec_kw=dict(width_ratios=([1.0]*n_blocks) + [0.1]))
+                            figsize=(n_blocks * n_cols / 2, n_rows / 2),
+                            gridspec_kw=dict(width_ratios=([1.0] * n_blocks) + [0.1]))
 
     for area, block_configuration, centroid, dispersion, ax in zip(block_areas, ratios, centroids, dispersions, axs):
         matrix = np.around(block_configuration, 2)
 
         # Plot block configuration in cell grid with a heatmap
-        x_pos, y_pos = np.meshgrid(np.linspace(0, n_cols*cell_width, n_cols + 1),
-                                   np.linspace(0, n_rows*cell_height, n_rows + 1))
+        x_pos, y_pos = np.meshgrid(np.linspace(0, n_cols * cell_width, n_cols + 1),
+                                   np.linspace(0, n_rows * cell_height, n_rows + 1))
         mesh = ax.pcolormesh(x_pos, y_pos, matrix, vmin=0, vmax=1, cmap="Blues", zorder=0)
 
         # Annotate the heatmap
         mesh.update_scalarmappable()
-        text_x_pos, text_y_pos = np.meshgrid(np.linspace(cell_width/2, n_cols*cell_width - cell_width/2, n_cols),
-                                             np.linspace(cell_height/2, n_rows*cell_height - cell_height/2, n_rows))
+        text_x_pos, text_y_pos = np.meshgrid(np.linspace(cell_width / 2, n_cols * cell_width - cell_width / 2, n_cols),
+                                             np.linspace(cell_height / 2, n_rows * cell_height - cell_height / 2,
+                                                         n_rows))
         for x, y, color, val in zip(text_x_pos.flat, text_y_pos.flat, mesh.get_facecolors(), matrix.flat):
-            text_kwargs = dict(color=".15" if sns.utils.relative_luminance(color) > 1/2 else "w", ha="center",
+            text_kwargs = dict(color=".15" if sns.utils.relative_luminance(color) > 1 / 2 else "w", ha="center",
                                va="center")
             ax.text(x, y, val, **text_kwargs, zorder=2)
 

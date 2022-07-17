@@ -1,11 +1,10 @@
-from typing import Set, Deque, NamedTuple, TextIO
 from collections import deque
 from itertools import combinations
-
-from ..utils.keywords import KW_CENTER, KW_SHAPE, KW_REGION, KW_GROUND
-from ..geometry.geometry import Shape, Rectangle, Point
+from typing import Set, Deque, NamedTuple, TextIO
 
 from .yaml_parse_die import parse_yaml_die
+from ..geometry.geometry import Shape, Rectangle, Point
+from ..utils.keywords import KW_CENTER, KW_SHAPE, KW_REGION, KW_GROUND
 
 
 class GroundRegion(NamedTuple):
@@ -219,4 +218,3 @@ class Die:
         # Check that the total area of the rectangles is equal to the area of the die
         area_rect = sum(r.area for r in all_rectangles)
         assert abs(area_rect - die.area) < self._epsilon, "Incorrect total area of rectangles"
-
