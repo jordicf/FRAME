@@ -43,6 +43,8 @@ the minimum area with the maximum density.
 
 **Subject To** $\sum A_i x_i \geq 0.89 \sum A_i p_i$
 
+Where $x_i$ is the binary decision variable for whether rectangle $i$ is part of the solution.
+
 ### Maxdiff option
 
 When running the maxdiff option, the program maximizes the difference between the area inside and the area outside of
