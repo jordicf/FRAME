@@ -6,7 +6,7 @@ Given a (non-necessarily uniform) grid of rectangles, each one with a particular
 particular module to normalize, finds the set of rectangles that best conform to the shape of that module. The
 definition of "best conforms" depends on the parameters set.
 
-<img src="doc/pict/progress.png" alt="Grid normalization problem statement" style="height: 360px;"/>
+<img src="../../doc/pict/progress.png" alt="Grid normalization problem statement" style="height: 360px;"/>
 
 The area of a particular rectangle $i$ shall be refered to as $A_i$, and the proportion the module ocupies in such rectangle will be $p_i$.
 
