@@ -50,8 +50,9 @@ Where $x_i$ is the binary decision variable for whether rectangle $i$ is part of
 When running the maxdiff option, the program maximizes the difference between the area inside and the area outside of
 the rectangle.
 
-The area inside the rectangles can be written as $\sum A_i p_i x_i$, the area outside of the area is $\sum A_i p_i (1 -
-x_i)$, and the area inside the rectangles that's not part of the module is $\sum A_i (1 - p_i) x_i$. The difference is:
+The area inside the rectangles can be written as $\sum A_i p_i x_i$, the area outside of the area is 
+$\sum A_i p_i (1 - x_i)$, and the area inside the rectangles that's not part of the module is $\sum A_i (1 - p_i) x_i$. 
+The difference is:
 
 **Maximize** $\sum A_i p_i x_i - \sum A_i p_i (1 - x_i) - \sum A_i (1 - p_i) x_i$
 
