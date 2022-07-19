@@ -19,15 +19,19 @@ options:
 
 ```mermaid
   graph TD;
+      subgrah ring
       A---B;
       B---C;
       C---D;
       D---A;
-      
+      end
+      subgrah chain
       W---X;
       X---Y;
       Y---Z;
+      end
       
+      subgraph grid
       M00 --- M01;
       M01 --- M02;
       M10 --- M11;
@@ -45,4 +49,5 @@ options:
       M02 --- M12;
       M12 --- M22;
       M22 --- M32;
+      end
 ```
