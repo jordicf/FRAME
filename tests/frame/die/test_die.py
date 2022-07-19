@@ -23,7 +23,7 @@ class MyTestCase(unittest.TestCase):
         self.assertEqual(len(d.ground_regions), 1)
 
         # Die with illegal height (-20)
-        self.assertRaises(AssertionError, Die, die2, from_text=True)
+        self.assertRaises(AssertionError, Die, die2)
 
         d = Die(die3)
         self.assertEqual(d.width, 30)
@@ -32,7 +32,7 @@ class MyTestCase(unittest.TestCase):
         self.assertEqual(len(d.ground_regions), 3)
 
         # One of the rectangles is outside the die
-        self.assertRaises(AssertionError, Die, die4, from_text=True)
+        self.assertRaises(AssertionError, Die, die4)
 
         d = Die(die5)
         self.assertEqual(len(d.regions), 2)
