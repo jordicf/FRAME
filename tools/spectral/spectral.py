@@ -1,5 +1,5 @@
 """
-Module for spectral layout. The algorithm implemented in this module is based on the one for Spectral Drawing
+Module for spectral floorplan. The algorithm implemented in this module is based on the one for Spectral Drawing
 proposed by Yehuda Koren in his paper 'Drawing Graphs by Eigenvectors: Theory and Practice'. The algorithm has been
 modified to incorporate the mass of each node. The mass is interpreted as the multiplicity of the node.
 """
