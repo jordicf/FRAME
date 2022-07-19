@@ -24,7 +24,7 @@ e.g., `--size 4 3` for four rows and three columns.
 ```mermaid
   graph TB 
   
-      subgraph chain
+      subgraph "--type chain --size 4"
       direction TB
       C1 --- C2
       C2 --- C3
