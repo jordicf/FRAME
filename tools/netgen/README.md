@@ -21,23 +21,23 @@ options:
   graph LR 
   
       subgraph chain
-      C1---C2
-      C2---C3
-      C3---C4
+      C1 --- C2
+      C2 --- C3
+      C3 --- C4
       end
       
       subgraph ring
-      R1---R2
-      R2---R3
-      R3---R4
-      R4---R1
+      R1 --- R2
+      R2 --- R3
+      R3 --- R4
+      R4 --- R1
       end
       
       subgraph star
-      S0 -- S1
-      S0 -- S2
-      S0 -- S3
-      S0 -- S4
+      S0 --- S1
+      S0 --- S2
+      S0 --- S3
+      S0 --- S4
       end
       
       subgraph grid
