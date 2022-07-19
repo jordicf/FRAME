@@ -19,13 +19,13 @@ options:
 
 ```mermaid
   graph TD;
-      subgrah ring
+      subgraph ring
       A---B;
       B---C;
       C---D;
       D---A;
       end
-      subgrah chain
+      subgraph chain
       W---X;
       X---Y;
       Y---Z;
