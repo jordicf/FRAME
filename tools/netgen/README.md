@@ -18,7 +18,7 @@ options:
 ```
 
 ```mermaid
-  graph LR 
+  graph TB 
   
       subgraph chain
       direction TB
