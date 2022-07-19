@@ -6,6 +6,10 @@ Given a (non-necessarily uniform) grid of rectangles, each one with a particular
 particular module to normalize, finds the set of rectangles that best conform to the shape of that module. The
 definition of "best conforms" depends on the parameters set.
 
+<img src="../../doc/pict/process.png" alt="Grid normalization problem statement" style="height: 360px;"/>
+
+The area of a particular rectangle $i$ shall be refered to as $A_i$, and the proportion the module ocupies in such rectangle will be $p_i$.
+
 ## Installation
 
 **Disclaimer:** This will not be the final method of installation.
@@ -39,13 +43,16 @@ the minimum area with the maximum density.
 
 **Subject To** $\sum A_i x_i \geq 0.89 \sum A_i p_i$
 
+Where $x_i$ is the binary decision variable for whether rectangle $i$ is part of the solution.
+
 ### Maxdiff option
 
 When running the maxdiff option, the program maximizes the difference between the area inside and the area outside of
 the rectangle.
 
-The area inside the rectangles can be written as $\sum A_i p_i x_i$, the area outside of the area is $\sum A_i p_i (1 -
-x_i)$, and the area inside the rectangles that's not part of the module is $\sum A_i (1 - p_i) x_i$. The difference is:
+The area inside the rectangles can be written as $\sum A_i p_i x_i$, the area outside of the area is 
+$\sum A_i p_i (1 - x_i)$, and the area inside the rectangles that's not part of the module is $\sum A_i (1 - p_i) x_i$. 
+The difference is:
 
 **Maximize** $\sum A_i p_i x_i - \sum A_i p_i (1 - x_i) - \sum A_i (1 - p_i) x_i$
 
