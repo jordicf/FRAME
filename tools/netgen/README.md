@@ -31,7 +31,7 @@ e.g., `--size 4 3` for four rows and three columns.
       C3 --- C4
       end
       
-      subgraph ring "type ring size 4"
+      subgraph "--type ring --size 4"
       direction TB
       R1 --- R2
       R2 --- R3
@@ -39,14 +39,14 @@ e.g., `--size 4 3` for four rows and three columns.
       R4 --- R1
       end
       
-      subgraph star "--type star --size 4"
+      subgraph "--type star --size 4"
       S0 --- S1
       S0 --- S2
       S0 --- S3
       S0 --- S4
       end
       
-      subgraph grid "--type grid --size 4 3"
+      subgraph "--type grid --size 4 3"
       G00 --- G01
       G01 --- G02
       G10 --- G11
