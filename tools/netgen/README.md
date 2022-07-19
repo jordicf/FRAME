@@ -21,12 +21,14 @@ options:
   graph LR 
   
       subgraph chain
+      direction TB
       C1 --- C2
       C2 --- C3
       C3 --- C4
       end
       
       subgraph ring
+      direction TB
       R1 --- R2
       R2 --- R3
       R3 --- R4
