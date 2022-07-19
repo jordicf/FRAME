@@ -18,36 +18,37 @@ options:
 ```
 
 ```mermaid
-  graph TD;
-      subgraph a
+  graph TD
+      subgraph
       A---B
       B---C
       C---D
       D---A
       end
-      subgraph b
+      
+      subgraph
       W---X
       X---Y
       Y---Z
       end
       
-      subgraph c
-      M00 --- M01;
-      M01 --- M02;
-      M10 --- M11;
-      M11 --- M12;
-      M20 --- M21;
-      M21 --- M22;
-      M30 --- M31;
-      M31 --- M32;
-      M00 --- M10;
-      M10 --- M20;
-      M20 --- M30;
-      M01 --- M11;
-      M11 --- M21;
-      M21 --- M31;
-      M02 --- M12;
-      M12 --- M22;
-      M22 --- M32;
+      subgraph
+      M00 --- M01
+      M01 --- M02
+      M10 --- M11
+      M11 --- M12
+      M20 --- M21
+      M21 --- M22
+      M30 --- M31
+      M31 --- M32
+      M00 --- M10
+      M10 --- M20
+      M20 --- M30
+      M01 --- M11
+      M11 --- M21
+      M21 --- M31
+      M02 --- M12
+      M12 --- M22
+      M22 --- M32
       end
 ```
