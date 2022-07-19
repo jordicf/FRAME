@@ -1,7 +1,7 @@
 # Spectral chip planning
 
 This tool computes an initial location for each module of the netlist using a combination of spectral
-and force-ditected methods.
+and force-directed methods.
 
 The tool must be invoked as follows:
 
