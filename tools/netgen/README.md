@@ -18,37 +18,45 @@ options:
 ```
 
 ```mermaid
-  graph TD
-      subgraph a
-      A---B
-      B---C
-      C---D
-      D---A
+  graph LR 
+  
+      subgraph chain
+      C1---C2
+      C2---C3
+      C3---C4
       end
       
-      subgraph b
-      W---X
-      X---Y
-      Y---Z
+      subgraph ring
+      R1---R2
+      R2---R3
+      R3---R4
+      R4---R1
       end
       
-      subgraph c
-      M00 --- M01
-      M01 --- M02
-      M10 --- M11
-      M11 --- M12
-      M20 --- M21
-      M21 --- M22
-      M30 --- M31
-      M31 --- M32
-      M00 --- M10
-      M10 --- M20
-      M20 --- M30
-      M01 --- M11
-      M11 --- M21
-      M21 --- M31
-      M02 --- M12
-      M12 --- M22
-      M22 --- M32
+      subgraph star
+      S0 -- S1
+      S0 -- S2
+      S0 -- S3
+      S0 -- S4
+      end
+      
+      subgraph grid
+      G00 --- G01
+      G01 --- G02
+      G10 --- G11
+      G11 --- G12
+      G20 --- G21
+      G21 --- G22
+      G30 --- G31
+      G31 --- G32
+      G00 --- G10
+      G10 --- G20
+      G20 --- G30
+      G01 --- G11
+      G11 --- G21
+      G21 --- G31
+      G02 --- G12
+      G12 --- G22
+      G22 --- G32
       end
 ```
