@@ -24,9 +24,7 @@ options:
       C---D;
       D---A;
       
-   graph TD;
-      A---B;
-      B---C;
-      C---D;
-      D---A;
+      W---X;
+      X---Y;
+      Y---Z;
 ```
