@@ -16,6 +16,10 @@ options:
   --size SIZE [SIZE ...]
                         size of the netlist
 ```
+The figure below depicts the netlists generated when selecting one the acceptable types.
+The option `size` can be followed by one or two positive integers, indicating the number of
+modules in the netlist. When selecting a grid, the number of rows and columns are specified,
+e.g., `--size 4 3` for four rows and three columns.
 
 ```mermaid
   graph TB 
