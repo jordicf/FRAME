@@ -19,20 +19,20 @@ options:
 
 ```mermaid
   graph TD
-      subgraph
+      subgraph a
       A---B
       B---C
       C---D
       D---A
       end
       
-      subgraph
+      subgraph b
       W---X
       X---Y
       Y---Z
       end
       
-      subgraph
+      subgraph c
       M00 --- M01
       M01 --- M02
       M10 --- M11
