@@ -31,7 +31,7 @@ e.g., `--size 4 3` for four rows and three columns.
       C3 --- C4
       end
       
-      subgraph ring "--type ring<br>--size 4"
+      subgraph ring "--type ring --size 4"
       direction TB
       R1 --- R2
       R2 --- R3
