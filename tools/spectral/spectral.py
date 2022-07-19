@@ -24,8 +24,8 @@ class Spectral(Netlist):
     _adj: AdjList  # Adjacency list of _G (edge weights)
     _mass: Vector  # Mass (size) of each node in _G
 
-    def __init__(self, stream: str | TextIO, from_text: bool = False):
-        Netlist.__init__(self, stream, from_text)
+    def __init__(self, stream: str | TextIO):
+        Netlist.__init__(self, stream)
         self._build_graph()
 
     def _build_graph(self) -> None:
@@ -111,7 +111,7 @@ def parse_options(prog: str | None = None, args: list[str] | None = None) -> dic
     parser.add_argument("netlist", help="input file (netlist)")
     parser.add_argument("--die", help="Size of the die (width x height) or name of the file",
                         metavar="<width>x<height> or filename")
-    parser.add_argument("-o", "--outfile", help="output file (netlist)")
+    parser.add_argument("-o", "--outfile", required=True, help="output file (netlist)")
     return vars(parser.parse_args(args))
 
 
@@ -129,8 +129,9 @@ def main(prog: str | None = None, args: list[str] | None = None) -> int:
 
     infile = options['netlist']
     netlist = Spectral(infile)
-
-    return netlist.spectral_layout(die)
+    status = netlist.spectral_layout(die)
+    netlist.dump_yaml_netlist(options['outfile'])
+    return status
 
 
 if __name__ == "__main__":

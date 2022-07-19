@@ -1,5 +1,6 @@
 import re
-from typing import Any
+from typing import Any, TextIO
+from ruamel.yaml import YAML
 
 Vector = list[float]
 Matrix = list[Vector]
@@ -38,3 +39,24 @@ def string_is_number(s: str) -> bool:
         return True
     except ValueError:
         return False
+
+
+def read_yaml(stream: str | TextIO) -> str:
+    """
+    Reads a YAML contents from a file or a string. The distinction between a YAML contents and a file name is
+    done by checking that ':' exists in the string
+    :param stream: the input. It can be either a file handler, a file name or a YAML contents
+    :return: the YAML tree
+    """
+    if isinstance(stream, str):
+        if ':' in stream:
+            txt = stream
+        else:
+            with open(stream) as f:
+                txt = f.read()
+    else:
+        assert isinstance(stream, TextIO)
+        txt = stream.read()
+
+    yaml = YAML(typ='safe')
+    return yaml.load(txt)

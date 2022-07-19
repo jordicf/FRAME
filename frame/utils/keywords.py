@@ -1,6 +1,6 @@
 # Keywords for YAML files and dictionary keys
 KW_MODULES = "Modules"  # Modules of the netlist
-KW_EDGES = "Nets"  # Edges (hyperedges) of the netlist
+KW_NETS = "Nets"  # Edges (hyperedges) of the netlist
 KW_AREA = "area"  # Area (of a module, or rectangle)
 KW_CENTER = "center"  # Center (of a module or rectangle)
 KW_WIDTH = "width"  # Width of a rectangle

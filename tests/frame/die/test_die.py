@@ -7,7 +7,7 @@ from frame.geometry.geometry import Point, Shape
 class MyTestCase(unittest.TestCase):
 
     def test_read_dies(self):
-        d = Die("5.5x2", from_text=True)
+        d = Die("5.5x2")
         self.assertEqual(d.width, 5.5)
         self.assertEqual(d.height, 2.0)
         self.assertEqual(len(d.regions), 0)
@@ -16,7 +16,7 @@ class MyTestCase(unittest.TestCase):
         self.assertEqual(r.center, Point(2.75, 1))
         self.assertEqual(r.shape, Shape(5.5, 2.0))
 
-        d = Die(die1, from_text=True)
+        d = Die(die1)
         self.assertEqual(d.width, 30)
         self.assertEqual(d.height, 50)
         self.assertEqual(len(d.regions), 0)
@@ -25,7 +25,7 @@ class MyTestCase(unittest.TestCase):
         # Die with illegal height (-20)
         self.assertRaises(AssertionError, Die, die2, from_text=True)
 
-        d = Die(die3, from_text=True)
+        d = Die(die3)
         self.assertEqual(d.width, 30)
         self.assertEqual(d.height, 20)
         self.assertEqual(len(d.regions), 1)
@@ -34,12 +34,12 @@ class MyTestCase(unittest.TestCase):
         # One of the rectangles is outside the die
         self.assertRaises(AssertionError, Die, die4, from_text=True)
 
-        d = Die(die5, from_text=True)
+        d = Die(die5)
         self.assertEqual(len(d.regions), 2)
         self.assertEqual(len(d.ground_regions), 4)
 
         # Contains a ground region
-        self.assertRaises(AssertionError, Die, die6, from_text=True)
+        self.assertRaises(AssertionError, Die, die6)
 
 
 if __name__ == '__main__':

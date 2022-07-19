@@ -1,10 +1,7 @@
 from typing import TextIO
-
-from ruamel.yaml import YAML
-
 from ..geometry.geometry import Point, Shape, Rectangle
 from ..utils.keywords import KW_WIDTH, KW_HEIGHT, KW_REGION, KW_RECTANGLES, KW_GROUND, KW_CENTER, KW_SHAPE
-from ..utils.utils import is_number, string_is_number, valid_identifier
+from ..utils.utils import is_number, string_is_number, valid_identifier, read_yaml
 
 
 def string_die(die: str) -> Shape | None:
@@ -21,33 +18,23 @@ def string_die(die: str) -> Shape | None:
     return None
 
 
-def parse_yaml_die(stream: str | TextIO, from_text: bool = False) -> tuple[Shape, list[Rectangle]]:
+def parse_yaml_die(stream: str | TextIO) -> tuple[Shape, list[Rectangle]]:
     """
     Parses a YAML die from a file or from a string of text
     :param stream: name of the YAML file or handle to the file
-    :param from_text: if asserted, the die is parsed directly from a string of text
     :return: the shape of the die and the list of non-ground rectangles
     """
-    if isinstance(stream, str):
-        if from_text:
-            txt = stream
-        else:
-            with open(stream) as f:
-                txt = f.read()
-    else:
-        assert isinstance(stream, TextIO)
-        txt = stream.read()
 
-    # First check for a simple string of the form <width>x<height>, e.g., 5.5x2.8
-    shape = string_die(txt)
-    if shape is not None:
-        return shape, []
+    # First check for a string of the form <width>x<height>, e.g., 5.5x10
+    if isinstance(stream, str):
+        shape = string_die(stream)
+        if shape is not None:
+            return shape, []
 
     # Read a YAML contents
-    yaml = YAML(typ='safe')
-    tree = yaml.load(txt)
-
+    tree = read_yaml(stream)
     assert isinstance(tree, dict), "The die is not a dictionary"
+
     for key in tree:
         assert key in [KW_WIDTH, KW_HEIGHT, KW_RECTANGLES], f"Unknown keyword in die: {key}"
 

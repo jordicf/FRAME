@@ -3,61 +3,44 @@ Module to read netlists in yaml format
 """
 
 from typing import Any, TextIO, cast
-
-from ruamel.yaml import YAML
-
 from .module import Module
 from .netlist_types import NamedHyperEdge
 from ..geometry.geometry import Rectangle, Shape, Point
 from ..utils.keywords import KW_RECTANGLES, KW_CENTER, KW_SHAPE, KW_FIXED, KW_REGION, \
-    KW_MODULES, KW_EDGES, KW_AREA, KW_MIN_SHAPE
-from ..utils.utils import valid_identifier, is_number
-
-YamlDict = dict
-YamlSeq = list
+    KW_MODULES, KW_NETS, KW_AREA, KW_MIN_SHAPE
+from ..utils.utils import valid_identifier, is_number, read_yaml
 
 
-def parse_yaml_netlist(stream: str | TextIO, from_text: bool = False) -> tuple[list[Module], list[NamedHyperEdge]]:
+def parse_yaml_netlist(stream: str | TextIO) -> tuple[list[Module], list[NamedHyperEdge]]:
     """
-    Parses a YAML netlist from a file or from a string of text
-    :param stream: name of the YAML file or handle to the file
-    :param from_text: if asserted, the netlist is parsed directly from a string of text
+    Parses a YAML netlist from a file or from a string of text. If the text has only one word, it is assumed
+    to be a file name
+    :param stream: name of the YAML file, YAML text or handle to the file
     :return: the list of modules and the list of edges.
     """
 
-    if isinstance(stream, str):
-        if from_text:
-            txt = stream
-        else:
-            with open(stream) as f:
-                txt = f.read()
-    else:
-        assert isinstance(stream, TextIO)
-        txt = stream.read()
-
-    yaml = YAML(typ='safe')
-    tree = yaml.load(txt)
-    assert isinstance(tree, YamlDict), "The YAML root node is not a dictionary"
+    tree = read_yaml(stream)
+    assert isinstance(tree, dict), "The YAML root node is not a dictionary"
     modules: list[Module] = []
     edges: list[NamedHyperEdge] = []
     for key, value in tree.items():
-        assert key in [KW_MODULES, KW_EDGES], f"Unknown key {key}"
+        assert key in [KW_MODULES, KW_NETS], f"Unknown key {key}"
         if key == KW_MODULES:
             modules = parse_yaml_modules(value)
-        elif key == KW_EDGES:
+        elif key == KW_NETS:
             edges = parse_yaml_edges(value)
         else:
             assert False  # Should never happen
     return modules, edges
 
 
-def parse_yaml_modules(modules: YamlDict) -> list[Module]:
+def parse_yaml_modules(modules: dict) -> list[Module]:
     """
     Parses the modules of the netlist
     :param modules: The collection of modules
     :return: the list of modules
     """
-    assert isinstance(modules, YamlDict), "The YAML node for modules is not a dictionary"
+    assert isinstance(modules, dict), "The YAML node for modules is not a dictionary"
     _modules: list[Module] = []
     for name, module_info in modules.items():
         assert valid_identifier(name), f"Invalid module name: {name}"
@@ -65,14 +48,14 @@ def parse_yaml_modules(modules: YamlDict) -> list[Module]:
     return _modules
 
 
-def parse_yaml_module(name: str, info: YamlDict) -> Module:
+def parse_yaml_module(name: str, info: dict) -> Module:
     """
     Parses the information of a module
     :param name: Name of the module
     :param info: Information of the module
     :return: a module
     """
-    assert isinstance(info, YamlDict), f"The YAML node for module {name} is not a dictionary"
+    assert isinstance(info, dict), f"The YAML node for module {name} is not a dictionary"
     assert valid_identifier(name), f"Invalid name for module: {name}"
 
     params: dict[str, Any]
@@ -144,7 +127,7 @@ def parse_yaml_fixed(fixed: bool, name: str) -> bool:
     return fixed
 
 
-def parse_yaml_rectangles(rectangles: YamlSeq, fixed: bool, name: str) -> list[Rectangle]:
+def parse_yaml_rectangles(rectangles: list, fixed: bool, name: str) -> list[Rectangle]:
     """Parses the rectangles of a module
     :param rectangles: sequence of rectangles
     :param fixed: are the rectangles fixed
@@ -153,7 +136,7 @@ def parse_yaml_rectangles(rectangles: YamlSeq, fixed: bool, name: str) -> list[R
     """
 
     rlist = rectangles
-    assert isinstance(rlist, YamlSeq) and len(rlist) > 0, f"Incorrect specification of rectangles in module {name}"
+    assert isinstance(rlist, list) and len(rlist) > 0, f"Incorrect specification of rectangles in module {name}"
     if is_number(rlist[0]):
         rlist = [rlist]  # List with only one rectangle
 
@@ -163,7 +146,7 @@ def parse_yaml_rectangles(rectangles: YamlSeq, fixed: bool, name: str) -> list[R
     return rect_list
 
 
-def parse_yaml_rectangle(r: YamlSeq, fixed: bool, name: str) -> Rectangle:
+def parse_yaml_rectangle(r: list, fixed: bool, name: str) -> Rectangle:
     """Parses a rectangle
     :param r: a YAML description of the rectangle (a list with 4 values)
     Optionally, it may contain a fifth parameter (string) specifying a region
