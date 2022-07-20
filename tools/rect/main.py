@@ -11,6 +11,7 @@ import pseudobool
 import satmanager
 
 import yaml
+from canvas import Canvas, colmix
 
 def usage():
     """
@@ -120,7 +121,7 @@ def solve(ratio, dif, nboxes):
     :param ratio: The f hyperparameter.
     :param dif: The previous optimal solution, for optimization purposes.
     :param nboxes: The allowed number of boxes of the solution.
-    :return: The cost for an existing solution better than the previous one.
+    :return: The cost for an existing solution better than the previous one, and the list of rectangles.
     """
     sm = satmanager.SATManager()
 
@@ -152,27 +153,34 @@ def solve(ratio, dif, nboxes):
         enforce_bb(sm, "b" + str(i) + "_", "b" + str(0) + "_")
     if not sm.solve():
         print("Insat")
-        return (0, 1)
-    for j in range(0, ifile['Height']):
-        s = ""
-        for i in range(0, ifile['Width']):
-            b = bmap[i + j * ifile['Width']]
-            if sm.value(sm.newVar("b_" + str(b), "")) == 1:
-                s += symbols[selbox]
-            else:
-                s += "."
-        print(s)
+        return (0, 1), []
     print("Selected area:    " + str(float(sm.evalExpr(selarea)) / float(factor)))
     print("Real area:        " + str(float(sm.evalExpr(realarea)) / float(factor)))
     print("Theoretical area: " + str(theoreticalBestArea / float(factor)))
     print("Error objective:  " + str(sm.evalExpr(obj)))
+
+    rects = [(float('inf'), float('inf'), -float('inf'), -float('inf'))] * nboxes
+    for i in range(0, nboxes):
+        for b in blocks:
+            if sm.value( sm.newVar("b" + str(i) + "_" + str(b), "") ) == 1:
+                (cx0, cy0, cx1, cy1) = rects[i]
+                (nx0, ny0, nx1, ny1, p) = input_problem[b]
+                if cx0 > nx0:
+                    cx0 = nx0
+                if cy0 > ny0:
+                    cy0 = ny0
+                if cx1 < nx1:
+                    cx1 = nx1
+                if cy1 < ny1:
+                    cy1 = ny1
+                rects[i] = (cx0, cy0, cx1, cy1)
     
     # Min area approach
     if ratio < 1:
         return (sm.evalExpr(selarea) + 1, sm.evalExpr(realarea))
     # Min error approach
     else:
-        return (sm.evalExpr(obj) + 1, 1)
+        return (sm.evalExpr(obj) + 1, 1), rects
 
 def getFile(f: float) -> str:
     """
@@ -298,6 +306,30 @@ def findBestGreedy(f: float):
     print(x1, y1, x2, y2, p)
     return inibox, p
 
+def drawInput(canvas: Canvas, input_problem):
+    """
+    Shows an image of the input problem.
+    """
+    canvas.clear()
+    for box in input_problem:
+        (a,b,c,d,p) = box
+        col = colmix((255,255, 255),(255,0,0),p)
+        canvas.drawbox( ((a,b),(c,d)), col )
+    canvas.show()
+
+def drawOutput(canvas: Canvas, input_problem, boxes):
+    """
+    Shows an image of a solution.
+    """
+    canvas.clear()
+    for box in input_problem:
+        (a,b,c,d,p) = box
+        canvas.drawbox( ((a,b),(c,d)) )
+    for box in boxes:
+        (a,b,c,d) = box
+        canvas.drawbox( ((a,b),(c,d)), "#FF0000" )
+    canvas.show()
+
 def main():
     """
     Main function.
@@ -305,6 +337,8 @@ def main():
     global input_problem, factor, ifile, inibox, blocks, xcoords, ycoords
     global prev_x, prev_y, next_x, next_y, bmap, symbols, selbox
     global theoreticalBestArea
+
+    canvas = Canvas()
     
     if len(sys.argv) < 2:
         usage()
@@ -331,7 +365,10 @@ def main():
     with open(file, 'r') as file:
         ifile = yaml.load(file, Loader=yaml.FullLoader)
     
+    canvas.setcoords(-1, -1, ifile['Width'] + 1, ifile['Height'] + 1)
+    
     input_problem, bmap, selbox = selectBox()
+    drawInput(canvas, input_problem)
     
     blocks, xcoords, ycoords, prev_x, prev_y, next_x, next_y = defineCoords()
     
@@ -342,13 +379,21 @@ def main():
     inibox, p = findBestGreedy(f)
     
     dif = fstr_to_tuple(p, f)  # (0, 1)
+    boxes = [(inibox[0], inibox[1], inibox[2], inibox[3])]
+    tmpb = []
     for nboxes in [1, 2, 3]:
         print("\n\nnboxes: " + str(nboxes))
-        last = solve(f, dif, nboxes)
+        last, tmpb = solve(f, dif, nboxes)
+        improvement = False
         while last[0] > 0:
+            boxes = tmpb
+            improvement = True
             print("dif = " + str(dif))
             dif = last
-            last = solve(f, dif, nboxes)
+            last, tmpb = solve(f, dif, nboxes)
+        if improvement:
+            print(boxes)
+            drawOutput(canvas, input_problem, boxes)
 
 
 if __name__ == "__main__":
