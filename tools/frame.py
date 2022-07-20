@@ -4,8 +4,8 @@ import argparse
 
 import tools.hello.hello  # Fake tool
 import tools.draw.draw  # To draw floorplans
-import tools.spectral.spectral # To find an initial position of modules using spectral methods
-import tools.netgen.netgen # Netlist generator
+import tools.spectral.spectral  # To find an initial position of modules using spectral methods
+import tools.netgen.netgen  # Netlist generator
 
 # Tool names and the entry function they execute.
 # The functions must accept two parameters: the tool name and the command-line arguments passed to it.

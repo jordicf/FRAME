@@ -34,13 +34,12 @@ class Die:
     _y: list[float]  # List of y coordinates of potential rectangles
     _cells: [list[list[bool]]]  # Matrix of rectangles (True occupied, False available)
 
-    def __init__(self, stream: str | TextIO, from_text: bool = False):
+    def __init__(self, stream: str | TextIO):
         """
         Constructor of a die from a file or from a string of text
         :param stream: name of the YAML file (str) or handle to the file
-        :param from_text: if asserted, the stream is simply a text (not a file).
         """
-        self._shape, self._regions = parse_yaml_die(stream, from_text)
+        self._shape, self._regions = parse_yaml_die(stream)
         self._epsilon = min(self.width, self.height) * 10e-12
         self._calculate_region_points()
         self._calculate_cell_matrix()

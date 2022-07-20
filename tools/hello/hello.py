@@ -4,7 +4,6 @@ from argparse import ArgumentParser
 def hello(name: str | None = None) -> str:
     """
     Returns a string saying hello
-
     :param name: Optional name to say hello to someone in particular
     :return: None
     """

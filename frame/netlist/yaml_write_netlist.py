@@ -1,11 +1,10 @@
 from .module import Module
 from .netlist_types import HyperEdge
-from .yaml_read_netlist import YamlDict, YamlSeq
 from ..geometry.geometry import Rectangle
 from ..utils.keywords import KW_AREA, KW_FIXED, KW_CENTER, KW_MIN_SHAPE, KW_RECTANGLES, KW_GROUND
 
 
-def dump_yaml_modules(modules: list[Module]) -> YamlDict:
+def dump_yaml_modules(modules: list[Module]) -> dict:
     """
     Generates a data structure for the modules that can be dumped in YAML
     :param modules: list of modules (see Netlist)
@@ -14,13 +13,13 @@ def dump_yaml_modules(modules: list[Module]) -> YamlDict:
     return {b.name: dump_yaml_module(b) for b in modules}
 
 
-def dump_yaml_edges(edges: list[HyperEdge]) -> YamlSeq:
+def dump_yaml_edges(edges: list[HyperEdge]) -> list:
     """
     Generates a data structure for the edges that can be dumped in YAML
     :param edges: list of edges (see Netlist)
     :return: the data structure
     """
-    out_edges: YamlSeq = []
+    out_edges: list = []
     for e in edges:
         edge: list[str | float] = [b.name for b in e.modules]
         if e.weight != 1:
@@ -29,13 +28,13 @@ def dump_yaml_edges(edges: list[HyperEdge]) -> YamlSeq:
     return out_edges
 
 
-def dump_yaml_module(module: Module) -> YamlDict:
+def dump_yaml_module(module: Module) -> dict:
     """
     Generates a data structure for the module that can be dumped in YAML
     :param module: a module
     :return: the data structure
     """
-    info: dict[str, float | bool | YamlSeq | YamlDict] = {}
+    info: dict[str, float | bool | list | dict] = {}
 
     if len(module.area_regions) == 1 and KW_GROUND in module.area_regions:
         info[KW_AREA] = module.area(KW_GROUND)

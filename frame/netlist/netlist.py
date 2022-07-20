@@ -11,7 +11,7 @@ from .netlist_types import HyperEdge
 from .yaml_read_netlist import parse_yaml_netlist
 from .yaml_write_netlist import dump_yaml_modules, dump_yaml_edges
 from ..geometry.geometry import Rectangle
-from ..utils.keywords import KW_MODULES, KW_EDGES
+from ..utils.keywords import KW_MODULES, KW_NETS
 
 
 class Netlist:
@@ -24,14 +24,13 @@ class Netlist:
     _rectangles: list[Rectangle]  # List of rectangles
     _name2module: dict[str, Module]  # Map from module names to modules
 
-    def __init__(self, stream: str | TextIO, from_text: bool = False):
+    def __init__(self, stream: str | TextIO):
         """
         Constructor of a netlist from a file or from a string of text
         :param stream: name of the YAML file (str) or handle to the file
-        :param from_text: if asserted, the stream is simply a text (not a file).
         """
 
-        self._modules, _named_edges = parse_yaml_netlist(stream, from_text)
+        self._modules, _named_edges = parse_yaml_netlist(stream)
         self._name2module = {b.name: b for b in self._modules}
 
         # Edges
@@ -92,7 +91,7 @@ class Netlist:
         """
         data = {
             KW_MODULES: dump_yaml_modules(self.modules),
-            KW_EDGES: dump_yaml_edges(self.edges)
+            KW_NETS: dump_yaml_edges(self.edges)
         }
 
         yaml = YAML()
