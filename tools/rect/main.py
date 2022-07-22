@@ -10,7 +10,8 @@ import sys
 import pseudobool
 import satmanager
 
-import yaml
+from ruamel.yaml import YAML
+yaml=YAML(typ='safe')
 from canvas import Canvas, colmix
 
 def usage():
@@ -276,17 +277,20 @@ def selectBox():
     Receives the module to optimize and preprocesses the problem to leave
     only the relevant information for such module.
     """
-    bmap = [0] * (ifile['Width'] * ifile['Height'])
     input_problem = []
-    selbox = int(input("Selected module: "))
+    selbox = input("Selected module: ")
     for b in ifile['Rectangles']:
         for bname in b:
-            [x1, y1, x2, y2, l] = b[bname]
-            input_problem.append((x1, y1, x2, y2, l[selbox]))
-            for i in range(x1, x2):
-                for j in range(y1, y2):
-                    bmap[i + j * ifile['Width']] = len(input_problem) - 1
-    return input_problem, bmap, selbox
+            [xc, yc, w, h] = b[bname][0]['dim']
+            w = float(w)
+            h = float(h)
+            val = 0.0
+            if b[bname][1]['mod'] != None:
+                for i in range(0, len(b[bname][1]['mod'])):
+                    if selbox in b[bname][1]['mod'][i]:
+                        val = b[bname][1]['mod'][i][selbox]
+            input_problem.append((xc - w / 2, yc - h / 2, xc + w / 2, yc + h / 2, val))
+    return input_problem, selbox
 
 def findBestGreedy(f: float):
     """
@@ -335,7 +339,7 @@ def main():
     Main function.
     """
     global input_problem, factor, ifile, inibox, blocks, xcoords, ycoords
-    global prev_x, prev_y, next_x, next_y, bmap, symbols, selbox
+    global prev_x, prev_y, next_x, next_y, symbols, selbox
     global theoreticalBestArea
 
     canvas = Canvas()
@@ -363,11 +367,11 @@ def main():
     
     ifile = None
     with open(file, 'r') as file:
-        ifile = yaml.load(file, Loader=yaml.FullLoader)
+        ifile = yaml.load(file)
     
     canvas.setcoords(-1, -1, ifile['Width'] + 1, ifile['Height'] + 1)
     
-    input_problem, bmap, selbox = selectBox()
+    input_problem, selbox = selectBox()
     drawInput(canvas, input_problem)
     
     blocks, xcoords, ycoords, prev_x, prev_y, next_x, next_y = defineCoords()
