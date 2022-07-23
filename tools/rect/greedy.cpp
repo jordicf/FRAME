@@ -9,7 +9,7 @@
 unsigned char METHOD = MIN_ERROR;
 
 struct box {
-	int x1, y1, x2, y2;
+	double x1, y1, x2, y2;
 	double p;
 };
 
