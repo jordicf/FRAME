@@ -98,4 +98,4 @@ class Netlist:
             KW_MODULES: dump_yaml_modules(self.modules),
             KW_NETS: dump_yaml_edges(self.edges)
         }
-        write_yaml(data, filename)
+        return write_yaml(data, filename)

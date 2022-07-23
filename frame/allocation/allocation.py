@@ -34,7 +34,7 @@ class Allocation:
 
     def __init__(self, stream: TextIO_String):
         """
-        Redas a YAML specification of the allocation of rectangles.
+        Redas a YAML specification of the allocation of rectangles
         :param stream: It can be a name file, or a YAML specifcation (in text). The constructor can figure out
         which one it is.
         """
@@ -117,7 +117,6 @@ class Allocation:
         """
         Returns the bounding box of all rectangles
         """
-        large = 1000000000
         xmin, xmax, ymin, ymax = math.inf, -math.inf, math.inf, -math.inf
         for rect_alloc in self.allocations:
             ll, ur = rect_alloc.rect.bounding_box
@@ -192,4 +191,4 @@ class Allocation:
         :param filename: name of the output file
         """
         list_modules = [[r.rect.vector_spec, r.alloc] for r in self._allocations]
-        write_yaml(list_modules, filename)
+        return write_yaml(list_modules, filename)

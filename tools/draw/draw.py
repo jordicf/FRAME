@@ -237,17 +237,16 @@ def draw(options: dict[str, Any]) -> int:
     # Inner frame
     drawing.rectangle((frame, frame, scaling.width + frame, scaling.height + frame), outline=COLOR_WHITE, width=2)
 
-
     if alloc_option is not None:
         for rect_alloc in alloc.allocations:
             r = rect_alloc.rect
             ll, ur = r.bounding_box
             ll, ur = scale(ll, scaling), scale(ur, scaling)
             a = rect_alloc.alloc
-            color = (0,0,0,128)
+            color = (0, 0, 0, 128)
             for module, ratio in a.items():
                 mcolor = module2color[netlist.get_module(module)]
-                color = (color[0]+mcolor[0]*ratio, color[1]+mcolor[1]*ratio, color[2]+mcolor[2]*ratio, 128)
+                color = (color[0] + mcolor[0] * ratio, color[1] + mcolor[1] * ratio, color[2] + mcolor[2] * ratio, 128)
             color = (round(color[0]), round(color[1]), round(color[2]), 128)
             drawing.rectangle((ll.x, ur.y, ur.x, ll.y), fill=color)
         # Draw the module names
@@ -255,9 +254,9 @@ def draw(options: dict[str, Any]) -> int:
         for m in netlist.modules:
             center = scale(alloc.center(m.name), scaling)
             txt_w, txt_h = drawing.textsize(m.name, font=font)  # To center the text
-            txt_x, txt_y = center.x - txt_w/2, center.y - txt_h/2
+            txt_x, txt_y = center.x - txt_w / 2, center.y - txt_h / 2
             drawing.text((txt_x, txt_y), m.name, fill=COLOR_WHITE, font=font, align="center",
-                     anchor="ms", stroke_width=1, stroke_fill=COLOR_WHITE)
+                         anchor="ms", stroke_width=1, stroke_fill=COLOR_WHITE)
     else:
         # If no allocation, draw rectangles or circles of the modules
         for m in netlist.modules:
