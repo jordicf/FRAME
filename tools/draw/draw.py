@@ -14,6 +14,7 @@ from frame.geometry.geometry import Point, Shape, Rectangle
 from frame.netlist.module import Module
 from frame.netlist.netlist import Netlist
 from frame.netlist.netlist_types import HyperEdge
+from frame.allocation.allocation import Allocation
 
 
 # Tuple to represent the scaling factors for a drawing
@@ -127,16 +128,20 @@ def create_canvas(s: Scaling):
     return im, drawing
 
 
-def calculate_centers(e: HyperEdge) -> list[Point]:
+def calculate_centers(e: HyperEdge, alloc: Allocation | None) -> list[Point]:
     """
     Calculates a list of points to be connected from a hyperedge. The first point acts as the center of the star
     :param e: The hyperedge
+    :param alloc: an allocation of modules to rectangles
     :return: the list of points (the first point is the center of the star)
     """
     list_points = [Point(0, 0)]  # The center (initially a fake point)
     sum_x, sum_y = 0, 0
     for m in e.modules:
-        c = m.center if m.num_rectangles == 0 else m.calculate_center_from_rectangles()
+        if alloc is not None:
+            c = alloc.center(m.name)
+        else:
+            c = m.center if m.num_rectangles == 0 else m.calculate_center_from_rectangles()
         assert c is not None, f'Cannot calculate center for module {m.name}'
         sum_x += c.x
         sum_y += c.y
@@ -146,7 +151,7 @@ def calculate_centers(e: HyperEdge) -> list[Point]:
     return list_points
 
 
-def draw_circle(im: Image, m: Module, color, scaling: Scaling, fontsize: int) -> None:
+def draw_circle(im: Image, m: Module, color, scaling: Scaling, fontsize: int = 0) -> None:
     """Draws a circle for block b. The area of the circle corresponds to the area of the b"""
     radius = math.sqrt(m.area() / math.pi)
     ll = Point(m.center.x - radius, m.center.y - radius)
@@ -154,7 +159,7 @@ def draw_circle(im: Image, m: Module, color, scaling: Scaling, fontsize: int) ->
     draw_geometry(im, ll, ur, color, scaling, m.name, fontsize, True)
 
 
-def draw_rectangle(im: Image, r: Rectangle, color, scaling: Scaling, fontsize: int) -> None:
+def draw_rectangle(im: Image, r: Rectangle, color, scaling: Scaling, fontsize: int = 0) -> None:
     """Draws the rectangle r"""
     ll, ur = r.bounding_box
     draw_geometry(im, ll, ur, color, scaling, r.name, fontsize, False)
@@ -172,14 +177,15 @@ def draw_geometry(im: Image, ll: Point, ur: Point, color, scaling: Scaling,
     else:
         drawing.rectangle((ll.x, ur.y, ur.x, ll.y), fill=color)
     # Now the name
-    font = ImageFont.truetype("arial.ttf", fontsize)
-    ccolor = distinctipy.get_text_color((color[0] / 255, color[1] / 255, color[2] / 255), threshold=0.6)[0]
-    ccolor = round(ccolor * 255)
-    ccolor = (ccolor, ccolor, ccolor)
-    txt_w, txt_h = drawing.textsize(name, font=font)  # To center the text
-    txt_x, txt_y = round((ll.x + ur.x - txt_w) / 2), round((ll.y + ur.y - txt_h) / 2)
-    drawing.text((txt_x, txt_y), name, fill=ccolor, font=font, align="center",
-                 anchor="ms", stroke_width=1, stroke_fill=ccolor)
+    if fontsize > 0:
+        font = ImageFont.truetype("arial.ttf", fontsize)
+        ccolor = distinctipy.get_text_color((color[0] / 255, color[1] / 255, color[2] / 255), threshold=0.6)[0]
+        ccolor = round(ccolor * 255)
+        ccolor = (ccolor, ccolor, ccolor)
+        txt_w, txt_h = drawing.textsize(name, font=font)  # To center the text
+        txt_x, txt_y = round((ll.x + ur.x - txt_w) / 2), round((ll.y + ur.y - txt_h) / 2)
+        drawing.text((txt_x, txt_y), name, fill=ccolor, font=font, align="center",
+                     anchor="ms", stroke_width=1, stroke_fill=ccolor)
     im.paste(Image.alpha_composite(im, transp))
 
 
@@ -188,22 +194,38 @@ def draw(options: dict[str, Any]) -> int:
     netlist = Netlist(infile)
     fontsize = options['fontsize']
 
+    # Rectangle allocation
+    alloc_option = options['alloc']
+    alloc: Allocation | None = None
+    if alloc_option is not None:
+        alloc = Allocation(alloc_option)
+
     # Check that all modules are drawable
     check_modules(netlist.modules)
 
     # Assignment of a color to each block
     colors = distinctipy.get_colors(netlist.num_modules)
-    colors = [(math.floor(r * 255), math.floor(g * 255), math.floor(b * 255), 128) for (r, g, b) in colors]
+    colors = [(round(r * 255), round(g * 255), round(b * 255), 128) for (r, g, b) in colors]
     module2color = {b: colors[i] for i, b in enumerate(netlist.modules)}
 
     # Canvas
+    alloc_die = Shape(0, 0)
+    if alloc_option is not None:
+        r = alloc.bounding_box
+        ll, ur = r.bounding_box
+        alloc_die = Shape(ur.x, ur.y)
+
     die_file = options['die']
     if die_file is not None:
         d = Die(die_file)
         die = Shape(d.width, d.height)
+    elif alloc_option is not None:
+        die = alloc_die
     else:
         # Calculate bounding box
         die = calculate_bbox(netlist)
+
+    assert alloc_die.w <= die.w and alloc_die.h <= die.h
 
     # Scaling factors
     frame = options['frame']
@@ -215,18 +237,40 @@ def draw(options: dict[str, Any]) -> int:
     # Inner frame
     drawing.rectangle((frame, frame, scaling.width + frame, scaling.height + frame), outline=COLOR_WHITE, width=2)
 
-    # Draw rectangles or circles of the modules
-    for m in netlist.modules:
-        color = module2color[m]
-        if m.num_rectangles == 0:
-            draw_circle(im, m, color, scaling, fontsize)
-        else:
-            for r in m.rectangles:
-                draw_rectangle(im, r, color, scaling, fontsize)
+
+    if alloc_option is not None:
+        for rect_alloc in alloc.allocations:
+            r = rect_alloc.rect
+            ll, ur = r.bounding_box
+            ll, ur = scale(ll, scaling), scale(ur, scaling)
+            a = rect_alloc.alloc
+            color = (0,0,0,128)
+            for module, ratio in a.items():
+                mcolor = module2color[netlist.get_module(module)]
+                color = (color[0]+mcolor[0]*ratio, color[1]+mcolor[1]*ratio, color[2]+mcolor[2]*ratio, 128)
+            color = (round(color[0]), round(color[1]), round(color[2]), 128)
+            drawing.rectangle((ll.x, ur.y, ur.x, ll.y), fill=color)
+        # Draw the module names
+        font = ImageFont.truetype("arial.ttf", fontsize)
+        for m in netlist.modules:
+            center = scale(alloc.center(m.name), scaling)
+            txt_w, txt_h = drawing.textsize(m.name, font=font)  # To center the text
+            txt_x, txt_y = center.x - txt_w/2, center.y - txt_h/2
+            drawing.text((txt_x, txt_y), m.name, fill=COLOR_WHITE, font=font, align="center",
+                     anchor="ms", stroke_width=1, stroke_fill=COLOR_WHITE)
+    else:
+        # If no allocation, draw rectangles or circles of the modules
+        for m in netlist.modules:
+            color = module2color[m]
+            if m.num_rectangles == 0:
+                draw_circle(im, m, color, scaling, fontsize)
+            else:
+                for r in m.rectangles:
+                    draw_rectangle(im, r, color, scaling, fontsize)
 
     # Draw edges
     for e in netlist.edges:
-        list_points: list[Point] = calculate_centers(e)
+        list_points: list[Point] = calculate_centers(e, alloc)
         canvas_points = [scale(p, scaling) for p in list_points]
         center = canvas_points[0]
         for pin in canvas_points[1:]:
@@ -255,6 +299,8 @@ def parse_options(prog: str | None = None, args: list[str] | None = None) -> dic
     parser.add_argument("netlist", help="input file (netlist)")
     parser.add_argument("--die", help="Size of the die (width x height) or name of the file",
                         metavar="<width>x<height> or filename")
+    parser.add_argument("--alloc", help="Allocation of modules to rectangles",
+                        metavar="filename")
     parser.add_argument("-o", "--outfile", help="output file (gif)")
     parser.add_argument("--width", type=int, default=0, help="width of the picture (in pixels)")
     parser.add_argument("--height", type=int, default=0, help="height of the picture (in pixels)")

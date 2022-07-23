@@ -1,4 +1,6 @@
-from typing import NamedTuple
+import itertools
+import math
+from typing import NamedTuple, Tuple
 from ..geometry.geometry import Point, Shape, Rectangle
 from ..utils.utils import TextIO_String, read_yaml, write_yaml, YAML_tree, is_number, valid_identifier
 from ..utils.keywords import KW_CENTER, KW_SHAPE
@@ -26,6 +28,9 @@ class Allocation:
 
     _allocations: list[RectAlloc]  # List of allocations. Each component corresponds to a rectangle
     _module2rect: dict[str, list[ModuleAlloc]]  # For each module, a list of rectangle allocations
+    _areas: dict[str, float]  # Area of the modules
+    _centers: dict[str, Point]  # Centers of the modules
+    _bounding_box = Tuple[Point, Point]
 
     def __init__(self, stream: TextIO_String):
         """
@@ -34,13 +39,41 @@ class Allocation:
         which one it is.
         """
         self._parse_yaml_tree(read_yaml(stream))
+        self._calculate_bounding_box()
+        self._check_no_overlap()
+        self._calculate_areas_and_centers()
+
+    @property
+    def bounding_box(self) -> Rectangle:
+        """
+        Returns the bounding box of the allocation
+        :return: the bounding box of the allocation.
+        """
+        return self._bounding_box
 
     @property
     def num_rectangles(self) -> int:
         """
+        Returns the number of rectangles
         :return: the number of rectangles of the allocation
         """
         return len(self._allocations)
+
+    @property
+    def num_modules(self) -> int:
+        """
+        Returns the number of modules
+        :return: the number of modules of the allocation
+        """
+        return len(self._module2rect)
+
+    @property
+    def allocations(self) -> list[RectAlloc]:
+        """
+        Returns the list of allocations (one for each rectangle)
+        :return: the list of allocations
+        """
+        return self._allocations
 
     def allocation_rectangle(self, i: int) -> RectAlloc:
         """
@@ -58,6 +91,45 @@ class Allocation:
         :return: the allocation of module m
         """
         return self._module2rect[m]
+
+    def area(self, modules: str | list[str]) -> float:
+        """Returns the area of a set of modules (or the area of a module if only one string is passed)
+        :param modules: module name s
+        :return: the area of the modules
+        """
+        if isinstance(modules, str):
+            return self._areas[modules]
+        return sum(self._areas[m] for m in modules)
+
+    def center(self, modules: str | list[str]) -> Point:
+        """Returns the center of a set of modules (or the center of the module if only one string is passed)
+        :param modules: module names
+        :return: the center of the modules
+        """
+        if isinstance(modules, str):
+            return self._centers[modules]
+        center = Point(0, 0)
+        for m in modules:
+            center += self.center(m) * self.area(m)
+        return center / self.area(modules)
+
+    def _calculate_bounding_box(self) -> None:
+        """
+        Returns the bounding box of all rectangles
+        """
+        large = 1000000000
+        xmin, xmax, ymin, ymax = math.inf, -math.inf, math.inf, -math.inf
+        for rect_alloc in self.allocations:
+            ll, ur = rect_alloc.rect.bounding_box
+            xmin = min(xmin, ll.x)
+            xmax = max(xmax, ur.x)
+            ymin = min(ymin, ll.y)
+            ymax = max(ymax, ur.y)
+        assert xmin >= 0 and ymin >= 0, "The allocation is not included in the positive quadrant"
+        width = xmax - xmin
+        height = ymax - ymin
+        kwargs = {KW_CENTER: Point(xmin + width / 2, ymin + height / 2), KW_SHAPE: Shape(width, height)}
+        self._bounding_box = Rectangle(**kwargs)
 
     def _parse_yaml_tree(self, tree: YAML_tree) -> None:
         """"""
@@ -90,8 +162,28 @@ class Allocation:
                     self._module2rect[module] = []
                 self._module2rect[module].append(ModuleAlloc(i, occup))
 
-            assert total_occup <= 1.0, f"Occupation of rectangle %d greater than 1" % (i + 1)
+            assert total_occup <= 1.0, f"Occupancy of rectangle %d greater than 1" % (i + 1)
             self._allocations.append(RectAlloc(rect, dict_alloc))
+
+    def _check_no_overlap(self) -> None:
+        """Checks that rectangles do not overlap"""
+        for r_allocs in itertools.combinations(self._allocations, 2):
+            assert not r_allocs[0].rect.overlap(r_allocs[1].rect), "Allocations rectangles overlap"
+
+    def _calculate_areas_and_centers(self) -> None:
+        """Computers the area and the centers of all modules"""
+        self._areas = {}
+        self._centers = {}
+        for module, alloc in self._module2rect.items():
+            center = Point(0, 0)
+            total_area = 0
+            for mod_alloc in alloc:
+                r = self._allocations[mod_alloc.rect].rect
+                ratio = mod_alloc.area * r.area
+                center += r.center * ratio
+                total_area += ratio
+            self._areas[module] = total_area
+            self._centers[module] = center / total_area
 
     def write_yaml(self, filename: str = None) -> None | str:
         """

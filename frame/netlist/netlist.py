@@ -68,6 +68,14 @@ class Netlist:
         """Rectangles of all modules of the netlist"""
         return self._rectangles
 
+    def get_module(self, name: str) -> Module:
+        """
+        Returns the module with a certain name
+        :param name: name mof the module
+        :return: the module
+        """
+        return self._name2module[name]
+
     def create_squares(self) -> list[Module]:
         """
         Creates a default rectangle (square) for each module that has no rectangles
