@@ -6,7 +6,7 @@ from __future__ import annotations
 from typing import NamedTuple, Tuple, Any
 
 from frame.utils.keywords import KW_FIXED, KW_CENTER, KW_SHAPE, KW_REGION, KW_NAME, KW_GROUND
-from frame.utils.utils import valid_identifier
+from frame.utils.utils import Vector, valid_identifier
 
 
 class Point:
@@ -179,6 +179,11 @@ class Rectangle:
         xmin, xmax = self.center.x - half_w, self.center.x + half_w
         ymin, ymax = self.center.y - half_h, self.center.y + half_h
         return Point(xmin, ymin), Point(xmax, ymax)
+
+    @property
+    def vector_spec(self) -> Vector:
+        """Returns a vector specification of the rectangle [x, y, w, h]"""
+        return [self.center.x, self.center.y, self.shape.w, self.shape.h]
 
     @property
     def area(self) -> float:

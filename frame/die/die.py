@@ -1,10 +1,11 @@
 from collections import deque
 from itertools import combinations
-from typing import Set, Deque, NamedTuple, TextIO
+from typing import Set, Deque, NamedTuple
 
 from .yaml_parse_die import parse_yaml_die
 from ..geometry.geometry import Shape, Rectangle, Point
 from ..utils.keywords import KW_CENTER, KW_SHAPE, KW_REGION, KW_GROUND
+from ..utils.utils import TextIO_String
 
 
 class GroundRegion(NamedTuple):
@@ -34,7 +35,7 @@ class Die:
     _y: list[float]  # List of y coordinates of potential rectangles
     _cells: [list[list[bool]]]  # Matrix of rectangles (True occupied, False available)
 
-    def __init__(self, stream: str | TextIO):
+    def __init__(self, stream: TextIO_String):
         """
         Constructor of a die from a file or from a string of text
         :param stream: name of the YAML file (str) or handle to the file

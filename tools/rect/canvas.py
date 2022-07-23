@@ -1,4 +1,4 @@
-from PIL import Image, ImageDraw, ImageFont
+from PIL import Image, ImageDraw
 
 def rgb(r,g,b):
     rs, gs, bs = format(r,'x'), format(g,'x'), format(b,'x')

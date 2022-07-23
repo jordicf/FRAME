@@ -2,16 +2,13 @@
 Module to represent netlists
 """
 
-from io import StringIO
-from typing import TextIO
-from ruamel.yaml import YAML
-
 from .module import Module
 from .netlist_types import HyperEdge
 from .yaml_read_netlist import parse_yaml_netlist
 from .yaml_write_netlist import dump_yaml_modules, dump_yaml_edges
 from ..geometry.geometry import Rectangle
 from ..utils.keywords import KW_MODULES, KW_NETS
+from ..utils.utils import TextIO_String, write_yaml
 
 
 class Netlist:
@@ -24,7 +21,7 @@ class Netlist:
     _rectangles: list[Rectangle]  # List of rectangles
     _name2module: dict[str, Module]  # Map from module names to modules
 
-    def __init__(self, stream: str | TextIO):
+    def __init__(self, stream: TextIO_String):
         """
         Constructor of a netlist from a file or from a string of text
         :param stream: name of the YAML file (str) or handle to the file
@@ -93,14 +90,4 @@ class Netlist:
             KW_MODULES: dump_yaml_modules(self.modules),
             KW_NETS: dump_yaml_edges(self.edges)
         }
-
-        yaml = YAML()
-        yaml.default_flow_style = False
-        if filename is None:
-            string_stream = StringIO()
-            yaml.dump(data, string_stream)
-            output_str: str = string_stream.getvalue()
-            string_stream.close()
-            return output_str
-        with open(filename, 'w') as stream:
-            yaml.dump(data, stream)
+        write_yaml(data, filename)
