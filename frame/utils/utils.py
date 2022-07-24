@@ -6,7 +6,7 @@ from io import StringIO
 Vector = list[float]
 Matrix = list[Vector]
 YAML_tree = dict[str, Any] | list[Any]
-TextIO_String = TextIO | str
+TextIO_String = TextIO | str | YAML_tree
 
 
 def valid_identifier(ident: Any) -> bool:
@@ -47,10 +47,14 @@ def string_is_number(s: str) -> bool:
 def read_yaml(stream: TextIO_String) -> YAML_tree:
     """
     Reads a YAML contents from a file or a string. The distinction between a YAML contents and a file name is
-    done by checking that ':' exists in the string
-    :param stream: the input. It can be either a file handler, a file name or a YAML contents
+    done by checking that ':' exists in the string. The input can also be a YAML tree
+    :param stream: the input. It can be either a file handler, a file name or a YAML contents (in text or tree)
     :return: the YAML tree
     """
+    if isinstance(stream, (list, dict)):
+        # Nothing to do
+        return stream
+
     if isinstance(stream, str):
         if ':' in stream:
             txt = stream
@@ -75,7 +79,7 @@ def write_yaml(data: Any, filename: str = None) -> None | str:
     """
 
     yaml = YAML()
-    yaml.default_flow_style = True
+    yaml.default_flow_style = False
     if filename is None:
         string_stream = StringIO()
         yaml.dump(data, string_stream)

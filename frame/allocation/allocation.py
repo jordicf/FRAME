@@ -1,9 +1,11 @@
 import itertools
 import math
-from typing import NamedTuple, Tuple
-from ..geometry.geometry import Point, Shape, Rectangle
-from ..utils.utils import TextIO_String, read_yaml, write_yaml, YAML_tree, is_number, valid_identifier
+from typing import NamedTuple, Tuple, TypeVar
+
+from ..netlist.netlist import Netlist
+from ..geometry.geometry import Point, Shape, Rectangle, vec2rectangle
 from ..utils.keywords import KW_CENTER, KW_SHAPE
+from ..utils.utils import TextIO_String, read_yaml, write_yaml, YAML_tree, is_number, valid_identifier, Vector
 
 Alloc = dict[str, float]  # Allocation in a rectangle (area ratio for each module)
 
@@ -26,6 +28,7 @@ class Allocation:
     of modules. The occupation is represented as a ratio, e.g., 10% of a rectangle is occupied by M1,
     30% by M2, etc. Ratios are represented as numbers in the interval [0,1]."""
 
+    TypeAlloc = TypeVar('TypeAlloc', bound='Allocation')
     _allocations: list[RectAlloc]  # List of allocations. Each component corresponds to a rectangle
     _module2rect: dict[str, list[ModuleAlloc]]  # For each module, a list of rectangle allocations
     _areas: dict[str, float]  # Area of the modules
@@ -113,6 +116,42 @@ class Allocation:
             center += self.center(m) * self.area(m)
         return center / self.area(modules)
 
+    def check_compatible(self, netlist: Netlist) -> bool:
+        """
+        Checks whether the allocation is compatible with a netlist (the set of modules is the same)
+        :param netlist: the netlist
+        :return: True if compatible, and False otherwise
+        """
+        return {m.name for m in netlist.modules} == {m for m in self._module2rect.keys()}
+
+    def refine(self: TypeAlloc, threshold: float, levels: int) -> TypeAlloc:
+        """
+        Refines an allocation into a set of smaller rectangles. A rectangle in the allocation
+        is refined if no module has an occupancy greater than a threshold. In case a rectangle
+        is refined, it is recursively split into 2^levels rectangles. The splitting is always done by the
+        largest dimension (width or height).
+        :param threshold: rectangles are split if no module has an occupancy greater than this threshold
+        :param levels: number of splitting levels
+        :return: A new allocation
+        """
+        assert levels > 0
+        new_alloc: list[Vector, Alloc] = []
+        for a in self.allocations:
+            vec = a.rect.vector_spec
+            # Check the allocations and see if the rectangle must be split
+            split = len(a.alloc) > 1 and all(x <= threshold for x in a.alloc.values())
+            new_alloc.extend(self._split_allocation(vec, a.alloc, levels if split else 0))
+        return Allocation(new_alloc)
+
+    def write_yaml(self, filename: str = None) -> None | str:
+        """
+        Writes the allocation into a YAML file. If no file name is given, a string with the yaml contents
+        is returned
+        :param filename: name of the output file
+        """
+        list_modules = [[r.rect.vector_spec, r.alloc] for r in self._allocations]
+        return write_yaml(list_modules, filename)
+
     def _calculate_bounding_box(self) -> None:
         """
         Returns the bounding box of all rectangles
@@ -131,37 +170,37 @@ class Allocation:
         self._bounding_box = Rectangle(**kwargs)
 
     def _parse_yaml_tree(self, tree: YAML_tree) -> None:
-        """"""
+        """
+        Parses the YAML tree that reprsents an allocation
+        :param tree: the YAML tree
+        """
         assert isinstance(tree, list), "Wrong format of the allocation. The top node should be a list."
         self._allocations = []
         self._module2rect = {}
         for i, alloc in enumerate(tree):
             # Read one rectangle allocation
-            assert isinstance(alloc, list) and len(alloc) == 2, f"Incorrect format for rectangle %d" % (i + 1)
+            assert isinstance(alloc, list) and len(alloc) == 2, f'Incorrect format for rectangle {alloc}'
             r, d = alloc[0], alloc[1]  # Rectangle and dictionary of allocations
 
             # Create the rectangle
-            assert isinstance(r, list) and len(r) == 4, f"Incorrect format for rectangle %d" % (i + 1)
-            for j in range(4):
-                assert is_number(r[j]) and r[j] >= 0, f"Incorrect value for rectangle %d" % (i + 1)
-            kwargs = {KW_CENTER: Point(r[0], r[1]), KW_SHAPE: Shape(r[2], r[3])}
-            rect = Rectangle(**kwargs)
+            rect = vec2rectangle(r)
 
             # Create the dictionary of allocations
-            assert isinstance(d, dict), f"Incorrect allocation for rectangle %d" % (i + 1)
+            assert isinstance(d, dict), f'Incorrect allocation for rectangle {r}'
             dict_alloc = {}
             total_occup = 0
             for module, occup in d.items():
-                assert valid_identifier(module), f"Invalid module identifier: {module}"
-                assert 0 < occup <= 1, f"Invalid allocation for {module} in redtangle %d" % (i + 1)
-                assert module not in dict_alloc, f"Multiple allocations of {module} in rectangle %d" % (i + 1)
+                assert valid_identifier(module), f'Invalid module identifier: {module}'
+                assert is_number(occup) and 0 < occup <= 1, f'Invalid allocation for {module} in rectangle {r}'
+                assert module not in dict_alloc, f'Multiple allocations of {module} in rectangle {r}'
                 total_occup += occup
                 dict_alloc[module] = occup
                 if module not in self._module2rect:
                     self._module2rect[module] = []
                 self._module2rect[module].append(ModuleAlloc(i, occup))
 
-            assert total_occup <= 1.0, f"Occupancy of rectangle %d greater than 1" % (i + 1)
+            # Check that a rectangle is not over-occupied
+            assert total_occup <= 1.0, f'Occupancy of rectangle {r} greater than 1'
             self._allocations.append(RectAlloc(rect, dict_alloc))
 
     def _check_no_overlap(self) -> None:
@@ -184,11 +223,29 @@ class Allocation:
             self._areas[module] = total_area
             self._centers[module] = center / total_area
 
-    def write_yaml(self, filename: str = None) -> None | str:
+    @staticmethod
+    def _split_allocation(rect: Vector, alloc: Alloc, levels: int = 0) -> list[[Vector, Alloc]]:
         """
-        Writes the allocation into a YAML file. If no file name is given, a string with the yaml contents
-        is returned
-        :param filename: name of the output file
+        Splits a rectangle into 2^levels rectangles and returns a list of rectangle allocations
+        :param rect: the rectangle
+        :param alloc: the module allocation fo the rectangle
+        :param levels: number of splitting levels
+        :return: a list of allocations
         """
-        list_modules = [[r.rect.vector_spec, r.alloc] for r in self._allocations]
-        return write_yaml(list_modules, filename)
+        if levels == 0:
+            return [[rect, {m: r for m, r in alloc.items()}]]
+
+        # Split the largest dimension
+        if rect[2] >= rect[3]:
+            # Split width
+            w2, w4 = rect[2] / 2, rect[2] / 4
+            rect1 = [rect[0] - w4, rect[1], w2, rect[3]]
+            rect2 = [rect[0] + w4, rect[1], w2, rect[3]]
+        else:
+            # Split height
+            h2, h4 = rect[3] / 2, rect[3] / 4
+            rect1 = [rect[0], rect[1] - h4, rect[2], h2]
+            rect2 = [rect[0], rect[1] + h4, rect[2], h2]
+
+        return Allocation._split_allocation(rect1, alloc, levels - 1) + Allocation._split_allocation(rect2, alloc,
+                                                                                                     levels - 1)

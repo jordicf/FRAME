@@ -6,7 +6,7 @@ from __future__ import annotations
 from typing import NamedTuple, Tuple, Any
 
 from frame.utils.keywords import KW_FIXED, KW_CENTER, KW_SHAPE, KW_REGION, KW_NAME, KW_GROUND
-from frame.utils.utils import Vector, valid_identifier
+from frame.utils.utils import Vector, valid_identifier, is_number
 
 
 class Point:
@@ -240,3 +240,15 @@ class Rectangle:
         return s
 
     __repr__ = __str__
+
+
+def vec2rectangle(r: Vector) -> Rectangle:
+    """Converts a list of four numbers [x,y,w,h] into a rectangle
+    :param r: the list of numbers
+    :return: a Rectangle
+    """
+    assert isinstance(r, list) and len(r) == 4, f"Incorrect format for rectangle: %s" % r
+    for i in range(4):
+        assert is_number(r[i]), f"Incorrect format for rectangle %s" % r
+    kwargs = {KW_CENTER: Point(r[0], r[1]), KW_SHAPE: Shape(r[2], r[3])}
+    return Rectangle(**kwargs)
