@@ -11,8 +11,10 @@ import pseudobool
 import satmanager
 
 from ruamel.yaml import YAML
-yaml=YAML(typ='safe')
+
+yaml = YAML(typ='safe')
 from canvas import Canvas, colmix
+
 
 def usage():
     """
@@ -25,6 +27,7 @@ def usage():
     print(" --minerr  : Minimizes the error (Default)")
     print(" --sf [d]  : Manually set the factor to number d (Not recommended)")
     exit(-1)
+
 
 def processParam(param: str, i: int, f: float):
     """
@@ -51,6 +54,7 @@ def processParam(param: str, i: int, f: float):
         usage()
     i = i + 1
     return i, f
+
 
 def enforce_bb(sm, btag, cbtag):
     """
@@ -116,6 +120,7 @@ def enforce_bb(sm, btag, cbtag):
                 if B1[3] == B2[1] and B1[2] > B2[0] and B1[0] < B2[2]:
                     sm.imply([var_b[b1], south, -var_b[b2]], sm.newVar(cbtag + str(b2), ""))
 
+
 def solve(ratio, dif, nboxes):
     """
     Generates the SAT problem, calls the solver and returns the solution.
@@ -141,7 +146,7 @@ def solve(ratio, dif, nboxes):
     for b in blocks:
         realarea = realarea + area(b, False) * sm.newVar("b_" + str(b), "")
     obj = ratio * selarea - realarea
-    
+
     # Min area approach
     if ratio < 1:
         sm.pseudoboolEncoding(realarea >= round(theoreticalBestArea * ratio))
@@ -149,7 +154,7 @@ def solve(ratio, dif, nboxes):
     # Min error approach
     else:
         sm.pseudoboolEncoding(obj >= dif[0])
-    
+
     for i in range(0, nboxes):
         enforce_bb(sm, "b" + str(i) + "_", "b" + str(0) + "_")
     if not sm.solve():
@@ -163,7 +168,7 @@ def solve(ratio, dif, nboxes):
     rects = [(float('inf'), float('inf'), -float('inf'), -float('inf'))] * nboxes
     for i in range(0, nboxes):
         for b in blocks:
-            if sm.value( sm.newVar("b" + str(i) + "_" + str(b), "") ) == 1:
+            if sm.value(sm.newVar("b" + str(i) + "_" + str(b), "")) == 1:
                 (cx0, cy0, cx1, cy1) = rects[i]
                 (nx0, ny0, nx1, ny1, p) = input_problem[b]
                 if cx0 > nx0:
@@ -175,13 +180,14 @@ def solve(ratio, dif, nboxes):
                 if cy1 < ny1:
                     cy1 = ny1
                 rects[i] = (cx0, cy0, cx1, cy1)
-    
+
     # Min area approach
     if ratio < 1:
         return (sm.evalExpr(selarea) + 1, sm.evalExpr(realarea))
     # Min error approach
     else:
         return (sm.evalExpr(obj) + 1, 1), rects
+
 
 def getFile(f: float) -> str:
     """
@@ -195,6 +201,7 @@ def getFile(f: float) -> str:
         (x1, y1, x2, y2, p) = v
         outstr += str(x1) + " " + str(y1) + " " + str(x2) + " " + str(y2) + " " + str(p) + "\n"
     return outstr
+
 
 def area(b, sel: bool) -> float:
     """
@@ -210,6 +217,7 @@ def area(b, sel: bool) -> float:
     if sel:
         return factor * p * (x2 - x1) * (y2 - y1)
     return factor * (x2 - x1) * (y2 - y1)
+
 
 def fstr_to_tuple(p: str, f):
     """
@@ -235,6 +243,7 @@ def fstr_to_tuple(p: str, f):
     print(area(inibox, True), area(inibox, False))
     return (round(f * area(inibox, True) - area(inibox, False)), 1)
 
+
 def defineCoords():
     """
     Generates a set of auxiliary variables, useful for many parts of the code.
@@ -250,16 +259,16 @@ def defineCoords():
     xset = set()
     yset = set()
     blocks = range(0, len(input_problem))
-    
+
     for block in input_problem:
         xset.add(block[0])
         xset.add(block[2])
         yset.add(block[1])
         yset.add(block[3])
-    
+
     xcoords = sorted(xset)
     ycoords = sorted(yset)
-    
+
     next_x = {}
     prev_x = {}
     next_y = {}
@@ -271,6 +280,7 @@ def defineCoords():
         next_y[ycoords[i - 1]] = ycoords[i]
         prev_y[ycoords[i]] = ycoords[i - 1]
     return blocks, xcoords, ycoords, prev_x, prev_y, next_x, next_y
+
 
 def selectBox():
     """
@@ -292,6 +302,7 @@ def selectBox():
             input_problem.append((xc - w / 2, yc - h / 2, xc + w / 2, yc + h / 2, val))
     return input_problem, selbox
 
+
 def findBestGreedy(f: float):
     """
     Calls the greedy algorithm for finding the best solution with just one block.
@@ -310,16 +321,18 @@ def findBestGreedy(f: float):
     print(x1, y1, x2, y2, p)
     return inibox, p
 
+
 def drawInput(canvas: Canvas, input_problem):
     """
     Shows an image of the input problem.
     """
     canvas.clear()
     for box in input_problem:
-        (a,b,c,d,p) = box
-        col = colmix((255,255, 255),(255,0,0),p)
-        canvas.drawbox( ((a,b),(c,d)), col )
+        (a, b, c, d, p) = box
+        col = colmix((255, 255, 255), (255, 0, 0), p)
+        canvas.drawbox(((a, b), (c, d)), col)
     canvas.show()
+
 
 def drawOutput(canvas: Canvas, input_problem, boxes):
     """
@@ -327,12 +340,13 @@ def drawOutput(canvas: Canvas, input_problem, boxes):
     """
     canvas.clear()
     for box in input_problem:
-        (a,b,c,d,p) = box
-        canvas.drawbox( ((a,b),(c,d)) )
+        (a, b, c, d, p) = box
+        canvas.drawbox(((a, b), (c, d)))
     for box in boxes:
-        (a,b,c,d) = box
-        canvas.drawbox( ((a,b),(c,d)), "#FF0000" )
+        (a, b, c, d) = box
+        canvas.drawbox(((a, b), (c, d)), "#FF0000")
     canvas.show()
+
 
 def main():
     """
@@ -343,45 +357,45 @@ def main():
     global theoreticalBestArea
 
     canvas = Canvas()
-    
+
     if len(sys.argv) < 2:
         usage()
-    
+
     f = 2  # 0.89
     i = 1
-    
+
     while i < len(sys.argv) and sys.argv[i][0:2] == "--":
         i, f = processParam(sys.argv[i])
-    
+
     if i >= len(sys.argv):
         usage()
-    
+
     file = sys.argv[i]
     i = i + 1
-    
+
     while i < len(sys.argv):
         i, f = processParam(sys.argv[i])
-    
+
     factor = 10000
     symbols = ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'A', 'B', 'C', 'D', 'E', 'F']
-    
+
     ifile = None
     with open(file, 'r') as file:
         ifile = yaml.load(file)
-    
+
     canvas.setcoords(-1, -1, ifile['Width'] + 1, ifile['Height'] + 1)
-    
+
     input_problem, selbox = selectBox()
     drawInput(canvas, input_problem)
-    
+
     blocks, xcoords, ycoords, prev_x, prev_y, next_x, next_y = defineCoords()
-    
+
     theoreticalBestArea = 0
     for b in blocks:
         theoreticalBestArea += area(b, True)
-    
+
     inibox, p = findBestGreedy(f)
-    
+
     dif = fstr_to_tuple(p, f)  # (0, 1)
     boxes = [(inibox[0], inibox[1], inibox[2], inibox[3])]
     tmpb = []
