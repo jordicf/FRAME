@@ -5,16 +5,16 @@ from pseudobool import Literal, Expr, Ineq, memory
 
 class SATManager:
     def __init__(self) -> None:
-        self.ttable = {}
-        self.tcount = 1
-        self.vtable = [0]
-        self.auxcount = 0
-        self.clauses = []
-        self.model = {}
-        self.codified = {}
-        self.flipped = {}
+        self.ttable:   dict[str, int] = {}
+        self.tcount:   int = 1
+        self.vtable:   list[str] = ['0']
+        self.auxcount: int = 0
+        self.clauses:  list[list[Literal]] = []
+        self.model:    dict[str, int] = {}
+        self.codified: dict[int, bool] = {}
+        self.flipped:  dict[str, bool] = {}
 
-    def newVar(self, name: str, pre: str = "def_") -> Literal:
+    def newvar(self, name: int | float | str, pre: str = "def_") -> Literal:
         vname = pre + str(name)
         if vname not in self.ttable:
             self.ttable[vname] = self.tcount
@@ -22,121 +22,121 @@ class SATManager:
             self.vtable.append(vname)
         return Literal(vname)
 
-    def isFlipped(self, varname):
+    def isflipped(self, varname: str) -> bool:
         if varname in self.flipped and self.flipped[varname]:
             return True
         return False
 
-    def setFlipped(self, varname, value=True):
+    def setflipped(self, varname: str, value: bool = True) -> None:
         if value:
             self.flipped[varname] = True
         else:
             del self.flipped[varname]
 
-    def newAux(self) -> Literal:
+    def newaux(self) -> Literal:
         self.auxcount += 1
-        return self.newVar(str(self.auxcount), "aux_")
+        return self.newvar(str(self.auxcount), "aux_")
 
-    def quadraticEncoding(self, lst) -> None:  # At most 1 constraint
+    def quadraticencoding(self, lst) -> None:  # At most 1 constraint
         for i in range(0, len(lst)):
             for j in range(i + 1, len(lst)):
                 self.clauses.append([-lst[i], -lst[j]])
 
-    def heuleEncoding(self, lst, k: int = 3) -> None:  # At most 1 constraint
+    def heuleencoding(self, lst, k: int = 3) -> None:  # At most 1 constraint
         if k < 3:
             raise Exception("k must be at least 3")
         if len(lst) <= k:
-            self.quadraticEncoding(lst)
+            self.quadraticencoding(lst)
         else:
-            fresh = self.newAux()
+            fresh = self.newaux()
             h1 = lst[:k - 1]
             h2 = lst[k - 2:]
             h1.append(fresh)
             h2[0] = -fresh
-            self.quadraticEncoding(h1)
-            self.heuleEncoding(h2, k)
+            self.quadraticencoding(h1)
+            self.heuleencoding(h2, k)
 
     def imply(self, list1, l2) -> None:  # l1 -> l2
-        l = list(map(lambda x: -x, list1))
-        l.append(l2)
-        self.clauses.append(l)
+        lst = list(map(lambda x: -x, list1))
+        lst.append(l2)
+        self.clauses.append(lst)
 
-    def codifyROBDD(self, robdd_id: int) -> None:
+    def _codifyrobdd(self, robdd_id: int) -> None:
         if robdd_id not in self.codified:
             self.codified[robdd_id] = True
-            pnode = self.newVar(robdd_id, "robdd_")
+            pnode = self.newvar(robdd_id, "robdd_")
             if robdd_id == 0:
                 self.clauses.append([-pnode])
             elif robdd_id == 1:
                 self.clauses.append([pnode])
             else:
                 robdd = memory[robdd_id]
-                self.codifyROBDD(robdd[1])
-                self.codifyROBDD(robdd[2])
-                dvar = self.newVar(robdd[0], "")
-                inode = self.newVar(robdd[1], "robdd_")
-                enode = self.newVar(robdd[2], "robdd_")
+                self._codifyrobdd(robdd[1])
+                self._codifyrobdd(robdd[2])
+                dvar = self.newvar(robdd[0], "")
+                inode = self.newvar(robdd[1], "robdd_")
+                enode = self.newvar(robdd[2], "robdd_")
                 self.clauses.append([-pnode, -dvar, inode])
                 self.clauses.append([-pnode, dvar, enode])
 
-    def pseudoboolEncoding(self, ineq: Ineq, coefficientDecomposition: bool = False) -> None:
+    def pseudoboolencoding(self, ineq: Ineq, coefficientdecomposition: bool = False) -> None:
         if ineq.isclause():
-            if ineq.clause != None:
+            if ineq.clause is not None:
                 self.clauses.append(ineq.clause)
         else:
-            robdd = ineq.getROBDD(coefficientDecomposition)
-            self.codifyROBDD(robdd)
-            self.clauses.append([self.newVar(robdd, "robdd_")])
+            robdd = ineq.getrobdd(coefficientdecomposition)
+            self._codifyrobdd(robdd)
+            self.clauses.append([self.newvar(robdd, "robdd_")])
 
-    def printClauses(self) -> None:
+    def printclauses(self) -> None:
         for c in self.clauses:
             s = ""
-            for l in c:
+            for lit in c:
                 if s != "":
                     s += " v "
-                s += l.tostr()
+                s += lit.tostr()
             print(s)
 
-    def toCNF(self) -> str:
+    def tocnf(self) -> str:
         s = "p cnf " + str(self.tcount - 1) + " " + str(len(self.clauses)) + "\n"
         for c in self.clauses:
-            for l in c:
-                if l.s == self.isFlipped(l.v):  # not l.s
+            for lit in c:
+                if lit.s == self.isflipped(lit.v):  # not lit.s
                     s += "-"
-                s += str(self.ttable[l.v]) + " "
+                s += str(self.ttable[lit.v]) + " "
             s += "0\n"
         return s + "\n"
 
-    def value(self, lit: Literal) -> int:
+    def value(self, lit: Literal) -> int | None:
         if lit.v not in self.model:
             return None
         if not lit.s:
             return 1 - self.model[lit.v]
         return self.model[lit.v]
 
-    def evalExpr(self, expr: Expr) -> float:
+    def evalexpr(self, expr: Expr) -> float | None:
         s = expr.c
         for t in expr.t:
-            if self.value(expr.t[t].l) == None:
+            if self.value(expr.t[t].L) is None:
                 return None
-            if self.value(expr.t[t].l) == 1:
+            if self.value(expr.t[t].L) == 1:
                 s += expr.t[t].c
         return s
 
-    def prioritize(self, lst):
+    def prioritize(self, lst: list[Literal]) -> None:
         i = 1
-        for l in lst:
-            pos = self.ttable[l.v]
+        for lit in lst:
+            pos = self.ttable[lit.v]
             other = self.vtable[i]
             self.ttable[other] = pos
             self.vtable[pos] = other
-            self.ttable[l.v] = i
-            self.vtable[i] = l.v
-            self.setFlipped(l.v, not l.s)
+            self.ttable[lit.v] = i
+            self.vtable[i] = lit.v
+            self.setflipped(lit.v, not lit.s)
             i = i + 1
 
     def solve(self) -> bool:
-        out = self.toCNF()
+        out = self.tocnf()
         file = open("tmp.cnf", "w")
         file.write(out)
         file.close()
@@ -156,6 +156,8 @@ class SATManager:
                         arr[int(word)] = 1
             for v in self.ttable:
                 self.model[v] = arr[self.ttable[v]]
+            file.close()
             return True
         else:
+            file.close()
             return False

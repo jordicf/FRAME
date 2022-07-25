@@ -1,4 +1,21 @@
 import collections
+from typing import Callable
+
+
+class Literal:
+    pass
+
+
+class Term:
+    pass
+
+
+class Expr:
+    pass
+
+
+AddTerm = str | int | float | Literal | Term | Expr
+ROBDDTerm = int | tuple[int, int, int]
 
 
 class Literal:
@@ -6,36 +23,36 @@ class Literal:
         self.v = str(var)
         self.s = sign
 
-    def __mul__(self, other: int):
+    def __mul__(self, other: int | float):
         return Term(self, other)
 
-    def __rmul__(self, other: int):
+    def __rmul__(self, other: int | float):
         return self * other
 
     def __neg__(self):
         return Literal(self.v, not self.s)
 
-    def __add__(self, other):
+    def __add__(self, other: AddTerm):
         e = Expr() + self + other
         return e
 
-    def __radd__(self, other):
+    def __radd__(self, other: AddTerm):
         e = Expr() + self + other
         return e
 
-    def __ge__(self, other):
+    def __ge__(self, other: AddTerm):
         return (Expr() + self) >= (Expr() + other)
 
-    def __le__(self, other):
+    def __le__(self, other: AddTerm):
         return (Expr() + self) <= (Expr() + other)
 
-    def __gt__(self, other):
+    def __gt__(self, other: AddTerm):
         return (Expr() + self) > (Expr() + other)
 
-    def __lt__(self, other):
+    def __lt__(self, other: AddTerm):
         return (Expr() + self) < (Expr() + other)
 
-    def __eq__(self, other):
+    def __eq__(self, other: AddTerm):
         return (Expr() + self) == (Expr() + other)
 
     def tostr(self):
@@ -46,80 +63,84 @@ class Literal:
 
 class Term:
     def __init__(self, lit: Literal, const: int = 1) -> None:
-        self.l = Literal(lit.v, lit.s)
+        self.L = Literal(lit.v, lit.s)
         self.c = int(const)
 
-    def __mul__(self, other: int):
-        return Term(self.l, self.c * int(other))
+    def __mul__(self, other: int | float):
+        return Term(self.L, self.c * int(other))
 
-    def __rmul__(self, other: int):
+    def __rmul__(self, other: int | float):
         return self * other
 
     def __neg__(self):
-        return Term(self.l, -self.c)
+        return Term(self.L, -self.c)
 
-    def __add__(self, other):
+    def __add__(self, other: AddTerm):
         e = Expr() + self + other
         return e
 
-    def __radd__(self, other):
+    def __radd__(self, other: AddTerm):
         e = Expr() + self + other
         return e
 
-    def __ge__(self, other):
+    def __ge__(self, other: AddTerm):
         return (Expr() + self) >= (Expr() + other)
 
-    def __le__(self, other):
+    def __le__(self, other: AddTerm):
         return (Expr() + self) <= (Expr() + other)
 
-    def __gt__(self, other):
+    def __gt__(self, other: AddTerm):
         return (Expr() + self) > (Expr() + other)
 
-    def __lt__(self, other):
+    def __lt__(self, other: AddTerm):
         return (Expr() + self) < (Expr() + other)
 
-    def __eq__(self, other):
+    def __eq__(self, other: AddTerm):
         return (Expr() + self) == (Expr() + other)
 
     def tostr(self):
-        return str(self.c) + " " + self.l.tostr()
+        return str(self.c) + " " + self.L.tostr()
 
 
 class Expr:
-    def __init__(self, c: int = 0, t: dict = {}) -> None:
+    def __init__(self, c: int = 0, t: dict = None) -> None:
+        if t is None:
+            t = {}
         self.c = int(c)
         self.t = collections.OrderedDict()
         for v in t:
-            self.t[v] = Term(t[v].l, t[v].c)
+            self.t[v] = Term(t[v].L, t[v].c)
 
-    def __add__(self, term):
+    def __add__(self, term: AddTerm):
         rets = Expr(self.c, self.t)
         if type(term) is str:
             return self + Term(Literal(term))
         elif type(term) is Literal:
             return self + Term(term)
         elif type(term) is Term:
+            term: Term
             if term.c == 0.0:
                 return rets
-            if term.l.v in rets.t:
-                if term.l.s == rets.t[term.l.v].l.s:
-                    rets.t[term.l.v].c += term.c
-                    if rets.t[term.l.v].c == 0:
-                        del rets.t[term.l.v]
+            if term.L.v in rets.t:
+                if term.L.s == rets.t[term.L.v].L.s:
+                    rets.t[term.L.v].c += term.c
+                    if rets.t[term.L.v].c == 0:
+                        del rets.t[term.L.v]
                 else:
-                    rets.t[term.l.v].c -= term.c
+                    rets.t[term.L.v].c -= term.c
                     rets.c += term.c
-                    if rets.t[term.l.v].c == 0:
-                        del rets.t[term.l.v]
+                    if rets.t[term.L.v].c == 0:
+                        del rets.t[term.L.v]
             else:
-                rets.t[term.l.v] = Term(term.l, term.c)
-            if term.l.v in rets.t and rets.t[term.l.v].c < 0:
-                rets.c += rets.t[term.l.v].c
-                rets.t[term.l.v].c = -rets.t[term.l.v].c
-                rets.t[term.l.v].l.s = not rets.t[term.l.v].l.s
+                rets.t[term.L.v] = Term(term.L, term.c)
+            if term.L.v in rets.t and rets.t[term.L.v].c < 0:
+                rets.c += rets.t[term.L.v].c
+                rets.t[term.L.v].c = -rets.t[term.L.v].c
+                rets.t[term.L.v].L.s = not rets.t[term.L.v].L.s
         elif type(term) is float or type(term) is int:
             rets.c += int(term)
         elif type(term) is Expr:
+            term: Expr
             rets.c += term.c
             for v in term.t:
                 rets = rets + term.t[v]
@@ -127,16 +148,18 @@ class Expr:
             raise Exception("Invalid type")
         return rets
 
-    def __sub__(self, term):
+    def __sub__(self, term: AddTerm):
         if type(term) is str:
             return self - Term(Literal(term))
         elif type(term) is Literal:
             return self - Term(term)
         elif type(term) is Term:
-            return self + Term(term.l, -term.c)
+            term: Term
+            return self + Term(term.L, -term.c)
         elif type(term) is float or type(term) is int:
             return self + (- int(term))
         elif type(term) is Expr:
+            term: Expr
             tmp = self + (-term.c)
             for v in term.t:
                 tmp = tmp - term.t[v]
@@ -144,7 +167,7 @@ class Expr:
         else:
             raise Exception("Invalid type")
 
-    def __mul__(self, term: int):
+    def __mul__(self, term: int | float):
         if type(term) is int or type(term) is float:
             rets = Expr(self.c, self.t)
             removes = []
@@ -154,29 +177,29 @@ class Expr:
                     removes.append(t)
                 if t in rets.t and rets.t[t].c < 0:
                     rets.c += rets.t[t].c
-                    rets.t[t] = Term(Literal(rets.t[t].l.v, not rets.t[t].l.s), -rets.t[t].c)
+                    rets.t[t] = Term(Literal(rets.t[t].L.v, not rets.t[t].L.s), -rets.t[t].c)
             for r in removes:
                 del rets.t[r]
             return rets
         else:
             raise Exception("Invalid type")
 
-    def __rmul__(self, term: int):
+    def __rmul__(self, term: int | float):
         return self * term
 
-    def __ge__(self, other):
+    def __ge__(self, other: AddTerm):
         return Ineq(self, Expr() + other, ">=")
 
-    def __le__(self, other):
+    def __le__(self, other: AddTerm):
         return Ineq(self, Expr() + other, "<=")
 
-    def __gt__(self, other):
+    def __gt__(self, other: AddTerm):
         return Ineq(self, Expr() + other, ">")
 
-    def __lt__(self, other):
+    def __lt__(self, other: AddTerm):
         return Ineq(self, Expr() + other, "<")
 
-    def __eq__(self, other):
+    def __eq__(self, other: AddTerm):
         return Ineq(self, Expr() + other, "=")
 
     def tostr(self) -> str:
@@ -188,21 +211,21 @@ class Expr:
         return res
 
 
-def maxsum(lst):
+def maxsum(lst: list[Term]):
     s = 0
     for term in lst:
         s += term.c
     return s
 
 
-def largebit(n):
+def largebit(n: int):
     i = 1
     while 2 * i <= n:
         i = i * 2
     return i
 
 
-def insert(lst, trm):
+def insert(lst: list[Term], trm: Term):
     if trm.c == 0:
         return lst
     lst = lst + [trm]
@@ -236,68 +259,72 @@ class Ineq:
             return False
         if self.rhs <= 0:
             return True  # Tautology
-        l = []
+        lst = []
         for v in self.lhs.t:
-            l.append(self.lhs.t[v])
-        l.sort(key=lambda x: -x.c)
+            lst.append(self.lhs.t[v])
+        lst.sort(key=lambda x: -x.c)
         clause = []
         i = 0
-        while i < len(l) and (l[i].c > self.rhs or (l[i].c >= self.rhs and self.op == ">=")):
-            clause.append(l[i].l)
+        while i < len(lst) and (lst[i].c > self.rhs or (lst[i].c >= self.rhs and self.op == ">=")):
+            clause.append(lst[i].L)
             i = i + 1
         s = 0
-        while i < len(l) and s <= self.rhs:
-            s += l[i].c
+        while i < len(lst) and s <= self.rhs:
+            s += lst[i].c
             i = i + 1
-        if (s > self.rhs or (s >= self.rhs and self.op == ">=")):
+        if s > self.rhs or (s >= self.rhs and self.op == ">="):
             return False
         self.clause = clause
         self.clause.sort()
         return True
 
     def tostr(self) -> str:
-        if self.clause != None:
+        if self.clause is not None:
             res = ""
             f = True
-            for l in self.clause:
+            for L in self.clause:
                 if not f:
                     res += " + "
                 f = False
-                res += "1 " + l.tostr()
+                res += "1 " + L.tostr()
             return res + " >= 1"
         return self.lhs.tostr() + " " + self.op + " " + str(self.rhs)
 
-    def getROBDD(self, coefficientDecomposition=False):
-        l = []
+    def getrobdd(self, coefficientdecomposition: bool = False) -> int:
+        lst = []
         for v in self.lhs.t:
-            l.append(self.lhs.t[v])
-        l.sort(key=lambda x: -x.c)
+            lst.append(self.lhs.t[v])
+        lst.sort(key=lambda x: -x.c)
         if self.op == ">=":
-            if not coefficientDecomposition:
-                return constructROBDD((l, self.rhs),
+            if not coefficientdecomposition:
+                return constructrobdd((lst, self.rhs),
                                       lambda x: maxsum(x[0]) < x[1] or x[1] <= 0,
                                       lambda x: 1 if x[1] <= 0 else 0,
-                                      lambda x: x[0][0].l.v,
-                                      lambda x: (x[0][1:], x[1] - x[0][0].c if x[0][0].l.s else x[1]),
-                                      lambda x: (x[0][1:], x[1] if x[0][0].l.s else x[1] - x[0][0].c),
-                                      lambda x: ",".join(map(lambda x: x.tostr(), x[0])) + ";" + str(x[1]))
+                                      lambda x: x[0][0].L.v,
+                                      lambda x: (x[0][1:], x[1] - x[0][0].c if x[0][0].L.s else x[1]),
+                                      lambda x: (x[0][1:], x[1] if x[0][0].L.s else x[1] - x[0][0].c),
+                                      lambda x: ",".join(map(lambda y: y.tostr(), x[0])) + ";" + str(x[1]))
             else:
-                return constructROBDD((l, self.rhs),
+                return constructrobdd((lst, self.rhs),
                                       lambda x: maxsum(x[0]) < x[1] or x[1] <= 0,
                                       lambda x: 1 if x[1] <= 0 else 0,
-                                      lambda x: x[0][0].l.v,
-                                      lambda x: (insert(x[0][1:], Term(x[0][0].l, x[0][0].c - largebit(x[0][0].c))),
-                                                 x[1] - largebit(x[0][0].c) if x[0][0].l.s else x[1]),
-                                      lambda x: (insert(x[0][1:], Term(x[0][0].l, x[0][0].c - largebit(x[0][0].c))),
-                                                 x[1] if x[0][0].l.s else x[1] - largebit(x[0][0].c)),
-                                      lambda x: ",".join(map(lambda x: x.tostr(), x[0])) + ";" + str(x[1]))
+                                      lambda x: x[0][0].L.v,
+                                      lambda x: (insert(x[0][1:], Term(x[0][0].L, x[0][0].c - largebit(x[0][0].c))),
+                                                 x[1] - largebit(x[0][0].c) if x[0][0].L.s else x[1]),
+                                      lambda x: (insert(x[0][1:], Term(x[0][0].L, x[0][0].c - largebit(x[0][0].c))),
+                                                 x[1] if x[0][0].L.s else x[1] - largebit(x[0][0].c)),
+                                      lambda x: ",".join(map(lambda y: y.tostr(), x[0])) + ";" + str(x[1]))
 
 
-memory = [0, 1]
+memory: list[ROBDDTerm] = [0, 1]
 mmap = {}
 
 
-def constructROBDD(data, bccond, bcconstr, dvar, ifprop, elprop, serdat, memo={}):
+def constructrobdd(data: any, bccond: Callable[[any], bool], bcconstr: Callable[[any], int],
+                   dvar: Callable[[any], str | int], ifprop: Callable[[any], any], elprop: Callable[[any], any],
+                   serdat: Callable[[any], str], memo: dict[str, tuple[int, int, int]] = None) -> ROBDDTerm:
+    if memo is None:
+        memo = {}
     if serdat(data) in memo:
         return memo[serdat(data)]
     if bccond(data):
@@ -306,8 +333,8 @@ def constructROBDD(data, bccond, bcconstr, dvar, ifprop, elprop, serdat, memo={}
             raise Exception("Base case has to be either 0 or 1")
         return res
     # print(serdat(data))
-    ifnode = constructROBDD(ifprop(data), bccond, bcconstr, dvar, ifprop, elprop, serdat, memo)
-    elnode = constructROBDD(elprop(data), bccond, bcconstr, dvar, ifprop, elprop, serdat, memo)
+    ifnode = constructrobdd(ifprop(data), bccond, bcconstr, dvar, ifprop, elprop, serdat, memo)
+    elnode = constructrobdd(elprop(data), bccond, bcconstr, dvar, ifprop, elprop, serdat, memo)
     if ifnode == elnode:
         return ifnode
     dv = dvar(data)
@@ -321,10 +348,3 @@ def constructROBDD(data, bccond, bcconstr, dvar, ifprop, elprop, serdat, memo={}
         mmap[dv][ifnode][elnode] = len(memory) - 1
     memo[serdat(data)] = mmap[dv][ifnode][elnode]
     return mmap[dv][ifnode][elnode]
-
-
-def reconstructROBDD(index):
-    if index == 0 or index == 1:
-        return index
-    (v, i, e) = memory[index]
-    return (v, reconstructROBDD(i), reconstructROBDD(e))

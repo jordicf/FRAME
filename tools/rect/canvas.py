@@ -37,29 +37,30 @@ class Canvas:
         self.context = ImageDraw.Draw(self.canvas)
         self.clear()
 
-    def setcoords(self, x0: float, y0: float, x1: float, y1: float):
+    def setcoords(self, x0: float, y0: float, x1: float, y1: float) -> None:
         self.x0 = x0
         self.y0 = y0
         self.x1 = x1
         self.y1 = y1
 
-    def interpolate(self, point):
+    def interpolate(self, point: tuple[float, float]) -> tuple[float, float]:
         (x1, y1) = point
         xi0, yi0, xi1, yi1 = self.x0, self.y0, self.x1, self.y1
         xo0, yo0, xo1, yo1 = 0, 0, self.width, self.height
         x2, y2 = (x1 - xi0) / (xi1 - xi0), (y1 - yi0) / (yi1 - yi0)
         x3, y3 = x2 * (xo1 - xo0) + xo0, y2 * (yo1 - yo0) + yo0
-        return (x3, y3)
+        return x3, y3
 
-    def drawbox(self, box, col="#FFFFFF", out="#000000"):
+    def drawbox(self, box: tuple[tuple[float, float], tuple[float, float]],
+                col: str = "#FFFFFF", out: str = "#000000") -> None:
         (t1, b1) = box
         t2, b2 = self.interpolate(t1), self.interpolate(b1)
-        shape = [t2, b2]
+        shape = (t2[0], t2[1], b2[0], b2[1])
         self.context.rectangle(shape, fill=col, outline=out)
 
-    def clear(self, col="#FFFFFF"):
-        shape = [(0, 0), (self.width, self.height)]
-        self.context.rectangle(shape, fill="#FFF", outline="#FFF")
+    def clear(self, col: str = "#FFFFFF") -> None:
+        shape = (0, 0, self.width, self.height)
+        self.context.rectangle(shape, fill=col, outline=col)
 
-    def show(self):
+    def show(self) -> None:
         self.canvas.show()

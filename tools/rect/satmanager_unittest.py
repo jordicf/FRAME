@@ -4,16 +4,16 @@ import pseudobool
 import satmanager
 
 
-def exactlyOne(sm, lst):
+def exactlyone(sm, lst):
     e = pseudobool.Expr()
     for i in lst:
         e = e + i
-    sm.heuleEncoding(lst)
-    sm.pseudoboolEncoding(e >= 1)
+    sm.heuleencoding(lst)
+    sm.pseudoboolencoding(e >= 1)
     return e
 
 
-def allDifferent(lst):
+def alldifferent(lst):
     for i in lst:
         if lst.count(i) != 1:
             return False
@@ -24,12 +24,12 @@ class TestSAT(unittest.TestCase):
 
     def test_atmostone(self):
         sm = satmanager.SATManager()
-        l = []
+        lst = []
         for i in range(0, 100):
-            l.append(sm.newVar(str(i)))
-        e1 = exactlyOne(sm, l)
+            lst.append(sm.newvar(str(i)))
+        e1 = exactlyone(sm, lst)
         self.assertTrue(sm.solve())
-        res = sm.evalExpr(e1)
+        res = sm.evalexpr(e1)
         self.assertEqual(res, 1)
 
     def test_sudoku(self):
@@ -47,22 +47,22 @@ class TestSAT(unittest.TestCase):
                 table[i].append([])
                 sol[i].append(0)
                 for k in cord:
-                    table[i][j].append(sm.newVar(str(i) + "." + str(j) + "." + str(k)))
+                    table[i][j].append(sm.newvar(str(i) + "." + str(j) + "." + str(k)))
 
         # Constraint definition
         for i in cord:
             for j in cord:
                 # Every cell has exactly one number
-                exactlyOne(sm, [table[i][j][k] for k in cord])
+                exactlyone(sm, [table[i][j][k] for k in cord])
                 # Numbers do not repeat on each row
-                exactlyOne(sm, [table[i][k][j] for k in cord])
+                exactlyone(sm, [table[i][k][j] for k in cord])
                 # Numbers do not repeat on each column
-                exactlyOne(sm, [table[k][i][j] for k in cord])
+                exactlyone(sm, [table[k][i][j] for k in cord])
         for i in range(0, size):
             for j in range(0, size):
                 for k in cord:
                     # Numbers do not repeat on each quadrant
-                    exactlyOne(sm, [table[size * i + k1][size * j + k2][k] for k2 in range(0, size) for k1 in
+                    exactlyone(sm, [table[size * i + k1][size * j + k2][k] for k2 in range(0, size) for k1 in
                                     range(0, size)])
 
         # Solving the sudoku
@@ -85,14 +85,14 @@ class TestSAT(unittest.TestCase):
         # Verifying the correctness
         for i in cord:
             # Numbers do not repeat on each row
-            self.assertTrue(allDifferent([sol[i][j] for j in cord]))
+            self.assertTrue(alldifferent([sol[i][j] for j in cord]))
             # Numbers do not repeat on each column
-            self.assertTrue(allDifferent([sol[j][i] for j in cord]))
+            self.assertTrue(alldifferent([sol[j][i] for j in cord]))
         for i in range(0, size):
             for j in range(0, size):
                 # Numbers do not repeat on each quadrant
                 self.assertTrue(
-                    allDifferent([sol[size * i + k1][size * j + k2] for k2 in range(0, size) for k1 in range(0, size)]))
+                    alldifferent([sol[size * i + k1][size * j + k2] for k2 in range(0, size) for k1 in range(0, size)]))
 
 
 if __name__ == '__main__':
