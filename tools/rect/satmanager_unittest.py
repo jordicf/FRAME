@@ -4,7 +4,7 @@ import pseudobool
 import satmanager
 
 
-def exactlyone(sm, lst):
+def exactlyone(sm: satmanager.SATManager, lst: list[pseudobool.Literal]):
     e = pseudobool.Expr()
     for i in lst:
         e = e + i
@@ -13,7 +13,7 @@ def exactlyone(sm, lst):
     return e
 
 
-def alldifferent(lst):
+def alldifferent(lst: list[int]):
     for i in lst:
         if lst.count(i) != 1:
             return False

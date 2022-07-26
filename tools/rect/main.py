@@ -5,7 +5,7 @@ adjacent rectangles.
 """
 
 import subprocess
-import sys
+from argparse import ArgumentParser
 
 import pseudobool
 import satmanager
@@ -22,44 +22,25 @@ InputProblem = list[InputBox]
 GlobalsType = InputProblem | InputBox | int | str | list[int] | list[float] | dict[float, float] | None
 
 
-def usage() -> None:
+def parse_options(prog: str | None = None, args: list[str] | None = None) -> dict[str, any]:
     """
-    Prints the usage for this module
+    Parse the command-line arguments for the tool
+    :param prog: tool name
+    :param args: command-line arguments
+    :return: a dictionary with the arguments
     """
-    print("Usage:\n python " + sys.argv[0] + " [file name] [options]")
-    print("\nOptions:")
-    print(" --minarea : Minimizes the total area while guaranteeing a minimum coverage of the original")
-    print(" --maxdiff : Maximizes the difference between the inner area and the outer area")
-    print(" --minerr  : Minimizes the error (Default)")
-    print(" --sf [d]  : Manually set the factor to number d (Not recommended)")
-    exit(-1)
+    parser = ArgumentParser(prog=prog, description="An example generation tool", usage='%(prog)s [options]')
+    parser.add_argument("filename", type=str,                 help="Input file (.yaml)")
+    parser.add_argument("--minarea", dest='f', const=0.89, default=2.00, action='store_const',
+                        help="Minimizes the total area while guaranteeing a minimum coverage of the original")
+    parser.add_argument("--maxdiff", dest='f', const=3.00, default=2.00, action='store_const',
+                        help="Maximizes the difference between the inner area and the outer area")
+    parser.add_argument("--minerr",  dest='f', const=2.00, default=2.00, action='store_const',
+                        help="Minimizes the error (Default)")
+    parser.add_argument("--sf", type=float, dest='f', default=2.00,
+                        help="Manually set the factor to number d (Not recommended)")
 
-
-def processparam(param: str, i: int, f: float) -> tuple[int, float]:
-    """
-    Changes the function to optimize in terms of the parameter.
-    :param param: The input parameter, of the form --something.
-    :param i: The index of the parameter.
-    :param f: The current state of the "f" parameter.
-    :return: The next values for i and f.
-    """
-    if param == "--minarea":
-        f = 0.89
-    elif param == "--maxdiff":
-        f = 3.0
-    elif param == "--minerr":
-        f = 2.0
-    elif param == "--sf":
-        i = i + 1
-        if i >= len(sys.argv):
-            usage()
-        f = float(sys.argv[i])
-    else:
-        print("Unknown parameter " + param)
-        print()
-        usage()
-    i = i + 1
-    return i, f
+    return vars(parser.parse_args(args))
 
 
 def enforce_bb(carrier: dict[str, GlobalsType], ifile, sm: satmanager.SATManager, btag: str, cbtag: str):
@@ -133,13 +114,13 @@ def solve(carrier: dict[str, GlobalsType],
           dif: tuple[int, int],
           nboxes: int) -> tuple[tuple[int, int], list[SimpleBox]]:
     """
-    Generates the SAT problem, calls the solver and returns the solution.
-    :param carrier: The blocks, input_problem, factor and theoreticalBestArea carrier.
+    Generates the SAT problem, calls the solver and returns the solution
+    :param carrier: The blocks, input_problem, factor and theoreticalBestArea carrier
     :param ifile: The input file (parsed)
-    :param ratio: The f hyperparameter.
-    :param dif: The previous optimal solution (as a rational), for optimization purposes.
-    :param nboxes: The allowed number of boxes of the solution.
-    :return: The cost for an existing solution better than the previous one, and the list of rectangles.
+    :param ratio: The f hyperparameter
+    :param dif: The previous optimal solution (as a rational), for optimization purposes
+    :param nboxes: The allowed number of boxes of the solution
+    :return: The cost for an existing solution better than the previous one, and the list of rectangles
     """
     sm = satmanager.SATManager()
 
@@ -203,11 +184,11 @@ def solve(carrier: dict[str, GlobalsType],
 
 def getfile(carrier: dict[str, GlobalsType], ifile, f: float) -> str:
     """
-    Outputs the input file for the greedy algorithm.
-    :param carrier: The input_problem variable carrier.
-    :param ifile: The input file (parsed).
-    :param f: The f hyperparameter.
-    :return: The input file for the greedy algorithm, as a string.
+    Outputs the input file for the greedy algorithm
+    :param carrier: The input_problem variable carrier
+    :param ifile: The input file (parsed)
+    :param f: The f hyperparameter
+    :return: The input file for the greedy algorithm, as a string
     """
     outstr = str(ifile['Width']) + " " + str(ifile['Height']) + " " + str(len(carrier['input_problem'])) + "\n"
     outstr += str(f) + "\n"
@@ -219,11 +200,11 @@ def getfile(carrier: dict[str, GlobalsType], ifile, f: float) -> str:
 
 def area(carrier: dict[str, GlobalsType], b: int | InputBox, sel: bool) -> float:
     """
-    Returns the area of box b.
-    :param carrier: The input_problem and factor variable carrier.
-    :param b: The given box, either as an index or as a tuple.
-    :param sel: Whether we want the total area or just the proportion occupied by the module.
-    :return: The area.
+    Returns the area of box b
+    :param carrier: The input_problem and factor variable carrier
+    :param b: The given box, either as an index or as a tuple
+    :param sel: Whether we want the total area or just the proportion occupied by the module
+    :return: The area
     """
     if type(b) is tuple:
         (x1, y1, x2, y2, p) = b
@@ -236,11 +217,11 @@ def area(carrier: dict[str, GlobalsType], b: int | InputBox, sel: bool) -> float
 
 def fstr_to_tuple(carrier: dict[str, GlobalsType], p: str, f: float) -> tuple[int, int]:
     """
-    Turns p, which is a string codifying a float, into a rational.
-    :param carrier: The inibox variable carrier.
-    :param p: The input string.
-    :param f: The f hyperparameter.
-    :return: The value of p as a rational.
+    Turns p, which is a string codifying a float, into a rational
+    :param carrier: The inibox variable carrier
+    :param p: The input string
+    :param f: The f hyperparameter
+    :return: The value of p as a rational
     """
     # Min area approach
     if f < 1:
@@ -297,9 +278,9 @@ def definecoords(carrier: dict[str, GlobalsType]) -> None:
         prev_y[ycoords[i]] = ycoords[i - 1]
     carrier['blocks'] = blocks
     carrier['prev_x'] = prev_x
-    carrier['prev_y'] = prev_x
-    carrier['next_x'] = prev_x
-    carrier['next_y'] = prev_x
+    carrier['prev_y'] = prev_y
+    carrier['next_x'] = next_x
+    carrier['next_y'] = next_y
     carrier['xcoords'] = xcoords
     carrier['ycoords'] = ycoords
 
@@ -328,11 +309,11 @@ def selectbox(carrier: dict[str, GlobalsType], ifile) -> None:
 
 def findbestgreedy(carrier: dict[str, GlobalsType], ifile, f: float) -> str:
     """
-    Calls the greedy algorithm for finding the best solution with just one block.
-    :param carrier: The inibox variable carrier.
-    :param ifile: The input file (parsed).
-    :param f: The f hyperparameter.
-    :return: The quality of the solution.
+    Calls the greedy algorithm for finding the best solution with just one block
+    :param carrier: The inibox variable carrier
+    :param ifile: The input file (parsed)
+    :param f: The f hyperparameter
+    :return: The quality of the solution
     """
     file = open("tofind.txt", "w")
     file.write(getfile(carrier, ifile, f))
@@ -374,7 +355,7 @@ def drawoutput(canvas: Canvas, carrier: dict[str, GlobalsType], boxes: list[Simp
     canvas.show()
 
 
-def main() -> None:
+def main(prog: str | None = None, args: list[str] | None = None) -> int:
     """
     Main function.
     """
@@ -394,23 +375,10 @@ def main() -> None:
 
     canvas = Canvas()
 
-    if len(sys.argv) < 2:
-        usage()
+    options = parse_options(prog, args)
 
-    f = 2  # 0.89
-    i = 1
-
-    while i < len(sys.argv) and sys.argv[i][0:2] == "--":
-        i, f = processparam(sys.argv[i], i, f)
-
-    if i >= len(sys.argv):
-        usage()
-
-    file = sys.argv[i]
-    i = i + 1
-
-    while i < len(sys.argv):
-        i, f = processparam(sys.argv[i], i, f)
+    f = options['f']
+    file = options['filename']
 
     carrier['factor'] = 10000
 
@@ -444,7 +412,8 @@ def main() -> None:
             last, tmpb = solve(carrier, ifile, f, dif, nboxes)
         if improvement:
             print(boxes)
-            drawoutput(canvas, carrier['input_problem'], boxes)
+            drawoutput(canvas, carrier, boxes)
+    return 1
 
 
 if __name__ == "__main__":

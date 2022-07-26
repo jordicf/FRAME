@@ -37,12 +37,12 @@ class SATManager:
         self.auxcount += 1
         return self.newvar(str(self.auxcount), "aux_")
 
-    def quadraticencoding(self, lst) -> None:  # At most 1 constraint
+    def quadraticencoding(self, lst: list[Literal]) -> None:  # At most 1 constraint
         for i in range(0, len(lst)):
             for j in range(i + 1, len(lst)):
                 self.clauses.append([-lst[i], -lst[j]])
 
-    def heuleencoding(self, lst, k: int = 3) -> None:  # At most 1 constraint
+    def heuleencoding(self, lst: list[Literal], k: int = 3) -> None:  # At most 1 constraint
         if k < 3:
             raise Exception("k must be at least 3")
         if len(lst) <= k:
@@ -56,7 +56,7 @@ class SATManager:
             self.quadraticencoding(h1)
             self.heuleencoding(h2, k)
 
-    def imply(self, list1, l2) -> None:  # l1 -> l2
+    def imply(self, list1: list[Literal], l2: Literal) -> None:  # l1 -> l2
         lst = list(map(lambda x: -x, list1))
         lst.append(l2)
         self.clauses.append(lst)

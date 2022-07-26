@@ -317,7 +317,7 @@ class Ineq:
 
 
 memory: list[ROBDDTerm] = [0, 1]
-mmap = {}
+mmap: dict[tuple[str | int, int, int], int] = {}
 
 
 def constructrobdd(data: any, bccond: Callable[[any], bool], bcconstr: Callable[[any], int],
@@ -338,13 +338,9 @@ def constructrobdd(data: any, bccond: Callable[[any], bool], bcconstr: Callable[
     if ifnode == elnode:
         return ifnode
     dv = dvar(data)
-    if dv not in mmap:
-        mmap[dv] = {}
-    if ifnode not in mmap[dv]:
-        mmap[dv][ifnode] = {}
-    if elnode not in mmap[dv][ifnode]:
+    if (dv, ifnode, elnode) not in mmap:
         obj = (dv, ifnode, elnode)
         memory.append(obj)
-        mmap[dv][ifnode][elnode] = len(memory) - 1
-    memo[serdat(data)] = mmap[dv][ifnode][elnode]
-    return mmap[dv][ifnode][elnode]
+        mmap[obj] = len(memory) - 1
+    memo[serdat(data)] = mmap[(dv, ifnode, elnode)]
+    return mmap[(dv, ifnode, elnode)]
