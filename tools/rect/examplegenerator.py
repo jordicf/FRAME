@@ -1,6 +1,6 @@
 import random
-from tabulate import tabulate
 from argparse import ArgumentParser
+from frame.utils.utils import write_yaml
 
 
 def transpose(matrix: list[list[any]]) -> list[list[any]]:
@@ -10,6 +10,25 @@ def transpose(matrix: list[list[any]]) -> list[list[any]]:
         for j in range(0, len(matrix)):
             res[i].append(matrix[j][i])
     return res
+
+
+def tabulate(matrix: list[list[any]]) -> None:
+    mlen = 0
+    for vec in matrix:
+        for elem in vec:
+            if len(str(elem)) > mlen:
+                mlen = len(str(elem))
+
+    for vec in matrix:
+        line, word = "", ""
+        for elem in vec:
+            tmp = str(elem)
+            while len(tmp) < mlen:
+                tmp = " " + tmp
+            word += tmp
+            line += word
+            word = " "
+        print(line)
 
 
 def isvaliddirection(layout: list[list[int]], block: int, position: tuple[int, int]) -> bool:
@@ -248,7 +267,7 @@ def parse_options(prog: str | None = None, args: list[str] | None = None) -> dic
     parser.add_argument("--height", type=int,   default=10,   help="height of the die                   (minimum 1)")
     parser.add_argument("--maxw",   type=int,   default=7,    help="maximal width of a block            (minimum 1)")
     parser.add_argument("--maxn",   type=int,   default=3,    help="maximal number of blocks per module (minimum 1)")
-    parser.add_argument("--noise",  type=float, default=0.05, help="intensity of the noise              "
+    parser.add_argument("--noise",  type=float, default=0.3,  help="intensity of the noise              "
                                                                    "(between 0 and 1, > 0.3 not recommended)")
     parser.add_argument("--seed",   type=int,   default=None, help="seed for the random number generator")
     parser.add_argument("--outfile",            default=None, help="output file")
@@ -278,18 +297,16 @@ def main(prog: str | None = None, args: list[str] | None = None) -> int:
     die = generatedie(options)
     print()
     pout, pend = initout(options)
-    pout("Width:", options['width'])
-    pout("Height:", options['height'])
-    pout("Rectangles:")
+    rlist = []
     for i in range(0, options['height']):
         for j in range(0, options['width']):
-            index = i * options['width'] + j
-            pout("  - B" + str(index) + ":")
-            pout("    - dim: [", i + 0.5, ",", j + 0.5, ",", 1, ",", 1, "]", sep='')
-            pout("    - mod:")
+            item1 = [i + 0.5, j + 0.5, 1.0, 1.0]
+            item2 = {}
             for k in range(0, len(die[i][j])):
                 if die[i][j][k] > 0:
-                    pout("      - M" + str(k) + ":", die[i][j][k])
+                    item2["M" + str(k)] = die[i][j][k]
+            rlist.append([item1, item2])
+    pout(write_yaml(rlist))
     pend()
     return 1
 

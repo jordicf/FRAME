@@ -13,7 +13,8 @@ struct box {
 	double p;
 };
 
-int w, h, nboxes;
+double w, h;
+int nboxes;
 double proportion;
 struct box * inputProblem;
 std::vector<struct box> allBoxes;
@@ -86,8 +87,11 @@ int main(int argc, char * argv[]){
 	if(argc != 3 && argc != 2){
 		usage(argv[0]);
 	}
+	
 	readFile(argv[1]);
+	
 	allBoxes = std::vector<struct box>(0);
+	
 	for(int i = 0; i < nboxes; ++i){
 		for(int j = 0; j < nboxes; ++j) isBox(i, j);
 	}
@@ -101,7 +105,7 @@ int main(int argc, char * argv[]){
 		totalArea *= proportion;
 	}
 	
-	double maxP = 0.0;
+	double maxP = - 1.0;
 	int maxi = -1;
 	for(int i = 0; i < allBoxes.size(); ++i){
 		if( METHOD == MIN_AREA ){
@@ -120,6 +124,7 @@ int main(int argc, char * argv[]){
 			}
 		}
 	}
+	
 	if(argc == 3){
 		std::ofstream MyFile(argv[2]);
 		MyFile << allBoxes[maxi].x1 << " " << allBoxes[maxi].y1 << " " << allBoxes[maxi].x2 << " " << allBoxes[maxi].y2 << " " << allBoxes[maxi].p << std::endl;
@@ -127,5 +132,4 @@ int main(int argc, char * argv[]){
 	} else {
 		std::cout << allBoxes[maxi].x1 << " " << allBoxes[maxi].y1 << " " << allBoxes[maxi].x2 << " " << allBoxes[maxi].y2 << " " << allBoxes[maxi].p << std::endl;
 	}
-	
 }

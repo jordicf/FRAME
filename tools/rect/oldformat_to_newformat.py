@@ -1,34 +1,25 @@
-
 import sys
-import yaml
+from frame.utils.utils import read_yaml, write_yaml
 
 file = sys.argv[1]
     
-ifile = None
-with open(file, 'r') as file:
-    ifile = yaml.load(file, Loader=yaml.FullLoader)
+ifile = read_yaml(file)
 
 width = ifile['Width']
 height = ifile['Height']
 
-print('Width:', width)
-print('Height:', height)
-print('Rectangles:')
-
-blocks = [ ( [0,0,0,0], {} ) ] * len(ifile['Rectangles'])
+blocks = []
 
 it = 0
 for b in ifile['Rectangles']:
     for bname in b:
         [x1, y1, x2, y2, l] = b[bname]
-        item1 = [ float(x1 + x2) / 2.0, float(y1 + y2) / 2.0, x2 - x1, y2 - y1 ]
-        print('  - ', bname, ':', sep="")
-        print('    - dim:', item1)
-        print('    - mod:')
+        item1 = [float(x1 + x2) / 2.0, float(y1 + y2) / 2.0, float(x2 - x1), float(y2 - y1)]
+        item2 = {}
         for i in range(0, len(l)):
             if l[i] > 0:
-                print('      - M' + str(i) + ":", l[i])
+                item2['M' + str(i)] = l[i]
+        blocks.append([item1, item2])
         it = it + 1
-        
 
-
+print(write_yaml(blocks))

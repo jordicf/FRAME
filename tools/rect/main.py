@@ -10,10 +10,8 @@ from argparse import ArgumentParser
 import pseudobool
 import satmanager
 
-from ruamel.yaml import YAML
+from frame.allocation.allocation import RectAlloc, Allocation
 from canvas import Canvas, colmix
-
-yaml = YAML(typ='safe')
 
 # Custom types
 SimpleBox = tuple[float, float, float, float]
@@ -38,7 +36,7 @@ def parse_options(prog: str | None = None, args: list[str] | None = None) -> dic
     parser.add_argument("--minerr",  dest='f', const=2.00, default=2.00, action='store_const',
                         help="Minimizes the error (Default)")
     parser.add_argument("--sf", type=float, dest='f', default=2.00,
-                        help="Manually set the factor to number d (Not recommended)")
+                        help="Manually set the factor to number F (Not recommended)")
 
     return vars(parser.parse_args(args))
 
@@ -355,6 +353,19 @@ def drawoutput(canvas: Canvas, carrier: dict[str, GlobalsType], boxes: list[Simp
     canvas.show()
 
 
+def get_ifile(fname: str):
+    test = Allocation(fname)
+    obj = {'Width': test.bounding_box.shape.w, 'Height': test.bounding_box.shape.h, 'Rectangles': []}
+    for i in range(0, len(test.allocations)):
+        b: RectAlloc = test.allocations[i]
+        x, y, w, h = b.rect.center.x, b.rect.center.y, b.rect.shape.w, b.rect.shape.h
+        item1 = [x, y, w, h]
+        item2 = b.alloc
+        robj = {'b' + str(i): [{'dim': item1}, {'mod': list(map(lambda q: {q: item2[q]}, item2))}]}
+        obj['Rectangles'].append(robj)
+    return obj
+
+
 def main(prog: str | None = None, args: list[str] | None = None) -> int:
     """
     Main function.
@@ -382,8 +393,7 @@ def main(prog: str | None = None, args: list[str] | None = None) -> int:
 
     carrier['factor'] = 10000
 
-    with open(file, 'r') as file:
-        ifile = yaml.load(file)
+    ifile = get_ifile(file)
 
     canvas.setcoords(-1, -1, ifile['Width'] + 1, ifile['Height'] + 1)
 
@@ -399,11 +409,12 @@ def main(prog: str | None = None, args: list[str] | None = None) -> int:
     p = findbestgreedy(carrier, ifile, f)
 
     dif = fstr_to_tuple(carrier, p, f)  # (0, 1)
+    print(dif)
     boxes = [(carrier['inibox'][0], carrier['inibox'][1], carrier['inibox'][2], carrier['inibox'][3])]
+    improvement = True
     for nboxes in [1, 2, 3]:
         print("\n\nnboxes: " + str(nboxes))
         last, tmpb = solve(carrier, ifile, f, dif, nboxes)
-        improvement = False
         while last[0] > 0:
             boxes = tmpb
             improvement = True
@@ -413,6 +424,7 @@ def main(prog: str | None = None, args: list[str] | None = None) -> int:
         if improvement:
             print(boxes)
             drawoutput(canvas, carrier, boxes)
+            improvement = False
     return 1
 
 
