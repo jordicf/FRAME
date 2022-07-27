@@ -18,7 +18,8 @@ PACKAGES = [
     'frame.geometry',
     'frame.netlist',
     'frame.utils',
-    'tools.hello'
+    'tools.hello',
+    'tools.rect'
 ]
 
 INSTALL_REQUIRES = [
@@ -28,7 +29,8 @@ INSTALL_REQUIRES = [
     "gekko",
     "matplotlib",
     "seaborn",
-    "distinctipy"
+    "distinctipy",
+    "Pillow"
 ]
 
 ENTRY_POINTS = {
