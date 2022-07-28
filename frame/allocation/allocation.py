@@ -5,7 +5,7 @@ from typing import NamedTuple, Tuple, TypeVar
 from ..netlist.netlist import Netlist
 from ..geometry.geometry import Point, Shape, Rectangle, vec2rectangle
 from ..utils.keywords import KW_CENTER, KW_SHAPE
-from ..utils.utils import TextIO_String, read_yaml, write_yaml, YAML_tree, is_number, valid_identifier, Vector
+from ..utils.utils import TextIO_String, read_yaml, write_yaml, YAML_tree, is_number, valid_identifier, Vector, Matrix
 
 Alloc = dict[str, float]  # Allocation in a rectangle (area ratio for each module)
 
@@ -16,10 +16,15 @@ class RectAlloc(NamedTuple):
     alloc: Alloc  # Area ratio for each module (in [0,1])
 
 
-# Representation of allocation in a rectangle.
+# Representation of allocation of one module in a rectangle.
 class ModuleAlloc(NamedTuple):
     rect: int  # Rectangle index of the allocation
     area: float  # Area ratio (in [0,1])
+
+
+# Data structure to represent the rectangles associated to a module.
+# For each module, a list of rectangles is defined. Each rectangle is represented as a vector [x,y,w,h].
+Module2Rectangles = dict[str, Matrix]
 
 
 class Allocation:

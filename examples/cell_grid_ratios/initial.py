@@ -20,16 +20,16 @@ def optimize(alpha: float, block_areas: list[float], wire_costs: dict[tuple[int,
     """
     Calculates the optimal floorplan given the block areas and the wire costs by unit length between them.
     The optimal floorplan is the configuration that minimizes the total wire length, WL, and the total dispersion of
-    the blocks, D:  alpha WL + (1 - alpha) D.
+    the blocks, D:  alpha WL + (1 - alpha) D
 
-    :param alpha: A number between 0 and 1 to balance the trade-off between the total wire length and dispersion.
-    :param block_areas: A list of the areas of each block.
+    :param alpha: A number between 0 and 1 to balance the trade-off between the total wire length and dispersion
+    :param block_areas: A list of the areas of each block
     :param wire_costs: The wire costs between each block. It should be a dictionary from tuple (edges, with the indexes
-    in the block areas list as the ids) to float (the cost).
-    :param n_rows: The number of rows in the cell grid.
-    :param n_cols: The number of columns in the cell grid.
-    :param cell_width: The width of the cells.
-    :param cell_height: The height of the cells.
+    in the block areas list as the ids) to float (the cost)
+    :param n_rows: The number of rows in the cell grid
+    :param n_cols: The number of columns in the cell grid
+    :param cell_width: The width of the cells
+    :param cell_height: The height of the cells
     :return:
         - ratios - An n_blocks x (n_rows x n_cols) array containing the optimal ratio of each block in each cell in the
         cell grid.
