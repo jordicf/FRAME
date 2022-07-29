@@ -4,7 +4,8 @@ Package to draw a netlist in which the modules are represented by rectangles
 
 import math
 from argparse import ArgumentParser
-from typing import NamedTuple, Any
+from typing import Any
+from dataclasses import dataclass
 
 from PIL import Image, ImageDraw, ImageFont
 from distinctipy import distinctipy
@@ -18,7 +19,8 @@ from frame.allocation.allocation import Allocation
 
 
 # Tuple to represent the scaling factors for a drawing
-class Scaling(NamedTuple):
+@dataclass()
+class Scaling:
     xscale: float  # x scaling factor
     yscale: float  # y scaling factor
     width: int  # width of the picture (in pixels), without frame

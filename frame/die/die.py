@@ -1,6 +1,7 @@
 from collections import deque
 from itertools import combinations
-from typing import Set, Deque, NamedTuple
+from typing import Set, Deque
+from dataclasses import dataclass
 
 from .yaml_parse_die import parse_yaml_die
 from ..geometry.geometry import Shape, Rectangle, Point
@@ -8,7 +9,8 @@ from ..utils.keywords import KW_CENTER, KW_SHAPE, KW_REGION, KW_GROUND
 from ..utils.utils import TextIO_String
 
 
-class GroundRegion(NamedTuple):
+@dataclass()
+class GroundRegion:
     rmin: int
     rmax: int
     cmin: int

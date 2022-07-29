@@ -33,7 +33,7 @@ class Netlist:
         # Edges
         self._edges = []
         for e in _named_edges:
-            modules = []
+            modules: list[Module] = []
             for b in e.modules:
                 assert b in self._name2module, f'Unknown module {b} in edge'
                 modules.append(self._name2module[b])

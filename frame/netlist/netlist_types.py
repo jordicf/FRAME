@@ -1,16 +1,18 @@
-from typing import NamedTuple
+from dataclasses import dataclass
 from .module import Module
 
 
 # Representation of an edge in a graph (possibly obtained from a hypergraph).
 # The edge represents the target node in an adjacency list
-class Edge(NamedTuple):
+@dataclass()
+class Edge:
     node: str  # Name of the target
     weight: float  # Weight of the edge
 
 
 # Representation of a hyperedge (list of modules)
-class HyperEdge(NamedTuple):
+@dataclass()
+class HyperEdge:
     modules: list[Module]  # List of modules of the hyperedge
     weight: float  # Weight of the hyperedge
 
@@ -22,7 +24,8 @@ class HyperEdge(NamedTuple):
 
 
 # Representation of a hyperedge (list of module names)
-class NamedHyperEdge(NamedTuple):
+@dataclass()
+class NamedHyperEdge:
     modules: list[str]  # List of module names of the hyperedge
     weight: float  # Weight of the hyperedge
 

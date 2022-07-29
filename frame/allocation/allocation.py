@@ -1,6 +1,7 @@
 import itertools
 import math
-from typing import NamedTuple, Tuple, TypeVar
+from typing import Tuple, TypeVar
+from dataclasses import dataclass
 
 from ..netlist.netlist import Netlist
 from ..geometry.geometry import Point, Shape, Rectangle, vec2rectangle
@@ -11,13 +12,15 @@ Alloc = dict[str, float]  # Allocation in a rectangle (area ratio for each modul
 
 
 # Representation of the allocation in a rectangle.
-class RectAlloc(NamedTuple):
+@dataclass()
+class RectAlloc:
     rect: Rectangle  # Rectangle of the allocation
     alloc: Alloc  # Area ratio for each module (in [0,1])
 
 
 # Representation of allocation of one module in a rectangle.
-class ModuleAlloc(NamedTuple):
+@dataclass()
+class ModuleAlloc:
     rect: int  # Rectangle index of the allocation
     area: float  # Area ratio (in [0,1])
 
