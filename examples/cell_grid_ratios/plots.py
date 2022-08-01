@@ -6,8 +6,7 @@ from matplotlib import rcParams
 rcParams['font.family'] = 'monospace'
 
 
-def plot_result(block_areas: list[float], wire_costs: dict[tuple[int, int], float],
-                ratios, centroids, dispersions, wire_length,
+def plot_result(block_areas: list[float], ratios, centroids, dispersions, wire_length,
                 n_rows: int, n_cols: int, cell_width: float, cell_height: float,
                 suptitle: str | None = None, filename: str | None = None):
     """

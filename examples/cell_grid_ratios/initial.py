@@ -128,7 +128,7 @@ def main():
         ratios, centroids, dispersions, wire_length = result
         suptitle = f"alpha = {alpha:.1f}"
         print(suptitle)
-        plot_result(block_areas, wire_costs, ratios, centroids, dispersions, wire_length,
+        plot_result(block_areas, ratios, centroids, dispersions, wire_length,
                     n_rows, n_cols, cell_width, cell_height, suptitle, f"{results_dir}/fp-{alpha:.1f}.png")
 
 
