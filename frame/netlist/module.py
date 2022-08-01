@@ -27,7 +27,6 @@ class Module:
     # Allocation of regions. This dictionary receives the name of a rectangle (from the die)
     # as key and stores the ratio of occupation of the rectangle by the module (a value in [0,1]).
     _area_rectangles: float
-    _alloc: dict[str, float]  # Allocation to regions (rectangles) defined in the die
 
     def __init__(self, name: str, **kwargs):
         """
@@ -43,7 +42,6 @@ class Module:
         self._total_area = -1
         self._rectangles = []
         self._area_rectangles = -1
-        self._alloc = {}
 
         assert valid_identifier(name), "Incorrect module name"
 
@@ -139,6 +137,10 @@ class Module:
             self._area_rectangles = sum(r.area for r in self.rectangles)
         return self._area_rectangles
 
+    def clear_rectangles(self) -> None:
+        """Removes all rectangles of a module"""
+        self._rectangles = []
+
     def add_rectangle(self, r: Rectangle) -> None:
         """
         Adds a rectangle to the module
@@ -157,24 +159,6 @@ class Module:
 
         for idx, r in enumerate(self.rectangles):
             r.name = self.name + f'[{idx}]'
-
-    def add_allocation(self, region: str, usage: float) -> None:
-        """
-        Adds an allocation to a region
-        :param region: name of the region where the module must be allocated (a rectangle in the die)
-        :param usage: usage of the region (ratio between 0 and 1)
-        """
-        assert 0 <= usage <= 1, "Invalid usage specification of a region"
-        assert region not in self._alloc, f"Duplicated region allocation in module {self.name}: {region}"
-        self._alloc[region] = usage
-        self._total_area = -1
-
-    @property
-    def allocations(self) -> dict[str, float]:
-        """
-        :return: the set of allocations to regions of the layout
-        """
-        return self._alloc
 
     @staticmethod
     def _read_region_area(area: float | dict[str, float]) -> dict[str, float]:
