@@ -1,4 +1,5 @@
 from argparse import ArgumentParser
+from typing import Any
 
 
 def hello(name: str | None = None) -> str:
@@ -12,7 +13,7 @@ def hello(name: str | None = None) -> str:
     return f"Hello {name}!"
 
 
-def parse_options(prog: str | None = None, args: list[str] | None = None) -> dict[str, any]:
+def parse_options(prog: str | None = None, args: list[str] | None = None) -> dict[str, Any]:
     """
     Parse the command-line arguments for the tool
     :param prog: tool name
