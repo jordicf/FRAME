@@ -2,7 +2,7 @@
 Module to represent points, shapes and rectangles
 """
 
-from typing import Any
+from typing import Any, Union
 from dataclasses import dataclass
 
 from frame.utils.keywords import KW_FIXED, KW_CENTER, KW_SHAPE, KW_REGION, KW_NAME, KW_GROUND
@@ -14,7 +14,7 @@ class Point:
     A class to represent a two-dimensional point, and operate with them
     """
 
-    def __init__(self, x: 'Point' | tuple[float, float] | float | None = None, y: float | None = None) -> None:
+    def __init__(self, x: Union['Point', tuple[float, float], float, None] = None, y: float | None = None) -> None:
         """
         Constructor of a Point. See the example for ways of constructing it
         :param x: a Point or tuple[float, float], a float, or None
@@ -50,24 +50,24 @@ class Point:
         """Return -self."""
         return Point(-self.x, -self.y)
 
-    def __add__(self, other: float | 'Point') -> 'Point':
+    def __add__(self, other: Union['Point', tuple[float, float], float]) -> 'Point':
         """Return self + other."""
         other = Point(other)
         return Point(self.x + other.x, self.y + other.y)
 
     __radd__ = __add__
 
-    def __sub__(self, other: float | 'Point') -> 'Point':
+    def __sub__(self, other: Union['Point', tuple[float, float], float]) -> 'Point':
         """Return self - other."""
         other = Point(other)
         return Point(self.x, self.y) + -other
 
-    def __rsub__(self, other: float | 'Point') -> 'Point':
+    def __rsub__(self, other: Union['Point', tuple[float, float], float]) -> 'Point':
         """Return other - self."""
         other = Point(other)
         return other - self
 
-    def __mul__(self, other: float | 'Point') -> 'Point':
+    def __mul__(self, other: Union['Point', tuple[float, float], float]) -> 'Point':
         """Return self*other using component-wise multiplication. other can either be a number or another point."""
         other = Point(other)
         return Point(self.x * other.x, self.y * other.y)
@@ -78,12 +78,12 @@ class Point:
         """Return self**exponent using component-wise exponentiation."""
         return Point(self.x ** exponent, self.y ** exponent)
 
-    def __truediv__(self, other: float | 'Point') -> 'Point':
+    def __truediv__(self, other: Union['Point', tuple[float, float], float]) -> 'Point':
         """Return self / other using component-wise true division. other can either be a number or another point."""
         other = Point(other)
         return Point(self.x / other.x, self.y / other.y)
 
-    def __rtruediv__(self, other: float | 'Point'):
+    def __rtruediv__(self, other: Union['Point', tuple[float, float], float]):
         """Return other / self using component-wise true division. other can either be a number or another point."""
         other = Point(other)
         return Point(other.x / self.x, other.y / self.y)
