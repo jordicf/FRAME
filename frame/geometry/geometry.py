@@ -242,9 +242,9 @@ class Rectangle:
     __repr__ = __str__
 
 
-def parse_yaml_rectangle(r: list, fixed: bool = False, name: str = "") -> Rectangle:
+def parse_yaml_rectangle(r: list[float | int | str], fixed: bool = False, name: str = "") -> Rectangle:
     """Parses a rectangle
-    :param r: a YAML description of the rectangle (a list with 4 values)
+    :param r: a YAML description of the rectangle (a list with 4 numeric values (x, y, w, h)).
     Optionally, it may contain a fifth parameter (string) specifying a region
     :param fixed: Indicates whether the rectangle should be fixed
     :param name: name of the module
