@@ -10,6 +10,7 @@ from argparse import ArgumentParser
 import pseudobool
 import satmanager
 
+from frame.utils.utils import write_yaml
 from frame.allocation.allocation import RectAlloc, Allocation
 from canvas import Canvas, colmix
 
@@ -37,6 +38,12 @@ def parse_options(prog: str | None = None, args: list[str] | None = None) -> dic
                         help="Minimizes the error (Default)")
     parser.add_argument("--sf", type=float, dest='f', default=2.00,
                         help="Manually set the factor to number F (Not recommended)")
+    parser.add_argument("--plot", dest="plot", const=True, default=False, action="store_const",
+                        help="Plots the problem together with the solutions found")
+    parser.add_argument("--outfile", type=str, dest='file', default=None,
+                        help="The output file path (yaml)")
+    parser.add_argument("--module", type=str, dest='module', default=None,
+                        help="The module to optimize. If none is introduced, it optimizes all of them")
 
     return vars(parser.parse_args(args))
 
@@ -123,9 +130,11 @@ def solve(carrier: dict[str, GlobalsType],
     sm = satmanager.SATManager()
 
     selarea = pseudobool.Expr()
+    allblocks = pseudobool.Expr()
     vars_b = []
     for b in carrier['blocks']:
         selarea = selarea + area(carrier, b, True) * sm.newvar("b_" + str(b), "")
+        allblocks = allblocks + sm.newvar("b_" + str(b), "")
         vars_b.append(- sm.newvar("b_" + str(b), ""))
         lst = []
         for i in range(0, nboxes):
@@ -137,6 +146,9 @@ def solve(carrier: dict[str, GlobalsType],
     for b in carrier['blocks']:
         realarea = realarea + area(carrier, b, False) * sm.newvar("b_" + str(b), "")
     obj = ratio * selarea - realarea
+
+    # Have at least one block, please
+    sm.pseudoboolencoding(allblocks >= 1)
 
     # Min area approach
     if ratio < 1:
@@ -283,13 +295,13 @@ def definecoords(carrier: dict[str, GlobalsType]) -> None:
     carrier['ycoords'] = ycoords
 
 
-def selectbox(carrier: dict[str, GlobalsType], ifile) -> None:
+def selectbox(carrier: dict[str, GlobalsType], selbox: str, ifile) -> None:
     """
     Receives the module to optimize and preprocesses the problem to leave
     only the relevant information for such module.
     """
     input_problem: InputProblem = []
-    selbox = input("Selected module: ")
+    # selbox = input("Selected module: ")
     for b in ifile['Rectangles']:
         for bname in b:
             [xc, yc, w, h] = b[bname][0]['dim']
@@ -397,34 +409,56 @@ def main(prog: str | None = None, args: list[str] | None = None) -> int:
 
     canvas.setcoords(-1, -1, ifile['Width'] + 1, ifile['Height'] + 1)
 
-    selectbox(carrier, ifile)
-    drawinput(canvas, carrier['input_problem'])
+    module_names = set()
+    if options['module'] is None:
+        for r in ifile['Rectangles']:
+            for bname in r:
+                for lst in r[bname][1]['mod']:
+                    for m in lst:
+                        module_names.add(m)
+    else:
+        module_names.add(options['module'])
 
-    definecoords(carrier)
+    allboxes = {}
+    for mname in module_names:
+        selectbox(carrier, mname, ifile)
+        if options['plot']:
+            drawinput(canvas, carrier['input_problem'])
 
-    carrier['theoreticalBestArea'] = 0
-    for b in carrier['blocks']:
-        carrier['theoreticalBestArea'] += area(carrier, b, True)
+        definecoords(carrier)
 
-    p = findbestgreedy(carrier, ifile, f)
+        carrier['theoreticalBestArea'] = 0
+        for b in carrier['blocks']:
+            carrier['theoreticalBestArea'] += area(carrier, b, True)
 
-    dif = fstr_to_tuple(carrier, p, f)  # (0, 1)
-    print(dif)
-    boxes = [(carrier['inibox'][0], carrier['inibox'][1], carrier['inibox'][2], carrier['inibox'][3])]
-    improvement = True
-    for nboxes in [1, 2, 3]:
-        print("\n\nnboxes: " + str(nboxes))
-        last, tmpb = solve(carrier, ifile, f, dif, nboxes)
-        while last[0] > 0:
-            boxes = tmpb
-            improvement = True
-            print("dif = " + str(dif))
-            dif = last
+        p = findbestgreedy(carrier, ifile, f)
+
+        dif = fstr_to_tuple(carrier, p, f)  # (0, 1)
+        print(dif)
+        boxes = [(carrier['inibox'][0], carrier['inibox'][1], carrier['inibox'][2], carrier['inibox'][3])]
+        improvement = True
+        for nboxes in [1, 2, 3]:
+            print("\n\nnboxes: " + str(nboxes))
             last, tmpb = solve(carrier, ifile, f, dif, nboxes)
-        if improvement:
-            print(boxes)
-            drawoutput(canvas, carrier, boxes)
-            improvement = False
+            while last[0] > 0:
+                boxes = tmpb
+                improvement = True
+                print("dif = " + str(dif))
+                dif = last
+                last, tmpb = solve(carrier, ifile, f, dif, nboxes)
+            if improvement:
+                print(boxes)
+                if options['plot']:
+                    drawoutput(canvas, carrier, boxes)
+                improvement = False
+        for i in range(0, len(boxes)):
+            (x1, y1, x2, y2) = boxes[i]
+            boxes[i] = ((x1 + x2) / 2, (y1 + y2) / 2, x2 - x1, y2 - y1)
+        allboxes[mname] = boxes
+    if options['file'] is not None:
+        write_yaml(allboxes, options['file'])
+    else:
+        print(write_yaml(allboxes))
     return 1
 
 
