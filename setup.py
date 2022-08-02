@@ -14,12 +14,16 @@ VERSION = '0.1'
 
 PACKAGES = [
     'frame',
+    'frame.allocation',
     'frame.die',
     'frame.geometry',
     'frame.netlist',
     'frame.utils',
+    'tools.draw',
     'tools.hello',
-    'tools.rect'
+    'tools.netgen',
+    'tools.rect',
+    'tools.spectral'
 ]
 
 INSTALL_REQUIRES = [
@@ -30,7 +34,8 @@ INSTALL_REQUIRES = [
     "matplotlib",
     "seaborn",
     "distinctipy",
-    "Pillow"
+    "Pillow",
+    "argparse"
 ]
 
 ENTRY_POINTS = {
