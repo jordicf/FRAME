@@ -194,7 +194,7 @@ class Module:
         self._rectangles = []
         self.add_rectangle(Rectangle(**{KW_CENTER: self.center, KW_SHAPE: Shape(side, side)}))
 
-    def calculate_center_from_rectangles(self) -> None:
+    def calculate_center_from_rectangles(self) -> Point:
         """
         Calculates the center from the rectangles. It raises an exception in case there are no rectangles.
         :return: the center of the module .
@@ -206,6 +206,7 @@ class Module:
             sum_y += r.area * r.center.y
             area += r.area
         self.center = Point(sum_x / area, sum_y / area)
+        return self.center
 
     def __str__(self) -> str:
         s = f"{self.name}: {KW_AREA}={self.area_regions} {KW_CENTER}={self.center}"

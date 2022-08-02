@@ -138,11 +138,12 @@ def calculate_centers(e: HyperEdge, alloc: Allocation | None) -> list[Point]:
     :return: the list of points (the first point is the center of the star)
     """
     list_points = [Point(0, 0)]  # The center (initially a fake point)
-    sum_x, sum_y = 0, 0
+    sum_x, sum_y = 0.0, 0.0
     for m in e.modules:
         if alloc is not None:
             c = alloc.center(m.name)
         else:
+            assert m.center is not None
             c = m.center if m.num_rectangles == 0 else m.calculate_center_from_rectangles()
         assert c is not None, f'Cannot calculate center for module {m.name}'
         sum_x += c.x
@@ -156,6 +157,7 @@ def calculate_centers(e: HyperEdge, alloc: Allocation | None) -> list[Point]:
 def draw_circle(im: Image, m: Module, color, scaling: Scaling, fontsize: int = 0) -> None:
     """Draws a circle for block b. The area of the circle corresponds to the area of the b"""
     radius = math.sqrt(m.area() / math.pi)
+    assert m.center is not None
     ll = Point(m.center.x - radius, m.center.y - radius)
     ur = Point(m.center.x + radius, m.center.y + radius)
     draw_geometry(im, ll, ur, color, scaling, m.name, fontsize, True)
@@ -201,6 +203,8 @@ def draw(options: dict[str, Any]) -> int:
     alloc: Allocation | None = None
     if alloc_option is not None:
         alloc = Allocation(alloc_option)
+
+    assert alloc is not None
 
     # Check that all modules are drawable
     check_modules(netlist.modules)

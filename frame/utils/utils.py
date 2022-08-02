@@ -90,3 +90,4 @@ def write_yaml(data: Any, filename: str = None) -> None | str:
 
     with open(filename, 'w') as stream:
         yaml.dump(data, stream)
+        return None

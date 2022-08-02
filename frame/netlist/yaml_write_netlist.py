@@ -63,9 +63,9 @@ def dump_yaml_rectangles(rectangles: list[Rectangle]) -> list[list[float | str]]
     :param rectangles: list of rectangles
     :return: the list of rectangles
     """
-    rects = []
+    rects: list[list[float | str]] = []
     for r in rectangles:
-        list_rect = [r.center.x, r.center.y, r.shape.w, r.shape.h]
+        list_rect: list[float | str] = [r.center.x, r.center.y, r.shape.w, r.shape.h]
         if r.region != KW_GROUND:
             list_rect.append(r.region)
         rects.append(list_rect)

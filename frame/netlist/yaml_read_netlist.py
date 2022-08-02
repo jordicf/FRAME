@@ -2,15 +2,15 @@
 Module to read netlists in yaml format
 """
 
-from typing import Any, TextIO, cast
-from .module import Module
-from .netlist_types import NamedHyperEdge
-from ..geometry.geometry import Rectangle, Shape, Point, parse_yaml_rectangle
-from ..utils.keywords import KW_RECTANGLES, KW_CENTER, KW_FIXED, KW_MODULES, KW_NETS, KW_AREA, KW_MIN_SHAPE
-from ..utils.utils import valid_identifier, is_number, read_yaml
+from typing import Any, cast
+from frame.netlist.module import Module
+from frame.netlist.netlist_types import NamedHyperEdge
+from frame.geometry.geometry import Rectangle, Shape, Point, parse_yaml_rectangle
+from frame.utils.keywords import KW_RECTANGLES, KW_CENTER, KW_FIXED, KW_MODULES, KW_NETS, KW_AREA, KW_MIN_SHAPE
+from frame.utils.utils import valid_identifier, is_number, read_yaml, TextIO_String
 
 
-def parse_yaml_netlist(stream: str | TextIO) -> tuple[list[Module], list[NamedHyperEdge]]:
+def parse_yaml_netlist(stream: TextIO_String) -> tuple[list[Module], list[NamedHyperEdge]]:
     """
     Parses a YAML netlist from a file or from a string of text. If the text has only one word, it is assumed
     to be a file name

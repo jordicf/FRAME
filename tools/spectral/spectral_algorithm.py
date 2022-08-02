@@ -34,7 +34,7 @@ def spectral_layout_unit_square(adj: AdjList, mass: Vector, dim: int = 2) -> Mat
 
     for k in range(1, dim):
         normalize(coord[k], scaled_mass)
-        dotprod = 0
+        dotprod = 0.0
         num_iter = 0
         # Add a limit of iterations to reduce the CPU time
         while dotprod < one_minus_epsilon and num_iter < 100:
@@ -94,7 +94,7 @@ def orthogonalize(coord: Matrix, degree: Vector, mass: Vector, dim: int = 2) -> 
     """
     n = len(degree)
     for k in range(dim):
-        num, den = 0, 0
+        num, den = 0.0, 0.0
         for i in range(n):
             tmp = degree[i] * coord[k][i] * mass[i]
             num += coord[dim][i] * tmp

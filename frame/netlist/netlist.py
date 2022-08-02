@@ -2,13 +2,13 @@
 Module to represent netlists
 """
 
-from .module import Module
-from .netlist_types import HyperEdge
-from .yaml_read_netlist import parse_yaml_netlist
-from .yaml_write_netlist import dump_yaml_modules, dump_yaml_edges
-from ..geometry.geometry import Rectangle, parse_yaml_rectangle
-from ..utils.keywords import KW_MODULES, KW_NETS
-from ..utils.utils import TextIO_String, write_yaml
+from frame.netlist.module import Module
+from frame.netlist.netlist_types import HyperEdge
+from frame.netlist.yaml_read_netlist import parse_yaml_netlist
+from frame.netlist.yaml_write_netlist import dump_yaml_modules, dump_yaml_edges
+from frame.geometry.geometry import Rectangle, parse_yaml_rectangle
+from frame.utils.keywords import KW_MODULES, KW_NETS
+from frame.utils.utils import TextIO_String, write_yaml
 
 # Data structure to represent the rectangles associated to a module.
 # For each module, a list of rectangles is defined.
@@ -72,6 +72,7 @@ class Netlist:
         """Rectangles of all modules of the netlist"""
         if self._rectangles is None:
             self._create_rectangles()
+        assert self._rectangles is not None
         return self._rectangles
 
     def get_module(self, name: str) -> Module:

@@ -3,14 +3,13 @@ Module for spectral floorplan. The algorithm implemented in this module is based
 proposed by Yehuda Koren in his paper 'Drawing Graphs by Eigenvectors: Theory and Practice'. The algorithm has been
 modified to incorporate the mass of each node. The mass is interpreted as the multiplicity of the node.
 """
-import networkx as nx
 from argparse import ArgumentParser
-from typing import TextIO, Any
+from typing import Any
 
 from frame.die.die import Die
 from frame.geometry.geometry import Point, Shape
 from frame.netlist.netlist import Netlist
-from frame.utils.utils import Vector
+from frame.utils.utils import Vector, TextIO_String
 from .spectral_types import AdjEdge, AdjList
 from .spectral_algorithm import spectral_layout_unit_square
 
@@ -24,7 +23,7 @@ class Spectral(Netlist):
     _adj: AdjList  # Adjacency list of _G (edge weights)
     _mass: Vector  # Mass (size) of each node in _G
 
-    def __init__(self, stream: str | TextIO):
+    def __init__(self, stream: TextIO_String):
         Netlist.__init__(self, stream)
         self._build_graph()
 
