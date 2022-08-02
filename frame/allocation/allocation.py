@@ -40,7 +40,7 @@ class Allocation:
     _module2rect: dict[str, list[ModuleAlloc]]  # For each module, a list of rectangle allocations
     _areas: dict[str, float]  # Area of the modules
     _centers: dict[str, Point]  # Centers of the modules
-    _bounding_box = tuple[Point, Point]
+    _bounding_box: Rectangle
 
     def __init__(self, stream: TextIO_String):
         """
