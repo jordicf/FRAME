@@ -65,8 +65,7 @@ class Point:
 
     def __eq__(self, other: object) -> bool:
         """Return self == other."""
-        if not isinstance(other, Point):
-            return NotImplemented
+        assert isinstance(other, Point)
         return self.x == other.x and self.y == other.y
 
     def __neg__(self) -> 'Point':

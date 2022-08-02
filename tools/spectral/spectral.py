@@ -10,8 +10,8 @@ from frame.die.die import Die
 from frame.geometry.geometry import Point, Shape
 from frame.netlist.netlist import Netlist
 from frame.utils.utils import Vector, TextIO_String
-from .spectral_types import AdjEdge, AdjList
-from .spectral_algorithm import spectral_layout_unit_square
+from tools.spectral.spectral_types import AdjEdge, AdjList
+from tools.spectral.spectral_algorithm import spectral_layout_unit_square
 
 
 class Spectral(Netlist):
@@ -19,8 +19,7 @@ class Spectral(Netlist):
     Class to extend a netlist with information for spectral placement
     """
 
-    _G: nx.Graph  # A graph representation of the netlist (star model for hyperedges with more than 2 pins)
-    _adj: AdjList  # Adjacency list of _G (edge weights)
+    _adj: AdjList  # Adjacency list
     _mass: Vector  # Mass (size) of each node in _G
 
     def __init__(self, stream: TextIO_String):
@@ -33,45 +32,33 @@ class Spectral(Netlist):
         (with zero area) that is the center of the star. These nodes have a special attribute (hyper-node) to indicate
         whether the node is an original node (False) or the center of a hyper-edge (True).
         """
-        self._G = nx.Graph()
-        node_id = 0
-        # The real nodes
-        for m in self.modules:
-            self._G.add_node(m.name, hypernode=False, id=node_id)
-            node_id += 1
+
+        # Dictionary: modulename -> index
+        name2index = {m.name: i for i, m in enumerate(self.modules)}
+
+        # Number of nodes, including the centers of the hyperedges with more than two nodes
+        nnodes = self.num_modules + sum(1 for e in self.edges if len(e.modules) > 2)
+        self._mass = [0.0] * nnodes  # List of masses (initially all zero)
+        for i, m in enumerate(self.modules):  # Only the masses of the non-fake nodes
+            self._mass[i] = m.area()
+
+        # Let us now create the adjacency list
+        self._adj = [[] for _ in range(nnodes)]  # Adjacency list (list of lists)
 
         # Fake nodes for centers of hyperedges
-        fake_id = 0
+        fake_node = self.num_modules  # The first fake node in the adjacency list
         for e in self.edges:
             if len(e.modules) == 2:  # Normal edge (2 pins)
                 # We use weight/2 to mimic the star model when using hyperedges
-                self._G.add_edge(e.modules[0].name, e.modules[1].name, weight=e.weight / 2)
+                src, dst = name2index[e.modules[0].name], name2index[e.modules[1].name]
+                self._adj[src].append(AdjEdge(dst, e.weight / 2))
+                self._adj[dst].append(AdjEdge(src, e.weight / 2))
             else:  # Hyperedge (more than 2 pins)
-                # Generate a name for the hypernode (not colliding with other nodes)
-                while True:
-                    fake_m = "_hyper_" + str(fake_id)
-                    fake_id += 1
-                    if fake_m not in self._name2module:
-                        break
-                # Create the center of the hyperedge
-                self._G.add_node(fake_m, hypernode=True, id=node_id)
-                node_id += 1
-                # Add edges from the center to each node
                 for m in e.modules:
-                    self._G.add_edge(fake_m, m.name, weight=e.weight)
-
-        self._adj = [[] for _ in range(node_id)]  # Adjacency list (list of lists)
-        self._mass = [0.0] * node_id  # List of masses (initially all zero)
-
-        for name, module in self._name2module.items():
-            ident = self._G.nodes[name]['id']
-            self._mass[ident] = module.area()
-
-        for b, nbrs in self._G.adj.items():
-            idx = self._G.nodes[b]['id']
-            adj = self._adj[idx]
-            for nbr, attr in nbrs.items():
-                adj.append(AdjEdge(self._G.nodes[nbr]['id'], attr['weight']))
+                    idx = name2index[m.name]
+                    self._adj[idx].append(AdjEdge(fake_node, e.weight))
+                    self._adj[fake_node].append(AdjEdge(idx, e.weight))
+                fake_node += 1
 
     def spectral_layout(self, shape: Shape) -> int:
         """

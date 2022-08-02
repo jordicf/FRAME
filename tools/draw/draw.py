@@ -154,7 +154,7 @@ def calculate_centers(e: HyperEdge, alloc: Allocation | None) -> list[Point]:
     return list_points
 
 
-def draw_circle(im: Image, m: Module, color, scaling: Scaling, fontsize: int = 0) -> None:
+def draw_circle(im: Image.Image, m: Module, color, scaling: Scaling, fontsize: int = 0) -> None:
     """Draws a circle for block b. The area of the circle corresponds to the area of the b"""
     radius = math.sqrt(m.area() / math.pi)
     assert m.center is not None
@@ -163,13 +163,13 @@ def draw_circle(im: Image, m: Module, color, scaling: Scaling, fontsize: int = 0
     draw_geometry(im, ll, ur, color, scaling, m.name, fontsize, True)
 
 
-def draw_rectangle(im: Image, r: Rectangle, color, scaling: Scaling, fontsize: int = 0) -> None:
+def draw_rectangle(im: Image.Image, r: Rectangle, color, scaling: Scaling, fontsize: int = 0) -> None:
     """Draws the rectangle r"""
     ll, ur = r.bounding_box
     draw_geometry(im, ll, ur, color, scaling, r.name, fontsize, False)
 
 
-def draw_geometry(im: Image, ll: Point, ur: Point, color, scaling: Scaling,
+def draw_geometry(im: Image.Image, ll: Point, ur: Point, color, scaling: Scaling,
                   name: str, fontsize: int, circle: bool) -> None:
     transp = Image.new('RGBA', im.size, (0, 0, 0, 0))
     drawing = ImageDraw.Draw(transp, "RGBA")
