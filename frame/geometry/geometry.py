@@ -14,6 +14,9 @@ class Point:
     A class to represent a two-dimensional point, and operate with them
     """
 
+    _x: float  # x coordinate
+    _y: float  # y coordinate
+
     def __init__(self, x: Union['Point', tuple[float, float], float, None] = None, y: float | None = None) -> None:
         """
         Constructor of a Point. See the example for ways of constructing it
@@ -30,17 +33,44 @@ class Point:
         >>> Point((1, 2))
         Point(x=1, y=2)
         """
+
+
         if x is None:  # x and y are None
             self.x, self.y = 0, 0
         elif y is None:  # x is a Point or a number and y is None
             if isinstance(x, Point):
                 self.x, self.y = x.x, x.y
             elif isinstance(x, tuple):
-                self.x, self.y = x
+                self._x, self._y = x
             else:
-                self.x, self.y = x, x
+                self._x, self._y = x, x
         else:  # x and y are numbers
+            assert isinstance(x, float) and isinstance(y, float)
             self.x, self.y = x, y
+
+    @property
+    def x(self) -> float:
+        return self._x
+
+    @x.setter
+    def x(self, value: float):
+        self._x = value
+
+    @property
+    def y(self) -> float:
+        return self._y
+
+    @y.setter
+    def y(self, value: float):
+        self._y = value
+
+    @property
+    def center(self) -> 'Point':
+        return self._center
+
+    @center.setter
+    def center(self, p: 'Point') -> None:
+        self._center = p
 
     def __eq__(self, other: 'Point') -> bool:
         """Return self == other."""

@@ -3,10 +3,10 @@ import math
 
 from dataclasses import dataclass
 
-from ..netlist.netlist import Netlist
-from ..geometry.geometry import Point, Shape, Rectangle, parse_yaml_rectangle
-from ..utils.keywords import KW_CENTER, KW_SHAPE
-from ..utils.utils import TextIO_String, read_yaml, write_yaml, YAML_tree, is_number, valid_identifier, Vector, Matrix
+from frame.netlist.netlist import Netlist
+from frame.geometry.geometry import Point, Shape, Rectangle, parse_yaml_rectangle
+from frame.utils.keywords import KW_CENTER, KW_SHAPE
+from frame.utils.utils import TextIO_String, read_yaml, write_yaml, YAML_tree, is_number, valid_identifier, Vector
 
 Alloc = dict[str, float]  # Allocation in a rectangle (area ratio for each module)
 
@@ -23,11 +23,6 @@ class ModuleAlloc:
     """Representation of allocation of one module in a rectangle."""
     rect: int  # Rectangle index of the allocation
     area: float  # Area ratio (in [0,1])
-
-
-# Data structure to represent the rectangles associated to a module.
-# For each module, a list of rectangles is defined. Each rectangle is represented as a vector [x,y,w,h].
-Module2Rectangles = dict[str, Matrix]
 
 
 class Allocation:
@@ -142,7 +137,7 @@ class Allocation:
         :return: A new allocation
         """
         assert levels > 0
-        new_alloc: list[Vector, Alloc] = []
+        new_alloc: list[tuple[Vector, Alloc]] = []
         for a in self.allocations:
             vec = a.rect.vector_spec
             # Check the allocations and see if the rectangle must be split
@@ -221,7 +216,7 @@ class Allocation:
         self._centers = {}
         for module, alloc in self._module2rect.items():
             center = Point(0, 0)
-            total_area = 0
+            total_area = 0.0
             for mod_alloc in alloc:
                 r = self._allocations[mod_alloc.rect].rect
                 ratio = mod_alloc.area * r.area
@@ -231,7 +226,7 @@ class Allocation:
             self._centers[module] = center / total_area
 
     @staticmethod
-    def _split_allocation(rect: Vector, alloc: Alloc, levels: int = 0) -> list[[Vector, Alloc]]:
+    def _split_allocation(rect: Vector, alloc: Alloc, levels: int = 0) -> list[tuple[Vector, Alloc]]:
         """
         Splits a rectangle into 2^levels rectangles and returns a list of rectangle allocations
         :param rect: the rectangle
@@ -240,7 +235,7 @@ class Allocation:
         :return: a list of allocations
         """
         if levels == 0:
-            return [[rect, {m: r for m, r in alloc.items()}]]
+            return [(rect, {m: r for m, r in alloc.items()})]
 
         # Split the largest dimension
         if rect[2] >= rect[3]:
@@ -254,5 +249,5 @@ class Allocation:
             rect1 = [rect[0], rect[1] - h4, rect[2], h2]
             rect2 = [rect[0], rect[1] + h4, rect[2], h2]
 
-        return Allocation._split_allocation(rect1, alloc, levels - 1) + Allocation._split_allocation(rect2, alloc,
-                                                                                                     levels - 1)
+        return Allocation._split_allocation(rect1, alloc, levels - 1) + \
+            Allocation._split_allocation(rect2, alloc, levels - 1)

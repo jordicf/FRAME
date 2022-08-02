@@ -4,9 +4,9 @@ from typing import Set, Deque
 from dataclasses import dataclass
 
 from .yaml_parse_die import parse_yaml_die
-from ..geometry.geometry import Shape, Rectangle, Point
-from ..utils.keywords import KW_CENTER, KW_SHAPE, KW_REGION, KW_GROUND
-from ..utils.utils import TextIO_String
+from frame.geometry.geometry import Shape, Rectangle, Point
+from frame.utils.keywords import KW_CENTER, KW_SHAPE, KW_REGION, KW_GROUND
+from frame.utils.utils import TextIO_String
 
 
 @dataclass()
@@ -35,7 +35,7 @@ class Die:
     _epsilon: float  # Precision when dealing with coordinates
     _x: list[float]  # List of x coordinates of potential rectangles
     _y: list[float]  # List of y coordinates of potential rectangles
-    _cells: [list[list[bool]]]  # Matrix of rectangles (True occupied, False available)
+    _cells: list[list[bool]]  # Matrix of rectangles (True occupied, False available)
 
     def __init__(self, stream: TextIO_String):
         """
@@ -144,6 +144,7 @@ class Die:
                 best_reg = reg
 
         # Occupy the cells
+        assert best_reg is not None
         for row in range(best_reg.rmin, best_reg.rmax + 1):  # type: ignore
             for col in range(best_reg.cmin, best_reg.cmax + 1):
                 self._cells[row][col] = True

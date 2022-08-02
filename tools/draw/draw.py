@@ -67,11 +67,11 @@ def calculate_scaling(original: Shape, width: int, height: int, frame: int = 20,
             height = default
 
     if height == 0:
-        height = original.h * width / original.w
+        height = round(original.h * width / original.w)
     if width == 0:
-        width = original.w * height / original.h
+        width = round(original.w * height / original.h)
 
-    return Scaling(width / original.w, height / original.h, round(width), round(height), frame)
+    return Scaling(width / original.w, height / original.h, width, height, frame)
 
 
 def check_modules(modules: list[Module]) -> None:
