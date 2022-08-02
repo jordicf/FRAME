@@ -40,6 +40,19 @@ Project: FRAME | Python Interpreter.
 Then click the gears icon, Add..., and choose Existing environment and select Interpreter as the one
 in the `FRAME/venv` folder.
 
+Mypy is also used to check the types. Install the tool and the available type hints packages for the
+used third-party libraries with the following command:
+
+```
+pip install mypy types-Pillow types-setuptools
+```
+
+Finally, install the Mypy PyCharm plugin: https://plugins.jetbrains.com/plugin/11086-mypy.
+
+Code inspection can be executed in PyCharm going to Code | Inspect Code.... Creating a Custom Scope
+including only the FRAME code can be helpful to speed up the inspection and not get errors about
+third-party code.
+
 ## Testing
 
 To run all the tests, execute the following command from the project folder:
