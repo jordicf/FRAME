@@ -6,7 +6,7 @@ from typing import Any, Union
 from dataclasses import dataclass
 
 from frame.utils.keywords import KW_FIXED, KW_CENTER, KW_SHAPE, KW_REGION, KW_NAME, KW_GROUND
-from frame.utils.utils import Vector, valid_identifier, is_number
+from frame.utils.utils import Vector, valid_identifier
 
 
 class Point:
@@ -33,7 +33,6 @@ class Point:
         >>> Point((1, 2))
         Point(x=1, y=2)
         """
-
 
         if x is None:  # x and y are None
             self.x, self.y = 0, 0
@@ -64,16 +63,10 @@ class Point:
     def y(self, value: float):
         self._y = value
 
-    @property
-    def center(self) -> 'Point':
-        return self._center
-
-    @center.setter
-    def center(self, p: 'Point') -> None:
-        self._center = p
-
-    def __eq__(self, other: 'Point') -> bool:
+    def __eq__(self, other: object) -> bool:
         """Return self == other."""
+        if not isinstance(other, Point):
+            return NotImplemented
         return self.x == other.x and self.y == other.y
 
     def __neg__(self) -> 'Point':
@@ -283,10 +276,12 @@ def parse_yaml_rectangle(r: list[float | int | str], fixed: bool = False, name: 
     """
     assert isinstance(r, list) and 4 <= len(r) <= 5, f"Incorrect format for rectangle in module {name}"
     for i in range(4):
-        assert is_number(r[i]) and r[i] >= 0, f"Incorrect value for rectangle in module {name}"
+        x = r[i]
+        assert isinstance(x, (int, float)) and x >= 0, f"Incorrect value for rectangle in module {name}"
     if len(r) == 5:
         assert isinstance(r[4], str) and valid_identifier(r[4])
 
+    assert isinstance(r[0], float) and isinstance(r[1], float) and isinstance(r[2], float) and isinstance(r[3], float)
     kwargs = {KW_CENTER: Point(r[0], r[1]), KW_SHAPE: Shape(r[2], r[3]), KW_FIXED: fixed}
     if len(r) == 5:
         kwargs[KW_REGION] = r[4]

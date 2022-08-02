@@ -1,4 +1,3 @@
-from typing import TextIO
 from frame.geometry.geometry import Point, Shape, Rectangle
 from frame.utils.keywords import KW_WIDTH, KW_HEIGHT, KW_REGION, KW_RECTANGLES, KW_GROUND, KW_CENTER, KW_SHAPE
 from frame.utils.utils import is_number, string_is_number, valid_identifier, read_yaml, TextIO_String

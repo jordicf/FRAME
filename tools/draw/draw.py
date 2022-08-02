@@ -93,7 +93,7 @@ def calculate_bbox(netlist: Netlist) -> Shape:
     :param netlist: the netlist
     :return: the bounding box
     """
-    xmax, ymax = 0, 0
+    xmax, ymax = 0.0, 0.0
     if netlist.num_rectangles > 0:
         xmax = max([r.bounding_box[1].x for r in netlist.rectangles])
         ymax = max([r.bounding_box[1].y for r in netlist.rectangles])

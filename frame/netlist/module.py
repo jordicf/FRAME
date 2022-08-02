@@ -26,7 +26,6 @@ class Module:
     _area_rectangles: float  # Total area of the rectangles (negative if not calculated).
     # Allocation of regions. This dictionary receives the name of a rectangle (from the die)
     # as key and stores the ratio of occupation of the rectangle by the module (a value in [0,1]).
-    _area_rectangles: float
 
     def __init__(self, name: str, **kwargs):
         """
@@ -70,7 +69,9 @@ class Module:
     def __hash__(self) -> int:
         return hash(self._name)
 
-    def __eq__(self, other: 'Module') -> bool:
+    def __eq__(self, other: object) -> bool:
+        if not isinstance(other, Module):
+            return NotImplemented
         return self._name == other._name
 
     @property
@@ -168,7 +169,7 @@ class Module:
         assigned to the ground region.
         :return: a dictionary with the area associated to each region.
         """
-        if is_number(area):
+        if isinstance(area, (int, float)):
             float_area = float(area)
             assert float_area > 0, "Area must be positive"
             return {KW_GROUND: float_area}
@@ -199,13 +200,12 @@ class Module:
         :return: the center of the module .
         """
         assert self.num_rectangles > 0, f"No rectangles in module {self.name}"
-        sum_x, sum_y, area = 0, 0, 0
+        sum_x, sum_y, area = 0.0, 0.0, 0.0
         for r in self.rectangles:
             sum_x += r.area * r.center.x
             sum_y += r.area * r.center.y
             area += r.area
         self.center = Point(sum_x / area, sum_y / area)
-        return self.center
 
     def __str__(self) -> str:
         s = f"{self.name}: {KW_AREA}={self.area_regions} {KW_CENTER}={self.center}"

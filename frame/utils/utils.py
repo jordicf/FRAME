@@ -1,3 +1,4 @@
+import numbers
 import re
 from typing import Any, TextIO
 from ruamel.yaml import YAML
@@ -28,7 +29,7 @@ def is_number(n: Any) -> bool:
     :param n: the number.
     :return: True if it is a number, False otherwise.
     """
-    return isinstance(n, (int, float))
+    return isinstance(n, numbers.Real)
 
 
 def string_is_number(s: str) -> bool:
