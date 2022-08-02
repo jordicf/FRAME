@@ -44,7 +44,7 @@ class Point:
             else:
                 self._x, self._y = x, x
         else:  # x and y are numbers
-            assert isinstance(x, float) and isinstance(y, float)
+            assert isinstance(x, (int, float)) and isinstance(y, (int, float))
             self.x, self.y = x, y
 
     @property
@@ -280,7 +280,8 @@ def parse_yaml_rectangle(r: list[float | int | str], fixed: bool = False, name: 
     if len(r) == 5:
         assert isinstance(r[4], str) and valid_identifier(r[4])
 
-    assert isinstance(r[0], float) and isinstance(r[1], float) and isinstance(r[2], float) and isinstance(r[3], float)
+    assert isinstance(r[0], (int, float)) and isinstance(r[1], (int, float)) and \
+           isinstance(r[2], (int, float)) and isinstance(r[3], (int, float))
     kwargs = {KW_CENTER: Point(r[0], r[1]), KW_SHAPE: Shape(r[2], r[3]), KW_FIXED: fixed}
     if len(r) == 5:
         kwargs[KW_REGION] = r[4]

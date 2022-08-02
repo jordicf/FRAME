@@ -137,7 +137,7 @@ class Allocation:
         :return: A new allocation
         """
         assert levels > 0
-        new_alloc: list[tuple[Vector, Alloc]] = []
+        new_alloc: list[list[Vector | Alloc]] = []
         for a in self.allocations:
             vec = a.rect.vector_spec
             # Check the allocations and see if the rectangle must be split
@@ -226,7 +226,7 @@ class Allocation:
             self._centers[module] = center / total_area
 
     @staticmethod
-    def _split_allocation(rect: Vector, alloc: Alloc, levels: int = 0) -> list[tuple[Vector, Alloc]]:
+    def _split_allocation(rect: Vector, alloc: Alloc, levels: int = 0) -> list[list[Vector | Alloc]]:
         """
         Splits a rectangle into 2^levels rectangles and returns a list of rectangle allocations
         :param rect: the rectangle
@@ -235,7 +235,7 @@ class Allocation:
         :return: a list of allocations
         """
         if levels == 0:
-            return [(rect, {m: r for m, r in alloc.items()})]
+            return [[rect, {m: r for m, r in alloc.items()}]]
 
         # Split the largest dimension
         if rect[2] >= rect[3]:
