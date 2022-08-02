@@ -44,8 +44,8 @@ class Allocation:
 
     def __init__(self, stream: TextIO_String):
         """
-        Redas a YAML specification of the allocation of rectangles
-        :param stream: It can be a name file, or a YAML specifcation (in text). The constructor can figure out
+        Reads a YAML specification of the allocation of rectangles
+        :param stream: It can be a name file, or a YAML specification (in text). The constructor can figure out
         which one it is.
         """
         self._parse_yaml_tree(read_yaml(stream))
@@ -178,7 +178,7 @@ class Allocation:
 
     def _parse_yaml_tree(self, tree: YAML_tree) -> None:
         """
-        Parses the YAML tree that reprsents an allocation
+        Parses the YAML tree that represents an allocation
         :param tree: the YAML tree
         """
         assert isinstance(tree, list), "Wrong format of the allocation. The top node should be a list."
