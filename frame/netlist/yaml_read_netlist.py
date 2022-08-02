@@ -5,9 +5,8 @@ Module to read netlists in yaml format
 from typing import Any, TextIO, cast
 from .module import Module
 from .netlist_types import NamedHyperEdge
-from ..geometry.geometry import Rectangle, Shape, Point
-from ..utils.keywords import KW_RECTANGLES, KW_CENTER, KW_SHAPE, KW_FIXED, KW_REGION, \
-    KW_MODULES, KW_NETS, KW_AREA, KW_MIN_SHAPE
+from ..geometry.geometry import Rectangle, Shape, Point, parse_yaml_rectangle
+from ..utils.keywords import KW_RECTANGLES, KW_CENTER, KW_FIXED, KW_MODULES, KW_NETS, KW_AREA, KW_MIN_SHAPE
 from ..utils.utils import valid_identifier, is_number, read_yaml
 
 
@@ -144,26 +143,6 @@ def parse_yaml_rectangles(rectangles: list, fixed: bool, name: str) -> list[Rect
     for r in rlist:
         rect_list.append(parse_yaml_rectangle(r, fixed, name))
     return rect_list
-
-
-def parse_yaml_rectangle(r: list, fixed: bool, name: str) -> Rectangle:
-    """Parses a rectangle
-    :param r: a YAML description of the rectangle (a list with 4 values)
-    Optionally, it may contain a fifth parameter (string) specifying a region
-    :param fixed: Indicates whether the rectangle should be fixed
-    :param name: name of the module
-    :return: a rectangle
-    """
-    assert isinstance(r, list) and 4 <= len(r) <= 5, f"Incorrect format for rectangle in module {name}"
-    for i in range(4):
-        assert is_number(r[i]) and r[i] >= 0, f"Incorrect value for rectangle in module {name}"
-    if len(r) == 5:
-        assert isinstance(r[4], str) and valid_identifier(r[4])
-
-    kwargs = {KW_CENTER: Point(r[0], r[1]), KW_SHAPE: Shape(r[2], r[3]), KW_FIXED: fixed}
-    if len(r) == 5:
-        kwargs[KW_REGION] = r[4]
-    return Rectangle(**kwargs)
 
 
 def parse_yaml_edges(edges: list[list]) -> list[NamedHyperEdge]:

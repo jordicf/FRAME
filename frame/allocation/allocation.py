@@ -4,7 +4,7 @@ from typing import Tuple, TypeVar
 from dataclasses import dataclass
 
 from ..netlist.netlist import Netlist
-from ..geometry.geometry import Point, Shape, Rectangle, vec2rectangle
+from ..geometry.geometry import Point, Shape, Rectangle, parse_yaml_rectangle
 from ..utils.keywords import KW_CENTER, KW_SHAPE
 from ..utils.utils import TextIO_String, read_yaml, write_yaml, YAML_tree, is_number, valid_identifier, Vector, Matrix
 
@@ -191,7 +191,7 @@ class Allocation:
             r, d = alloc[0], alloc[1]  # Rectangle and dictionary of allocations
 
             # Create the rectangle
-            rect = vec2rectangle(r)
+            rect = parse_yaml_rectangle(r)
 
             # Create the dictionary of allocations
             assert isinstance(d, dict), f'Incorrect allocation for rectangle {r}'

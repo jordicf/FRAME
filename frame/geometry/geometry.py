@@ -242,13 +242,21 @@ class Rectangle:
     __repr__ = __str__
 
 
-def vec2rectangle(r: Vector) -> Rectangle:
-    """Converts a list of four numbers [x,y,w,h] into a rectangle
-    :param r: the list of numbers
-    :return: a Rectangle
+def parse_yaml_rectangle(r: list, fixed: bool = False, name: str = "") -> Rectangle:
+    """Parses a rectangle
+    :param r: a YAML description of the rectangle (a list with 4 values)
+    Optionally, it may contain a fifth parameter (string) specifying a region
+    :param fixed: Indicates whether the rectangle should be fixed
+    :param name: name of the module
+    :return: a rectangle
     """
-    assert isinstance(r, list) and len(r) == 4, f"Incorrect format for rectangle: %s" % r
+    assert isinstance(r, list) and 4 <= len(r) <= 5, f"Incorrect format for rectangle in module {name}"
     for i in range(4):
-        assert is_number(r[i]), f"Incorrect format for rectangle %s" % r
-    kwargs = {KW_CENTER: Point(r[0], r[1]), KW_SHAPE: Shape(r[2], r[3])}
+        assert is_number(r[i]) and r[i] >= 0, f"Incorrect value for rectangle in module {name}"
+    if len(r) == 5:
+        assert isinstance(r[4], str) and valid_identifier(r[4])
+
+    kwargs = {KW_CENTER: Point(r[0], r[1]), KW_SHAPE: Shape(r[2], r[3]), KW_FIXED: fixed}
+    if len(r) == 5:
+        kwargs[KW_REGION] = r[4]
     return Rectangle(**kwargs)
