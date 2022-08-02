@@ -27,15 +27,13 @@ PACKAGES = [
 ]
 
 INSTALL_REQUIRES = [
-    "networkx",
     "ruamel.yaml",
     "numpy",
     "gekko",
     "matplotlib",
     "seaborn",
     "distinctipy",
-    "Pillow",
-    "argparse"
+    "Pillow"
 ]
 
 ENTRY_POINTS = {
