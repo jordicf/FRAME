@@ -18,7 +18,12 @@ PACKAGES = [
     'frame.geometry',
     'frame.netlist',
     'frame.utils',
+    'frame.allocation',
     'tools.hello',
+    'tools.draw',
+    'tools.netgen',
+    'tools.spectral',
+    'tools.glbfloor',
     'tools.rect'
 ]
 
