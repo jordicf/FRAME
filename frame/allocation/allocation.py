@@ -11,16 +11,16 @@ from ..utils.utils import TextIO_String, read_yaml, write_yaml, YAML_tree, is_nu
 Alloc = dict[str, float]  # Allocation in a rectangle (area ratio for each module)
 
 
-# Representation of the allocation in a rectangle.
 @dataclass()
 class RectAlloc:
+    """Representation of the allocation in a rectangle."""
     rect: Rectangle  # Rectangle of the allocation
     alloc: Alloc  # Area ratio for each module (in [0,1])
 
 
-# Representation of allocation of one module in a rectangle.
 @dataclass()
 class ModuleAlloc:
+    """Representation of allocation of one module in a rectangle."""
     rect: int  # Rectangle index of the allocation
     area: float  # Area ratio (in [0,1])
 
