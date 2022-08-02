@@ -25,18 +25,10 @@ and dispersion.
 
 #### Constraints
 
-* Cells cannot be over-occupied: $$
-  \forall c: \sum_{b} a_{bc} \le 1
-  $$
-* A block must have sufficient area: $$
-  \forall b: \sum_{c} a_{bc} \ge A_b
-  $$
-* Centroid of a block: $$
-  \forall b: x_b = \frac{1}{A_b} \sum_{c} A_c X_c a_{bc}\qquad y_b = \frac{1}{A_b} \sum_{c} A_c Y_c a_{bc}
-  $$
-* Dispersion of a block: $$
-  \forall b: dx_b = \sum_{c} A_c a_{bc} (x_b - X_c)^2\qquad dy_b = \sum_{c} A_c a_{bc} (y_b - Y_c)^2
-  $$
+* Cells cannot be over-occupied: $$\forall c: \sum_{b} a_{bc} \le 1$$
+* A block must have sufficient area: $$\forall b: \sum_{c} a_{bc} \ge A_b$$
+* Centroid of a block: $$\forall b: x_b = \frac{1}{A_b} \sum_{c} A_c X_c a_{bc}\qquad y_b = \frac{1}{A_b} \sum_{c} A_c Y_c a_{bc}$$
+* Dispersion of a block: $$\forall b: dx_b = \sum_{c} A_c a_{bc} (x_b - X_c)^2\qquad dy_b = \sum_{c} A_c a_{bc} (y_b - Y_c)^2$$
 
 #### Cost function
 
