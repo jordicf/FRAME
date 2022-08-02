@@ -113,13 +113,13 @@ def gen_ring(n: int, area: float) -> dict[str, Any]:
 
 def gen_star(n: int, area: float) -> dict[str, Any]:
     """
-    Generates the netlist of a star
-    :param n: number of modules, wihtout counting the center
+    Generates the netlist of a star with only one net
+    :param n: number of modules
     :param area: area of each module
     :return: a dictionary of the modules
     """
-    modules = gen_modules(area, n + 1)
-    edges = [[module_name(0), module_name(i)] for i in range(1, n + 1)]
+    modules = gen_modules(area, n)
+    edges = [[module_name(i) for i in range(n)]]
     return {KW_MODULES: modules, KW_NETS: edges}
 
 

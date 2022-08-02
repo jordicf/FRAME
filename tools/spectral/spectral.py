@@ -11,7 +11,7 @@ from frame.geometry.geometry import Point, Shape
 from frame.netlist.netlist import Netlist
 from frame.utils.utils import Vector, TextIO_String
 from tools.spectral.spectral_types import AdjEdge, AdjList
-from tools.spectral.spectral_algorithm import spectral_layout_unit_square
+from tools.spectral.spectral_algorithm import spectral_layout_unit_square, scale_coordinates
 
 
 class Spectral(Netlist):
@@ -68,20 +68,10 @@ class Spectral(Netlist):
         """
         assert len(self._mass) > 2, "Graph too small. Spectral layout needs more than 2 nodes."
         coord = spectral_layout_unit_square(self._adj, self._mass, 3)
-        # If width < height, swap the dimensions
-        span_x = max(coord[0]) - min(coord[0])
-        span_y = max(coord[1]) - min(coord[1])
-        coordinates_wider = span_x > span_y
-        layout_wider = shape.w > shape.h
+        scale_coordinates(coord, self._mass, shape.w, shape.h)
 
-        # Swap coordinates to have a smaller scaling
-        if coordinates_wider != layout_wider:
-            coord[0], coord[1] = coord[1], coord[0]
-
-        # Define the centers of the modules
-        scale_x, scale_y = shape.w / 2, shape.h / 2
         for i, m in enumerate(self.modules):
-            m.center = Point((coord[0][i] + 1) * scale_x, (coord[1][i] + 1) * scale_y)
+            m.center = Point(coord[0][i], coord[1][i])
 
         return 0
 

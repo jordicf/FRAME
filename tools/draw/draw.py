@@ -204,8 +204,6 @@ def draw(options: dict[str, Any]) -> int:
     if alloc_option is not None:
         alloc = Allocation(alloc_option)
 
-    assert alloc is not None
-
     # Check that all modules are drawable
     check_modules(netlist.modules)
 
@@ -217,6 +215,7 @@ def draw(options: dict[str, Any]) -> int:
     # Canvas
     alloc_die = Shape(0, 0)
     if alloc_option is not None:
+        assert alloc is not None
         r = alloc.bounding_box
         ll, ur = r.bounding_box
         alloc_die = Shape(ur.x, ur.y)
@@ -244,6 +243,7 @@ def draw(options: dict[str, Any]) -> int:
     drawing.rectangle((frame, frame, scaling.width + frame, scaling.height + frame), outline=COLOR_WHITE, width=2)
 
     if alloc_option is not None:
+        assert alloc is not None
         for rect_alloc in alloc.allocations:
             r = rect_alloc.rect
             ll, ur = r.bounding_box

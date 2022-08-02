@@ -18,8 +18,8 @@ def spectral_layout_unit_square(adj: AdjList, mass: Vector, dim: int = 2) -> Mat
     :param dim: number of dimensions of the layout
     :return: a matrix dim x nodes. Each vector represents the coordinates of one of the dimensions for each node
     """
-    print("Adj =", adj)
-    print("Mass =", mass)
+    #print("Adj =", adj)
+    #print("Mass =", mass)
     dim += 1
     epsilon = 1e-3
     one_minus_epsilon: float = 1 - epsilon  # tolerance for convergence
@@ -54,9 +54,9 @@ def spectral_layout_unit_square(adj: AdjList, mass: Vector, dim: int = 2) -> Mat
             dotprod = abs(dot_product(coord[k], new_coord, scaled_mass))
             # print("    Dotprod =", dotprod)
             coord[k] = new_coord
-        print("Num iters =", num_iter)
+        #print("Num iters =", num_iter)
         make_canonical(coord[k])
-    print("Coord unit =", coord[1:dim])
+    #print("Coord unit =", coord[1:dim])
     return coord[1:dim]
 
 
@@ -139,6 +139,48 @@ def make_canonical(coord: Vector) -> None:
     if coord[0] < 0:
         for i in range(len(coord)):
             coord[i] = -coord[i]
+
+def scale_coordinates(coord: Matrix, area: Vector, width: float, height: float) -> None:
+    """
+    Scales the coordinates to spread maximally in the die.
+    :param coord: list of coordinates 
+    :param area: area of each node
+    :param width: width of the die
+    :param height: height of the die
+    """
+    radius = [math.sqrt(a/math.pi) for a in area]
+    n = len(area)
+    xmax = [coord[0][i] + radius[i] for i in range(n)]
+    xmin = [coord[0][i] - radius[i] for i in range(n)]
+    ymax = [coord[1][i] + radius[i] for i in range(n)]
+    ymin = [coord[1][i] - radius[i] for i in range(n)]
+    xspan = max(xmax) - min(xmin)
+    yspan = max(ymax) - min(ymin)
+    coordinates_wider = xspan > yspan
+    layout_wider = width > height
+
+    # Swap coordinates to have a smaller scaling
+    if coordinates_wider != layout_wider:
+        coord[0], coord[1] = coord[1], coord[0]
+        xmax, xmin, ymax, ymin = ymax, ymin, xmax, xmin
+        xspan, yspan = yspan, xspan
+
+    # Center the coordinates
+    xshift, yshift = max(xmax) - xspan/2, max(ymax) - yspan/2
+
+    for xcoord in coord[0], xmax, xmin:
+        for i, x in enumerate(xcoord):
+            xcoord[i] = x - xshift
+    for ycoord in coord[1], ymax, ymin:
+        for i, y in enumerate(ycoord):
+            ycoord[i] = y - yshift
+
+    # Expand the coordinates
+    w2, h2 = width/2, height/2
+    xfactor = min((w2-radius[i])/coord[0][i] for i in range(n) if coord[0][i] > 0)
+    yfactor = min((h2-radius[i])/coord[1][i] for i in range(n) if coord[1][i] > 0)
+    coord[0] = [x*xfactor + w2 for x in coord[0]]
+    coord[1] = [y*yfactor + h2 for y in coord[1]]
 
 
 def check_orthogonal(coord: Matrix, mass: Vector) -> Vector:
