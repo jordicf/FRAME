@@ -1,7 +1,7 @@
 from typing import TextIO
-from ..geometry.geometry import Point, Shape, Rectangle
-from ..utils.keywords import KW_WIDTH, KW_HEIGHT, KW_REGION, KW_RECTANGLES, KW_GROUND, KW_CENTER, KW_SHAPE
-from ..utils.utils import is_number, string_is_number, valid_identifier, read_yaml
+from frame.geometry.geometry import Point, Shape, Rectangle
+from frame.utils.keywords import KW_WIDTH, KW_HEIGHT, KW_REGION, KW_RECTANGLES, KW_GROUND, KW_CENTER, KW_SHAPE
+from frame.utils.utils import is_number, string_is_number, valid_identifier, read_yaml, TextIO_String
 
 
 def string_die(die: str) -> Shape | None:
@@ -18,7 +18,7 @@ def string_die(die: str) -> Shape | None:
     return None
 
 
-def parse_yaml_die(stream: str | TextIO) -> tuple[Shape, list[Rectangle]]:
+def parse_yaml_die(stream: TextIO_String) -> tuple[Shape, list[Rectangle]]:
     """
     Parses a YAML die from a file or from a string of text
     :param stream: name of the YAML file or handle to the file

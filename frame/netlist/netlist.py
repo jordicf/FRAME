@@ -6,9 +6,15 @@ from .module import Module
 from .netlist_types import HyperEdge
 from .yaml_read_netlist import parse_yaml_netlist
 from .yaml_write_netlist import dump_yaml_modules, dump_yaml_edges
-from ..geometry.geometry import Rectangle
+from ..geometry.geometry import Rectangle, parse_yaml_rectangle
 from ..utils.keywords import KW_MODULES, KW_NETS
 from ..utils.utils import TextIO_String, write_yaml
+
+# Data structure to represent the rectangles associated to a module.
+# For each module, a list of rectangles is defined.
+# Each rectangle is a list of four values: [x, y, w, h].
+# Optionally, a fifth value (string representing the regions) can be added, e.g., [3, 5, 2, 8.5, "dsp"]
+Module2Rectangles = dict[str, list[list[float | str]]]
 
 
 class Netlist:
@@ -18,8 +24,8 @@ class Netlist:
 
     _modules: list[Module]  # List of modules
     _edges: list[HyperEdge]  # List of edges, with references to modules
-    _rectangles: list[Rectangle]  # List of rectangles
     _name2module: dict[str, Module]  # Map from module names to modules
+    _rectangles: list[Rectangle] | None  # List of rectangles
 
     def __init__(self, stream: TextIO_String):
         """
@@ -29,6 +35,7 @@ class Netlist:
 
         self._modules, _named_edges = parse_yaml_netlist(stream)
         self._name2module = {b.name: b for b in self._modules}
+        self._rectangles = None
 
         # Edges
         self._edges = []
@@ -39,9 +46,6 @@ class Netlist:
                 modules.append(self._name2module[b])
             assert e.weight > 0, f'Incorrect edge weight {e.weight}'
             self._edges.append(HyperEdge(modules, e.weight))
-
-        # Create rectangles
-        self._rectangles = [r for b in self.modules for r in b.rectangles]
 
     @property
     def num_modules(self) -> int:
@@ -66,6 +70,8 @@ class Netlist:
     @property
     def rectangles(self) -> list[Rectangle]:
         """Rectangles of all modules of the netlist"""
+        if self._rectangles is None:
+            self._create_rectangles()
         return self._rectangles
 
     def get_module(self, name: str) -> Module:
@@ -74,6 +80,7 @@ class Netlist:
         :param name: name mof the module
         :return: the module
         """
+        assert name in self._name2module, f'Module {name} does not exist'
         return self._name2module[name]
 
     def create_squares(self) -> list[Module]:
@@ -82,11 +89,24 @@ class Netlist:
         :return: The list of modules for which a square has been created.
         """
         modules = []
-        for b in self.modules:
-            if b.num_rectangles == 0:
-                b.create_square()
-                modules.append(b)
+        for m in self.modules:
+            if m.num_rectangles == 0:
+                m.create_square()
+                self._clean_rectangles()
+                modules.append(m)
         return modules
+
+    def assign_rectangles(self, m2r: Module2Rectangles) -> None:
+        """
+        Defines the rectangles of the modules of the netlist
+        :param m2r: The rectangles associated to every module
+        """
+        for module_name, list_rect in m2r.items():
+            m = self.get_module(module_name)
+            m.clear_rectangles()
+            for r in list_rect:
+                m.add_rectangle(parse_yaml_rectangle(r))
+        self._clean_rectangles()
 
     def dump_yaml_netlist(self, filename: str = None) -> None | str:
         """
@@ -99,3 +119,15 @@ class Netlist:
             KW_NETS: dump_yaml_edges(self.edges)
         }
         return write_yaml(data, filename)
+
+    def _clean_rectangles(self) -> None:
+        """
+        Removes all the rectangles of the netlist
+        """
+        self._rectangles = None
+
+    def _create_rectangles(self) -> None:
+        """
+        Creates the list of rectangles of the netlist
+        """
+        self._rectangles = [r for b in self.modules for r in b.rectangles]

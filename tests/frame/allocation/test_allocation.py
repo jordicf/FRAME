@@ -2,6 +2,7 @@ import unittest
 
 from frame.allocation.allocation import Allocation
 from frame.netlist.netlist import Netlist
+from frame.utils.utils import read_yaml
 
 
 class MyTestCase(unittest.TestCase):
@@ -34,6 +35,19 @@ class MyTestCase(unittest.TestCase):
         m1m2c = a.center(["M1", "M2"])
         self.assertAlmostEqual(m1m2c.x, 4.49065, places=4)
         self.assertAlmostEqual(m1m2c.y, 5.24298, places=4)
+
+    def test_module2rectangle(self):
+        n = Netlist(netlist1)
+        for m, nr in [("M1", 1), ("M2", 1), ("M3", 0)]:
+            self.assertEqual(n.get_module(m).num_rectangles, nr)
+        m2r = read_yaml(mod2rect)
+        n.assign_rectangles(m2r)
+        for m, nr in [("M1", 2), ("M2", 1), ("M3", 2)]:
+            self.assertEqual(n.get_module(m).num_rectangles, nr)
+        n = Netlist(netlist2)
+        for m, nr in [("M1", 1), ("M2", 1)]:
+            self.assertEqual(n.get_module(m).num_rectangles, nr)
+        self.assertRaises(AssertionError, n.assign_rectangles, m2r)
 
     def test_refinement(self):
         a = Allocation(alloc7)
@@ -152,4 +166,11 @@ Modules: {
 Nets: [
   [M1, M2, 5]
 ]
+"""
+
+mod2rect = """
+{
+M1: [[5, 6.5, 2, 4, "DSP"], [7, 4, 8, 10]],
+M3: [[15, 8, 12, 6, "DSP"], [5, 16, 4.5, 8.4]]
+}
 """
