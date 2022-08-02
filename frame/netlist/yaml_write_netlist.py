@@ -1,10 +1,11 @@
+from typing import Any
 from .module import Module
 from .netlist_types import HyperEdge
 from ..geometry.geometry import Rectangle
 from ..utils.keywords import KW_AREA, KW_FIXED, KW_CENTER, KW_MIN_SHAPE, KW_RECTANGLES, KW_GROUND
 
 
-def dump_yaml_modules(modules: list[Module]) -> dict:
+def dump_yaml_modules(modules: list[Module]) -> dict[str, Any]:
     """
     Generates a data structure for the modules that can be dumped in YAML
     :param modules: list of modules (see Netlist)

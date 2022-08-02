@@ -16,6 +16,7 @@ def parse_options(prog: str | None = None, args: list[str] | None = None) -> dic
 def main(prog: str | None = None, args: list[str] | None = None):
     """Main function."""
     options = parse_options(prog, args)
+    assert options is not None  # This is just to use options and avoid and Inspect Code warning
     print("NOT YET IMPLEMENTED")
 
 

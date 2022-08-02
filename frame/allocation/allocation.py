@@ -1,6 +1,6 @@
 import itertools
 import math
-from typing import Tuple, TypeVar
+
 from dataclasses import dataclass
 
 from ..netlist.netlist import Netlist
@@ -36,12 +36,11 @@ class Allocation:
     of modules. The occupation is represented as a ratio, e.g., 10% of a rectangle is occupied by M1,
     30% by M2, etc. Ratios are represented as numbers in the interval [0,1]."""
 
-    TypeAlloc = TypeVar('TypeAlloc', bound='Allocation')
     _allocations: list[RectAlloc]  # List of allocations. Each component corresponds to a rectangle
     _module2rect: dict[str, list[ModuleAlloc]]  # For each module, a list of rectangle allocations
     _areas: dict[str, float]  # Area of the modules
     _centers: dict[str, Point]  # Centers of the modules
-    _bounding_box = Tuple[Point, Point]
+    _bounding_box = tuple[Point, Point]
 
     def __init__(self, stream: TextIO_String):
         """
@@ -132,7 +131,7 @@ class Allocation:
         """
         return {m.name for m in netlist.modules} == {m for m in self._module2rect.keys()}
 
-    def refine(self: TypeAlloc, threshold: float, levels: int) -> TypeAlloc:
+    def refine(self, threshold: float, levels: int) -> 'Allocation':
         """
         Refines an allocation into a set of smaller rectangles. A rectangle in the allocation
         is refined if no module has an occupancy greater than a threshold. In case a rectangle
