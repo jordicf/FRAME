@@ -33,7 +33,7 @@ pip install setuptools
 pip install -e .
 ```
 
-### PyCharm configuration
+### PyCharm and Mypy configuration
 
 If you use PyCharm, to configure the project Python interpreter go to File | Settings... |
 Project: FRAME | Python Interpreter.
