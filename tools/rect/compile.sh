@@ -1,1 +1,1 @@
-g++ -O2 -o greedy greedy.cpp
+g++ -O2 -o greedy smart_greedy.cpp
