@@ -12,7 +12,7 @@ its shape (width and height), $W_c$ and $H_c$. We define the area of the cell as
 
 The input of the model is thus the area of the blocks to place, the wire costs per unit length
 between each pair of blocks, the number of rows and columns in the cell grid and the shape of the
-cells. An hyperparameter $\alpha$ is also used to balance the trade-off between the total wire length
+cells. A hyperparameter $\alpha$ is also used to balance the trade-off between the total wire length
 and dispersion.
 
 #### Variables
