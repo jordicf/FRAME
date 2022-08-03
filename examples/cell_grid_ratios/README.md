@@ -4,15 +4,15 @@
 
 ### Model definition
 
-Here we consider a simplified floorplanning model where we have to place rectangular modules
-(blocks) in a cell grid.
+Here we consider a simplified floorplanning model where we have to place modules
+in a cell grid.
 
 Each cell $c$ is characterized by four parameters: the coordinates of the center, $X_c$ and $Y_c$, and
 its shape (width and height), $W_c$ and $H_c$. We define the area of the cell as $A_c = W_c H_c$.
 
 The input of the model is thus the area of the blocks to place, the wire costs per unit length
 between each pair of blocks, the number of rows and columns in the cell grid and the shape of the
-cells. We will also use an $\alpha$ parameter to balance the trade-off between the total wire length
+cells. An hyperparameter $\alpha$ is also used to balance the trade-off between the total wire length
 and dispersion.
 
 #### Variables
@@ -92,4 +92,4 @@ that the total wire length is 0 for $\alpha$ equal or greater than 0.5.
   area. This makes the model ignore the blocks with less area, and they end up having strange shapes,
   sometimes even not connected (for example, see the block with area 1 with $\alpha$ equal to 0.2).
   A better model could possibly be obtained by considering the *normalized dispersion*, which we
-  define as the dispersion divided of the block divided by its area.
+  define as the dispersion of the block divided by its area.
