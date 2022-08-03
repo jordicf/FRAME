@@ -35,17 +35,17 @@ class Point:
         """
 
         if x is None:  # x and y are None
-            self.x, self.y = 0, 0
+            self._x, self._y = 0, 0
         elif y is None:  # x is a Point or a number and y is None
             if isinstance(x, Point):
-                self.x, self.y = x.x, x.y
+                self._x, self._y = x.x, x.y
             elif isinstance(x, tuple):
                 self._x, self._y = x
             else:
                 self._x, self._y = x, x
         else:  # x and y are numbers
             assert isinstance(x, (int, float)) and isinstance(y, (int, float))
-            self.x, self.y = x, y
+            self._x, self._y = x, y
 
     @property
     def x(self) -> float:
