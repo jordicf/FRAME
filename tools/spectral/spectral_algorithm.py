@@ -178,8 +178,8 @@ def scale_coordinates(coord: Matrix, area: Vector, width: float, height: float) 
 
     # Expand the coordinates
     w2, h2 = width / 2, height / 2
-    xfactor = min((w2 - radius[i]) / coord[0][i] for i in range(n) if coord[0][i] > 0)
-    yfactor = min((h2 - radius[i]) / coord[1][i] for i in range(n) if coord[1][i] > 0)
+    xfactor = min(abs((w2 - radius[i]) / coord[0][i]) for i in range(n))
+    yfactor = min(abs((h2 - radius[i]) / coord[1][i]) for i in range(n))
     coord[0] = [x * xfactor + w2 for x in coord[0]]
     coord[1] = [y * yfactor + h2 for y in coord[1]]
 

@@ -40,9 +40,9 @@ class Point:
             if isinstance(x, Point):
                 self.x, self.y = x.x, x.y
             elif isinstance(x, tuple):
-                self._x, self._y = x
+                self.x, self.y = x
             else:
-                self._x, self._y = x, x
+                self.x, self.y = x, x
         else:  # x and y are numbers
             assert isinstance(x, (int, float)) and isinstance(y, (int, float))
             self.x, self.y = x, y
