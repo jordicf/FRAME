@@ -11,7 +11,7 @@ from frame.utils.utils import Vector, valid_identifier
 
 class Point:
     """
-    A class to represent a two-dimensional point, and operate with them
+    A class to represent two-dimensional points and operate with them
     """
 
     _x: float  # x coordinate
@@ -35,17 +35,17 @@ class Point:
         """
 
         if x is None:  # x and y are None
-            self._x, self._y = 0, 0
+            self.x, self.y = 0, 0
         elif y is None:  # x is a Point or a number and y is None
             if isinstance(x, Point):
-                self._x, self._y = x.x, x.y
+                self.x, self.y = x.x, x.y
             elif isinstance(x, tuple):
                 self.x, self.y = x
             else:
                 self.x, self.y = x, x
         else:  # x and y are numbers
             assert isinstance(x, (int, float)) and isinstance(y, (int, float))
-            self._x, self._y = x, y
+            self.x, self.y = x, y
 
     @property
     def x(self) -> float:
