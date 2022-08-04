@@ -328,7 +328,7 @@ def findbestgreedy(carrier: dict[str, GlobalsType], ifile, f: float) -> str:
     file = open("tofind.txt", "w")
     file.write(getfile(carrier, ifile, f))
     file.close()
-    run = subprocess.Popen(["greedy", "tofind.txt", "bestbox.txt"], stdin=subprocess.PIPE)
+    run = subprocess.Popen(["./cpp_bin/greedy", "tofind.txt", "bestbox.txt"], stdin=subprocess.PIPE)
     run.wait()
     file = open("bestbox.txt", "r")
     fline: str = file.readline()
