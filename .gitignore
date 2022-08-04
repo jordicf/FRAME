@@ -12,4 +12,6 @@ tools/rect/output.out
 tools/rect/pseudobool.pyc
 tools/rect/satmanager.pyc
 tools/rect/tmp.cnf
+tools/rect/cpp_bin/experiment.exe
+tools/rect/cpp_bin/greedy.exe
 victor.bat
