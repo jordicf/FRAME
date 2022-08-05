@@ -1,10 +1,10 @@
-/Pipfile
-/Pipfile.lock
 .idea
 .vscode
+
 __pycache__
 venv
 frame.egg-info
+
 tools/rect/bestbox.txt
 tools/rect/tofind.txt
 tools/rect/greedy.exe
