@@ -6,7 +6,7 @@
 #define MIN_AREA 0
 #define MIN_ERROR 1
 
-#define print_box(b) b.x1 << " " << b.y1 << " " << b.x2 << " " << b.y2 << std::endl
+#define print_box(b) b.x1 << " " << b.y1 << " " << b.x2 << " " << b.y2 << " " << b.p << std::endl
 
 unsigned char METHOD = MIN_ERROR;
 

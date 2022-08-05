@@ -9,9 +9,9 @@ from argparse import ArgumentParser
 
 import pseudobool
 import satmanager
+from rect_io import get_ifile, getfile, selectbox
 
 from frame.utils.utils import write_yaml
-from frame.allocation.allocation import RectAlloc, Allocation
 from canvas import Canvas, colmix
 
 # Custom types
@@ -192,22 +192,6 @@ def solve(carrier: dict[str, GlobalsType],
         return (int(sm.evalexpr(obj) + 1), 1), rects
 
 
-def getfile(carrier: dict[str, GlobalsType], ifile, f: float) -> str:
-    """
-    Outputs the input file for the greedy algorithm
-    :param carrier: The input_problem variable carrier
-    :param ifile: The input file (parsed)
-    :param f: The f hyperparameter
-    :return: The input file for the greedy algorithm, as a string
-    """
-    outstr = str(ifile['Width']) + " " + str(ifile['Height']) + " " + str(len(carrier['input_problem'])) + "\n"
-    outstr += str(f) + "\n"
-    for v in carrier['input_problem']:
-        (x1, y1, x2, y2, p) = v
-        outstr += str(x1) + " " + str(y1) + " " + str(x2) + " " + str(y2) + " " + str(p) + "\n"
-    return outstr
-
-
 def area(carrier: dict[str, GlobalsType], b: int | InputBox, sel: bool) -> float:
     """
     Returns the area of box b
@@ -295,28 +279,6 @@ def definecoords(carrier: dict[str, GlobalsType]) -> None:
     carrier['ycoords'] = ycoords
 
 
-def selectbox(carrier: dict[str, GlobalsType], selbox: str, ifile) -> None:
-    """
-    Receives the module to optimize and preprocesses the problem to leave
-    only the relevant information for such module.
-    """
-    input_problem: InputProblem = []
-    # selbox = input("Selected module: ")
-    for b in ifile['Rectangles']:
-        for bname in b:
-            [xc, yc, w, h] = b[bname][0]['dim']
-            w = float(w)
-            h = float(h)
-            val = 0.0
-            if b[bname][1]['mod'] is not None:
-                for i in range(0, len(b[bname][1]['mod'])):
-                    if selbox in b[bname][1]['mod'][i]:
-                        val = b[bname][1]['mod'][i][selbox]
-            input_problem.append((xc - w / 2, yc - h / 2, xc + w / 2, yc + h / 2, val))
-    carrier['input_problem'] = input_problem
-    carrier['selbox'] = selbox
-
-
 def findbestgreedy(carrier: dict[str, GlobalsType], ifile, f: float) -> str:
     """
     Calls the greedy algorithm for finding the best solution with just one block
@@ -326,7 +288,7 @@ def findbestgreedy(carrier: dict[str, GlobalsType], ifile, f: float) -> str:
     :return: The quality of the solution
     """
     file = open("tofind.txt", "w")
-    file.write(getfile(carrier, ifile, f))
+    file.write(getfile(carrier['input_problem'], ifile, f))
     file.close()
     run = subprocess.Popen(["./cpp_bin/greedy", "tofind.txt", "bestbox.txt"], stdin=subprocess.PIPE)
     run.wait()
@@ -363,19 +325,6 @@ def drawoutput(canvas: Canvas, carrier: dict[str, GlobalsType], boxes: list[Simp
         (a, b, c, d) = box
         canvas.drawbox(((a, b), (c, d)), "#FF0000")
     canvas.show()
-
-
-def get_ifile(fname: str):
-    test = Allocation(fname)
-    obj = {'Width': test.bounding_box.shape.w, 'Height': test.bounding_box.shape.h, 'Rectangles': []}
-    for i in range(0, len(test.allocations)):
-        b: RectAlloc = test.allocations[i]
-        x, y, w, h = b.rect.center.x, b.rect.center.y, b.rect.shape.w, b.rect.shape.h
-        item1 = [x, y, w, h]
-        item2 = b.alloc
-        robj = {'b' + str(i): [{'dim': item1}, {'mod': list(map(lambda q: {q: item2[q]}, item2))}]}
-        obj['Rectangles'].append(robj)
-    return obj
 
 
 def main(prog: str | None = None, args: list[str] | None = None) -> int:
@@ -420,8 +369,8 @@ def main(prog: str | None = None, args: list[str] | None = None) -> int:
         module_names.add(options['module'])
 
     allboxes = {}
-    for mname in module_names:
-        selectbox(carrier, mname, ifile)
+    for mname in sorted(module_names):
+        carrier['input_problem'], carrier['selbox'] = selectbox(mname, ifile)
         if options['plot']:
             drawinput(canvas, carrier['input_problem'])
 

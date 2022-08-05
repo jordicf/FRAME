@@ -112,7 +112,7 @@ namespace complete {
 			while(itb1 < TB.size()){
 				while(itb1 < TB.size() and ib < B2.size() and B2[ib].x <= TB[itb1].x){
 					if(B2[ib].y <= TB[itb1].x) ++ib;
-					else while(B2[ib].y > TB[itb1].x) ++itb1;
+					else while(itb1 < TB.size() and B2[ib].y > TB[itb1].x) ++itb1;
 				}
 				double xcap = 1e200, lastx1 = 1e200, lastx2 = 1e200;
 				if(ib < B2.size()){
@@ -193,7 +193,7 @@ namespace complete {
 			while(ilr1 < LR.size()){
 				while(ilr1 < LR.size() and ib < B2.size() and B2[ib].x <= LR[ilr1].y){
 					if(B2[ib].y <= LR[ilr1].y) ++ib;
-					else while(B2[ib].y > LR[ilr1].y) ++ilr1;
+					else while(ilr1 < LR.size() and B2[ib].y > LR[ilr1].y) ++ilr1;
 				}
 				double ycap = 1e200, lasty1 = 1e200, lasty2 = 1e200;
 				if(ib < B2.size()){
@@ -345,8 +345,8 @@ namespace complete {
 	           const int i2, 
 	           const std::vector<struct box> & inputProblem, 
 	           std::vector<struct box> & allBoxes,
-	           const segments segset,
-	           integral intmap){
+	           const segments & segset,
+	           integral & intmap){
 		
 		// Determines whether the two boxes i1 and i2 form a box
 		// And if they do, the box, together with its proportion is added
