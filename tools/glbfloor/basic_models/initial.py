@@ -10,7 +10,7 @@ import numpy as np
 from gekko import GEKKO
 
 from frame.geometry.geometry import Point, Shape, Rectangle
-from tools.glbfloor.plots import plot_result
+from plots import plot_result
 
 
 def optimize(alpha: float, module_areas: list[float], wire_costs: dict[tuple[int, int], float],
