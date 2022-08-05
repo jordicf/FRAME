@@ -1,11 +1,23 @@
 #include <iostream>
 #include <fstream>
 #include <vector>
-#include <sys/time.h>
 #include <iomanip>
 #include "boxfinder_cubic.cpp"
 #include "boxfinder_slicing.cpp"
 #include "boxfinder_complete.cpp"
+
+#include <chrono>
+std::chrono::steady_clock::time_point mark;
+double time_sw;
+
+inline void start_stopwatch(){
+	time_sw = 0.0;
+	mark = std::chrono::steady_clock::now();
+}
+
+inline void stop_stopwatch(){
+	time_sw += ((float) ( std::chrono::duration_cast<std::chrono::nanoseconds>(std::chrono::steady_clock::now() - mark).count() )) / 1000000.0;
+}
 
 #define MIN_AREA 0
 #define MIN_ERROR 1
@@ -56,7 +68,7 @@ void readFile(const char * filename){
 
 
 void usage(const char * appname){
-	std::cerr << "Usage: " << appname << " [inputfile]\n";
+	std::cerr << "Usage: " << appname << " [inputfile] [preout]?\n";
 	exit(-1);
 }
 
@@ -68,27 +80,31 @@ double elapsed(struct timeval & t0, struct timeval & t1){
 }
 
 int main(int argc, char * argv[]){
-	if(argc != 2){
+	if(argc != 2 and argc != 3){
 		usage(argv[0]);
 	}
 	readFile(argv[1]);
+	if(argc == 3){
+		std::cout << argv[2] << " ";
+	}
 	
 	struct timeval cub0, cub1, sli0, sli1, com0, com1;
 	
 	cubic_allBoxes = std::vector<cubic::box>(0);
-	gettimeofday(&cub0, 0);
+	start_stopwatch();
 	cubic::all_rectangles(cubic_inputProblem, cubic_allBoxes);
-	gettimeofday(&cub1, 0);
+	stop_stopwatch();
+	std::cout << time_sw << " ";
 	
 	slicing_allBoxes = std::vector<slicing::box>(0);
-	gettimeofday(&sli0, 0);
+	start_stopwatch();
 	slicing::all_rectangles(slicing_inputProblem, slicing_allBoxes);
-	gettimeofday(&sli1, 0);
+	stop_stopwatch();
+	std::cout << time_sw << " ";
 	
 	complete_allBoxes = std::vector<complete::box>(0);
-	gettimeofday(&com0, 0);
+	start_stopwatch();
 	complete::all_rectangles(complete_inputProblem, complete_allBoxes);
-	gettimeofday(&com1, 0);
-	
-	std::cout << std::fixed << std::setprecision(20) << elapsed(cub0, cub1) << " " << elapsed(sli0, sli1) << " " << elapsed(com0, com1) << '\n';
+	stop_stopwatch();
+	std::cout << time_sw << '\n';
 }
