@@ -6,29 +6,29 @@ from matplotlib import rcParams
 rcParams['font.family'] = 'monospace'
 
 
-def plot_result(block_areas: list[float], ratios, centroids, dispersions, wire_length,
+def plot_result(module_areas: list[float], ratios, centroids, dispersions, wire_length,
                 n_rows: int, n_cols: int, cell_width: float, cell_height: float,
                 suptitle: str | None = None, filename: str | None = None):
     """
-    Plot a floorplan given the ratios of each block in each cell, and additional information to annotate the graphics.
-    The plot is made up of subplots separated by each block. The block areas, centroids, dispersions and total wire
+    Plot a floorplan given the ratios of each module in each cell, and additional information to annotate the graphics.
+    The plot is made up of subplots separated by each module. The module areas, centroids, dispersions and total wire
     length is also displayed. An optional title can also be provided, and a filename to save the plot to a file. If no
     filename is given, the plot is shown.
     """
 
     # TODO: Plot wires in some way.
 
-    n_blocks = len(block_areas)
+    n_modules = len(module_areas)
 
-    # Create one subplot for each block, and an additional narrow one for the color bar
-    fig, axs = plt.subplots(1, n_blocks + 1,
-                            figsize=(n_blocks * n_cols / 2, n_rows / 2),
-                            gridspec_kw=dict(width_ratios=([1.0] * n_blocks) + [0.1]))
+    # Create one subplot for each module, and an additional narrow one for the color bar
+    fig, axs = plt.subplots(1, n_modules + 1,
+                            figsize=(n_modules * n_cols / 2, n_rows / 2),
+                            gridspec_kw=dict(width_ratios=([1.0] * n_modules) + [0.1]))
 
-    for area, block_configuration, centroid, dispersion, ax in zip(block_areas, ratios, centroids, dispersions, axs):
-        matrix = np.around(block_configuration, 2)
+    for area, module_configuration, centroid, dispersion, ax in zip(module_areas, ratios, centroids, dispersions, axs):
+        matrix = np.around(module_configuration, 2)
 
-        # Plot block configuration in cell grid with a heatmap
+        # Plot module configuration in cell grid with a heatmap
         x_pos, y_pos = np.meshgrid(np.linspace(0, n_cols * cell_width, n_cols + 1),
                                    np.linspace(0, n_rows * cell_height, n_rows + 1))
         mesh = ax.pcolormesh(x_pos, y_pos, matrix, vmin=0, vmax=1, cmap="Blues", zorder=0)
@@ -55,7 +55,7 @@ def plot_result(block_areas: list[float], ratios, centroids, dispersions, wire_l
         ax.set_aspect("equal")
 
     # Plot the color bar
-    fig.colorbar(axs[0].collections[0], cax=axs[n_blocks])
+    fig.colorbar(axs[0].collections[0], cax=axs[n_modules])
 
     # General plot title
     if suptitle is None:
