@@ -29,7 +29,7 @@ class Die:
     """
     Class to represent the die (ground and tagged rectangles)
     """
-    _shape: Shape  # Width of the die
+    _shape: Shape  # Shape of the die (width and height)
     _regions: list[Rectangle]  # List of non-ground regions
     _ground_regions: list[Rectangle]  # List of ground regions
     _epsilon: float  # Precision when dealing with coordinates
