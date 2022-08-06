@@ -8,6 +8,8 @@ from frame.die.die import Die
 from frame.geometry.geometry import Shape, Rectangle, Point
 from frame.netlist.netlist import Netlist
 
+from tools.glbfloor.plots import plot_grid
+
 
 def parse_options(prog: str | None = None, args: list[str] | None = None) -> dict[str, Any]:
     """
@@ -133,7 +135,7 @@ def netlist_to_grid(netlist: Netlist, n_rows: int, n_cols: int, cell_shape: Shap
 
 
 def refine_grid(netlist: Netlist, die_shape: Shape, n_rows: int, n_cols: int):
-    pass  # TODO
+    raise NotImplemented  # TODO
 
 
 def main(prog: str | None = None, args: list[str] | None = None):
@@ -161,9 +163,10 @@ def main(prog: str | None = None, args: list[str] | None = None):
 
     netlist = Netlist(infile)
 
-    # netlist.create_squares()
-
-    netlist_to_grid(netlist, die_shape, n_rows, n_cols, alpha)
+    cell_shape = Shape(die_shape.w / n_rows, die_shape.h / n_cols)
+    ratios, centroids, dispersions, wire_length = netlist_to_grid(netlist, n_rows, n_cols, cell_shape, alpha)
+    plot_grid(netlist, ratios, centroids, dispersions, wire_length, n_rows, n_cols, cell_shape,
+              filename="3-0.1.png", suptitle=f"alpha = {alpha}")
 
     # TODO
 
