@@ -19,13 +19,18 @@ def parse_options(prog: str | None = None, args: list[str] | None = None) -> dic
     :return: a dictionary with the arguments
     """
     parser = ArgumentParser(prog=prog, description="...")
-    parser.add_argument("netlist", help="input file (netlist)")
-    parser.add_argument("-d", "--die", help="Size of the die (width x height) or name of the file",
-                        metavar="<width>x<height> or filename")
-    parser.add_argument("-g", "--grid", help="Size of the initial grid (rows x columns)",
-                        metavar="<rows>x<cols>")
-    parser.add_argument("-a", "--alpha", type=float)
-    parser.add_argument("-o", "--outfile", required=True, help="output file (netlist)")
+    parser.add_argument("netlist",
+                        help="input file (netlist)")
+    parser.add_argument("-d", "--die", metavar="<width>x<height> or filename",
+                        help="Size of the die (width x height) or name of the file")
+    parser.add_argument("-g", "--grid", metavar="<rows>x<cols>", required=True,
+                        help="Size of the initial grid (rows x columns)", )
+    parser.add_argument("-a", "--alpha", type=float, required=True,
+                        help="Hyperparameter for the tradeoff between dispersion and wire length")
+    parser.add_argument("-p", "--plot",
+                        help="Output plot file (image). If not present, no plot is produced")
+    parser.add_argument("-o", "--outfile", required=True,
+                        help="Output file (netlist)")
     return vars(parser.parse_args(args))
 
 
@@ -165,8 +170,11 @@ def main(prog: str | None = None, args: list[str] | None = None):
 
     cell_shape = Shape(die_shape.w / n_rows, die_shape.h / n_cols)
     ratios, centroids, dispersions, wire_length = netlist_to_grid(netlist, n_rows, n_cols, cell_shape, alpha)
-    plot_grid(netlist.modules, ratios, centroids, dispersions, wire_length, n_rows, n_cols, cell_shape,
-              filename="3-0.1.png", suptitle=f"alpha = {alpha}")
+
+    plot_file = options["plot"]
+    if plot_file is not None:
+        plot_grid(netlist.modules, ratios, centroids, dispersions, wire_length, n_rows, n_cols, cell_shape,
+                  filename=plot_file, suptitle=f"alpha = {alpha}")
 
     # TODO
 
