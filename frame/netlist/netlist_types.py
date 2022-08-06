@@ -46,7 +46,7 @@ class HyperEdge:
                                          "Maybe execute b.calculate_center_from_rectangles()?"
             intersection_point += b.center
         intersection_point /= len(self.modules)
-        wire_length = 0
+        wire_length = 0.0
         for b in self.modules:
             v = intersection_point - b.center
             wire_length += sqrt(v & v)
