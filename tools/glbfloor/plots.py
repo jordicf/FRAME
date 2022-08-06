@@ -21,9 +21,11 @@ def plot_grid(netlist: Netlist, ratios: list[list[list[float]]],
 
     n_modules = netlist.num_modules
 
+    scaling_factor = 1 if n_cols > 4 else 2
+
     # Create one subplot for each module, and an additional narrow one for the color bar
     fig, axs = plt.subplots(1, n_modules + 1,
-                            figsize=(n_modules * n_cols / 2, n_rows / 2),
+                            figsize=(n_modules * n_cols / scaling_factor, n_rows / scaling_factor),
                             gridspec_kw=dict(width_ratios=([1.0] * n_modules) + [0.1]))
 
     for module, module_configuration, centroid, dispersion, ax in zip(netlist.modules, ratios, centroids, dispersions,

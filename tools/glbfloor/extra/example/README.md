@@ -9,13 +9,27 @@ frame draw 2.yml --die 2x3
 ![spectral](2.gif)
 
 ```
+frame glbfloor -d 2x3 -g 4x4 -a 0.3 -o 3.yml 2.yml
+```
+
+![glbfloor-0.3](3-4x4-0.3.png)
+
+
+```
+frame glbfloor -d 2x3 -g 4x4 -a 0.5 -o 3.yml 2.yml
+```
+
+![glbfloor-0.3](3-4x4-0.5.png)
+
+
+```
 frame glbfloor -d 2x3 -g 8x8 -a 0.3 -o 3.yml 2.yml
 ```
 
-![glbfloor-0.3](3-0.3.png)
+![glbfloor-0.3](3-8x8-0.3.png)
 
 ```
 frame glbfloor -d 2x3 -g 8x8 -a 0.5 -o 3.yml 2.yml
 ```
 
-![glbfloor-0.5](3-0.5.png)
+![glbfloor-0.5](3-8x8-0.5.png)
