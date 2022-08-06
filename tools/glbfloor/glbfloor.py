@@ -46,7 +46,7 @@ def netlist_to_grid(netlist: Netlist, n_rows: int, n_cols: int, cell_shape: Shap
     x = g.Array(g.Var, n_modules, lb=0, ub=n_rows * cell_shape.h)
     y = g.Array(g.Var, n_modules, lb=0, ub=n_cols * cell_shape.w)
     for m in range(netlist.num_modules):
-        x[m], y[m] = netlist.modules[m].center  # Initial values
+        x[m].value, y[m].value = netlist.modules[m].center  # Initial values
 
     # Dispersion of modules
     dx = g.Array(g.Var, n_modules, lb=0)
