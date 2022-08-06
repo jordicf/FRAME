@@ -1,7 +1,7 @@
 from argparse import ArgumentParser
 from typing import Any
+from math import sqrt
 
-import numpy as np
 from gekko import GEKKO
 
 from frame.die.die import Die
@@ -84,9 +84,9 @@ def netlist_to_grid(netlist: Netlist, die_shape: Shape, n_rows: int, n_cols: int
         g.Equation(g.sum([cells[c].area * a[m][c] * (y[m] - cells[c].center.y)**2
                           for c in range(n_cells)]) == dy[m])
 
-    # Objective function: alpha * total wire costs + (1 - alpha) * total dispersion
+    # Objective function: alpha * total wire length + (1 - alpha) * total dispersion
 
-    # Total wire costs
+    # Total wire length
     for e in netlist.edges:
         if len(e.modules) == 2:
             m0 = mod2m[e.modules[0]]
@@ -107,19 +107,18 @@ def netlist_to_grid(netlist: Netlist, die_shape: Shape, n_rows: int, n_cols: int
     g.solve()
 
     # Extract solution
-    ratios = np.empty((n_modules, n_cells))
+    ratios = [[[0 for _ in range(n_cols)] for _ in range(n_rows)] for _ in range(n_modules)]
     for m in range(n_modules):
         for c in range(n_cells):
-            ratios[m][c] = a[m][c].value[0]
-    ratios = np.reshape(ratios, (n_modules, n_rows, n_cols))
+            ratios[m][c // n_cols][c % n_cols] = a[m][c].value[0]
 
-    centroids = np.empty(n_modules, dtype=Point)
-    dispersions = np.empty(n_modules)
+    centroids = [Point()] * n_modules
+    dispersions = [0] * n_modules
     for m in range(n_modules):
         centroids[m] = Point(x[m].value[0], y[m].value[0])
         dispersions[m] = dx[m].value[0] + dy[m].value[0]
 
-    wire_length = 0
+    wire_length = 0.0
     for e in netlist.edges:
         ec = Point(0, 0)
         for mod in e.modules:
@@ -129,7 +128,7 @@ def netlist_to_grid(netlist: Netlist, die_shape: Shape, n_rows: int, n_cols: int
         for mod in e.modules:
             m = mod2m[mod]
             v = ec - centroids[m]
-            wire_length += np.sqrt(v & v)
+            wire_length += sqrt(v & v)
 
     return ratios, centroids, dispersions, wire_length
 
