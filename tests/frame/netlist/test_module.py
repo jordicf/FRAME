@@ -4,7 +4,7 @@ from frame.geometry.geometry import Point, Shape, Rectangle
 from frame.netlist.module import Module
 
 
-class Testmodule(unittest.TestCase):
+class TestModule(unittest.TestCase):
 
     def test_bad_module(self):
         # Bad constructors

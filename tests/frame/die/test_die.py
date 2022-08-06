@@ -4,7 +4,7 @@ from frame.die.die import Die
 from frame.geometry.geometry import Point, Shape
 
 
-class MyTestCase(unittest.TestCase):
+class TestDie(unittest.TestCase):
 
     def test_read_dies(self):
         d = Die("5.5x2")
