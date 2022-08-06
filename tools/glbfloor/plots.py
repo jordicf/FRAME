@@ -21,7 +21,7 @@ def plot_grid(modules: list[Module], ratios: list[list[list[float]]],
 
     n_modules = len(modules)
 
-    scaling_factor = 1 if n_cols > 4 else 2
+    scaling_factor = 2 if n_cols > 4 else 1
 
     # Create one subplot for each module, and an additional narrow one for the color bar
     fig, axs = plt.subplots(1, n_modules + 1,
