@@ -126,7 +126,7 @@ class Allocation:
         """
         return {m.name for m in netlist.modules} == {m for m in self._module2rect.keys()}
 
-    def refine(self, threshold: float, levels: int) -> 'Allocation':
+    def refine(self, threshold: float, levels: int = 2) -> 'Allocation':
         """
         Refines an allocation into a set of smaller rectangles. A rectangle in the allocation
         is refined if no module has an occupancy greater than a threshold. In case a rectangle
@@ -141,9 +141,18 @@ class Allocation:
         for a in self.allocations:
             vec = a.rect.vector_spec
             # Check the allocations and see if the rectangle must be split
-            split = len(a.alloc) > 1 and all(x <= threshold for x in a.alloc.values())
+            split = len(a.alloc) > 0 and all(x <= threshold for x in a.alloc.values())
             new_alloc.extend(self._split_allocation(vec, a.alloc, levels if split else 0))
         return Allocation(new_alloc)
+
+    def must_be_refined(self, threshold: float) -> bool:
+        """
+        Checks whether the allocation must be refined. An allocation must be refined if there is
+        a rectangle in which no modules has an occupance greater than a threshold
+        :param threshold: rectangles must be split if no module has an occupancy greater than this threshold
+        :return: True if the allocation must be refined
+        """
+        return any(all(x <= threshold for x in a.alloc.values()) for a in self.allocations)
 
     def write_yaml(self, filename: str = None) -> None | str:
         """
@@ -151,7 +160,7 @@ class Allocation:
         is returned
         :param filename: name of the output file
         """
-        list_modules = [[r.rect.vector_spec, r.alloc] for r in self._allocations]
+        list_modules = [[r.rect.vector_spec, r.alloc] for r in self.allocations]
         return write_yaml(list_modules, filename)
 
     def _calculate_bounding_box(self) -> None:

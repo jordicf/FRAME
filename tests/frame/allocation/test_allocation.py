@@ -57,6 +57,13 @@ class MyTestCase(unittest.TestCase):
         a4 = a.refine(0.7, 2)
         self.assertEqual(9, a4.num_rectangles)
 
+    def test_must_be_refined(self):
+        a = Allocation(alloc8)
+        self.assertTrue(a.must_be_refined(0.95))
+        self.assertTrue(a.must_be_refined(0.85))
+        self.assertTrue(a.must_be_refined(0.75))
+        self.assertFalse(a.must_be_refined(0.65))
+
     def test_compatible_netlist(self):
         a = Allocation(alloc7)
         n1 = Netlist(netlist1)
@@ -124,6 +131,14 @@ alloc7 = """
   [[1.5,3,3,6], {M1: 0.3, M3: 0.6}],
   [[5.5,3,5,6], {M1: 0.2, M2: 0.8}],
   [[4,8,8,4], {M1: 0.5, M2: 0.4}]
+]
+"""
+
+alloc8 = """
+[
+  [[1.5,3,3,6], {M1: 0.2, M3: 0.8}],
+  [[5.5,3,5,6], {M1: 0.1, M2: 0.9}],
+  [[4,8,8,4], {M1: 0.3, M2: 0.7}]
 ]
 """
 
