@@ -28,9 +28,8 @@ def parse_options(prog: str | None = None, args: list[str] | None = None) -> dic
 
 
 # TODO: think a better name, as the grid is still a netlist
-def netlist_to_grid(netlist: Netlist, die_shape: Shape, n_rows: int, n_cols: int, alpha: float):
-    cell_shape = Shape(die_shape.w / n_rows, die_shape.h / n_cols)
-
+def netlist_to_grid(netlist: Netlist, n_rows: int, n_cols: int, cell_shape: Shape, alpha: float) \
+        -> tuple[list[list[list[float]]], list[Point], list[float], float]:
     cells = [Rectangle()] * (n_rows * n_cols)
     for row in range(n_rows):
         for col in range(n_cols):
@@ -107,13 +106,13 @@ def netlist_to_grid(netlist: Netlist, die_shape: Shape, n_rows: int, n_cols: int
     g.solve()
 
     # Extract solution
-    ratios = [[[0 for _ in range(n_cols)] for _ in range(n_rows)] for _ in range(n_modules)]
+    ratios = [[[0.0 for _ in range(n_cols)] for _ in range(n_rows)] for _ in range(n_modules)]
     for m in range(n_modules):
         for c in range(n_cells):
             ratios[m][c // n_cols][c % n_cols] = a[m][c].value[0]
 
     centroids = [Point()] * n_modules
-    dispersions = [0] * n_modules
+    dispersions = [0.0] * n_modules
     for m in range(n_modules):
         centroids[m] = Point(x[m].value[0], y[m].value[0])
         dispersions[m] = dx[m].value[0] + dy[m].value[0]
