@@ -48,6 +48,7 @@ class HyperEdge:
         intersection_point /= len(self.modules)
         wire_length = 0.0
         for b in self.modules:
+            assert b.center is not None  # repeated assertion to suppress a Mypy error
             v = intersection_point - b.center
             wire_length += sqrt(v & v)
         return wire_length * self.weight
