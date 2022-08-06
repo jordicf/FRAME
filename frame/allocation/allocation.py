@@ -148,7 +148,7 @@ class Allocation:
     def must_be_refined(self, threshold: float) -> bool:
         """
         Checks whether the allocation must be refined. An allocation must be refined if there is
-        a rectangle in which no modules has an occupance greater than a threshold
+        a rectangle in which no modules have an occupancy greater than a threshold
         :param threshold: rectangles must be split if no module has an occupancy greater than this threshold
         :return: True if the allocation must be refined
         """
