@@ -3,13 +3,13 @@ from matplotlib import pyplot as plt
 import seaborn as sns
 
 from frame.geometry.geometry import Shape, Point
-from frame.netlist.netlist import Netlist
+from frame.netlist.module import Module
 
 
-def plot_grid(netlist: Netlist, ratios: list[list[list[float]]],
+def plot_grid(modules: list[Module], ratios: list[list[list[float]]],
               centroids: list[Point], dispersions: list[float], wire_length: float,
               n_rows: int, n_cols: int, cell_shape: Shape,
-              suptitle: str | None = None, filename: str | None = None):
+              suptitle: str | None = None, filename: str | None = None) -> None:
     """
     Plot a floorplan given the ratios of each module in each cell, and additional information to annotate the graphics.
     The plot is made up of subplots separated by each module. The module areas, centroids, dispersions and total wire
@@ -19,7 +19,7 @@ def plot_grid(netlist: Netlist, ratios: list[list[list[float]]],
 
     # TODO: Plot wires in some way.
 
-    n_modules = netlist.num_modules
+    n_modules = len(modules)
 
     scaling_factor = 1 if n_cols > 4 else 2
 
@@ -28,8 +28,7 @@ def plot_grid(netlist: Netlist, ratios: list[list[list[float]]],
                             figsize=(n_modules * n_cols / scaling_factor, n_rows / scaling_factor),
                             gridspec_kw=dict(width_ratios=([1.0] * n_modules) + [0.1]))
 
-    for module, module_configuration, centroid, dispersion, ax in zip(netlist.modules, ratios, centroids, dispersions,
-                                                                      axs):
+    for module, module_configuration, centroid, dispersion, ax in zip(modules, ratios, centroids, dispersions, axs):
         matrix = np.around(module_configuration, 2)
 
         # Plot module configuration in cell grid with a heatmap

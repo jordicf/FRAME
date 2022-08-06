@@ -165,7 +165,7 @@ def main(prog: str | None = None, args: list[str] | None = None):
 
     cell_shape = Shape(die_shape.w / n_rows, die_shape.h / n_cols)
     ratios, centroids, dispersions, wire_length = netlist_to_grid(netlist, n_rows, n_cols, cell_shape, alpha)
-    plot_grid(netlist, ratios, centroids, dispersions, wire_length, n_rows, n_cols, cell_shape,
+    plot_grid(netlist.modules, ratios, centroids, dispersions, wire_length, n_rows, n_cols, cell_shape,
               filename="3-0.1.png", suptitle=f"alpha = {alpha}")
 
     # TODO
