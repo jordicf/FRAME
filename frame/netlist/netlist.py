@@ -58,9 +58,19 @@ class Netlist:
         return self._modules
 
     @property
+    def num_edges(self) -> int:
+        """Number of hyperedges of the netlist"""
+        return len(self._edges)
+
+    @property
     def edges(self) -> list[HyperEdge]:
         """List of hyperedges of the netlist"""
         return self._edges
+
+    @property
+    def wire_length(self) -> float:
+        """Total wire length to construct the netlist (sum of netlist hyperedges wire lengths)"""
+        return sum([e.wire_length for e in self.edges])
 
     @property
     def num_rectangles(self) -> int:

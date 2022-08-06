@@ -20,7 +20,8 @@ def yaml_diff(yamla, yamlb, path='', key=getkey):
 
 
 def listdiff(yamla, yamlb, path, key):
-    """ compute the differences between two lists, as a generator
+    """
+    Compute the differences between two lists, as a generator
     :param list yamla: list of python objects
     :param list yamlb: list of python objects
     :param str path: path of current node (same idea as XPath)

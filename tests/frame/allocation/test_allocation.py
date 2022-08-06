@@ -5,7 +5,7 @@ from frame.netlist.netlist import Netlist
 from frame.utils.utils import read_yaml
 
 
-class MyTestCase(unittest.TestCase):
+class TestAllocation(unittest.TestCase):
 
     def test_allocation_errors(self):
         self.assertRaises(AssertionError, Allocation, alloc1)
