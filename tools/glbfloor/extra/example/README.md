@@ -6,7 +6,7 @@ frame spectral --die 2x3 -o 2.yml 1.yml
 frame draw 2.yml --die 2x3
 ```
 
-![spectral](2.gif)
+<img src="2.gif" alt="spectral" style="width: 200px;"/>
 
 ```
 frame glbfloor -d 2x3 -g 4x4 -a 0.3 -o 3.yml 2.yml
