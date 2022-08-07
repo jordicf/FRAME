@@ -84,10 +84,10 @@ alloc1 = """
 ]
 """
 
-# Allocation with occupancy > 1.0 in one rectangle
+# Allocation with occupancy < 0 in one rectangle
 alloc2 = """
 [
-  [[1.5,3,3,6], {M1: 0.3, M3: 0.8}],
+  [[1.5,3,3,6], {M1: -0.1, M3: 0.8}],
   [[5.5,3,5,6], {M1: 0.2, M2: 0.8}],
   [[4,8,8,4], {M1: 0.5, M2: 0.4}]
 ]
