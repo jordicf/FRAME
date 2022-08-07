@@ -34,9 +34,21 @@ def parse_options(prog: str | None = None, args: list[str] | None = None) -> dic
     return vars(parser.parse_args(args))
 
 
-# TODO: think a better name, as the grid is still a netlist
-def netlist_to_grid(netlist: Netlist, n_rows: int, n_cols: int, cell_shape: Shape, alpha: float) \
+def calculate_initial_allocation(netlist: Netlist, n_rows: int, n_cols: int, cell_shape: Shape, alpha: float) \
         -> tuple[Netlist, Allocation, dict[str, float]]:
+    """
+    Calculates the initial legal floorplan allocation given the netlist, grid info, and the alpha hyperparameter
+    :param netlist: netlist containing the modules with centroids initialized
+    :param n_rows: initial number of rows in the grid
+    :param n_cols: initial number of columns in the grid
+    :param cell_shape: shape of the cells (typically the shape of the die scaled by the number of rows and columns)
+    :param alpha: hyperparameter between 0 and 1 to control the tradeoff between total dispersion and total wire length.
+    Smaller values will reduce the dispersion and increase the wire length, and greater ones the other way around
+    :return: the optimal solution found:
+    - Netlist with the centroids of the modules updated.
+    - Allocation with the ratio of each module in each cell of the grid.
+    - A dictionary from module name to float which indicates the dispersion value of each module in the found planning.
+    """
     cells = [Rectangle()] * (n_rows * n_cols)
     for row in range(n_rows):
         for col in range(n_cols):
@@ -138,11 +150,15 @@ def refine_grid(netlist: Netlist, die_shape: Shape, n_rows: int, n_cols: int):
 
 def main(prog: str | None = None, args: list[str] | None = None):
     """Main function."""
-    print("NOT YET IMPLEMENTED")
+    print("NOT YET IMPLEMENTED")  # this message is temporary
 
     options = parse_options(prog, args)
 
-    # Die
+    # Initial netlist
+    infile = options["netlist"]
+    in_netlist = Netlist(infile)
+
+    # Die shape
     die_file = options["die"]
     if die_file is not None:
         die = Die(die_file)
@@ -150,16 +166,15 @@ def main(prog: str | None = None, args: list[str] | None = None):
     else:
         die_shape = Shape(1, 1)
 
-    infile = options["netlist"]
-
     # Initial grid
     n_rows, n_cols = map(int, options["grid"].split("x"))
     assert n_rows > 0 and n_cols > 0, "The number of rows and columns of the grid must be positive"
+    cell_shape = Shape(die_shape.w / n_rows, die_shape.h / n_cols)
 
-    alpha = float(options["alpha"])
+    alpha = options["alpha"]
     assert 0 <= alpha <= 1, "alpha must be between 0 and 1"
 
-    in_netlist = Netlist(infile)
+    out_netlist, allocation, dispersions = calculate_initial_allocation(in_netlist, n_rows, n_cols, cell_shape, alpha)
 
     cell_shape = Shape(die_shape.w / n_rows, die_shape.h / n_cols)
     out_netlist, allocation, dispersions = netlist_to_grid(in_netlist, n_rows, n_cols, cell_shape, alpha)
