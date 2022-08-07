@@ -211,7 +211,7 @@ class Allocation:
                 self._module2rect[module].append(ModuleAlloc(i, occup))
 
             # Check that a rectangle is not over-occupied
-            assert total_occup <= 1.0, f'Occupancy of rectangle {r} greater than 1'
+            assert total_occup <= 1.0, f'Occupancy of rectangle {r} greater than 1: {total_occup}'
             self._allocations.append(RectAlloc(rect, dict_alloc))
 
     def _check_no_overlap(self) -> None:
