@@ -1,9 +1,9 @@
-from argparse import ArgumentParser
 from typing import Any
-from math import sqrt
+from argparse import ArgumentParser
 
 from gekko import GEKKO
 
+from frame.allocation.allocation import Allocation, Alloc
 from frame.die.die import Die
 from frame.geometry.geometry import Shape, Rectangle, Point
 from frame.netlist.netlist import Netlist
@@ -36,7 +36,7 @@ def parse_options(prog: str | None = None, args: list[str] | None = None) -> dic
 
 # TODO: think a better name, as the grid is still a netlist
 def netlist_to_grid(netlist: Netlist, n_rows: int, n_cols: int, cell_shape: Shape, alpha: float) \
-        -> tuple[list[list[list[float]]], list[Point], list[float], float]:
+        -> tuple[Netlist, Allocation, dict[str, float]]:
     cells = [Rectangle()] * (n_rows * n_cols)
     for row in range(n_rows):
         for col in range(n_cols):
@@ -53,7 +53,9 @@ def netlist_to_grid(netlist: Netlist, n_rows: int, n_cols: int, cell_shape: Shap
     x = g.Array(g.Var, n_modules, lb=0, ub=n_rows * cell_shape.h)
     y = g.Array(g.Var, n_modules, lb=0, ub=n_cols * cell_shape.w)
     for m in range(netlist.num_modules):
-        x[m].value, y[m].value = netlist.modules[m].center  # Initial values
+        center = netlist.modules[m].center
+        assert center is not None, "Modules should have initial center values. Maybe run the spectral tool?"
+        x[m].value, y[m].value = center  # Initial values
 
     # Dispersion of modules
     dx = g.Array(g.Var, n_modules, lb=0)
@@ -113,30 +115,21 @@ def netlist_to_grid(netlist: Netlist, n_rows: int, n_cols: int, cell_shape: Shap
     g.solve()
 
     # Extract solution
-    ratios = [[[0.0 for _ in range(n_cols)] for _ in range(n_rows)] for _ in range(n_modules)]
+    allocation_list: list[None | list[list[float, float, float, float], dict[str, float]]] = [None] * n_cells
+    for c in range(n_cells):
+        c_alloc = Alloc()
+        for m in range(n_modules):
+            c_alloc[netlist.modules[m].name] = a[m][c].value[0]
+        allocation_list[c] = [cells[c].vector_spec, c_alloc]
+    allocation = Allocation(allocation_list)
+
+    dispersions = {}
     for m in range(n_modules):
-        for c in range(n_cells):
-            ratios[m][c // n_cols][c % n_cols] = a[m][c].value[0]
+        module = netlist.modules[m]
+        module.center = Point(x[m].value[0], y[m].value[0])
+        dispersions[module.name] = dx[m].value[0] + dy[m].value[0]
 
-    centroids = [Point()] * n_modules
-    dispersions = [0.0] * n_modules
-    for m in range(n_modules):
-        centroids[m] = Point(x[m].value[0], y[m].value[0])
-        dispersions[m] = dx[m].value[0] + dy[m].value[0]
-
-    wire_length = 0.0
-    for e in netlist.edges:
-        ec = Point(0, 0)
-        for mod in e.modules:
-            m = mod2m[mod]
-            ec += centroids[m]
-        ec /= len(e.modules)
-        for mod in e.modules:
-            m = mod2m[mod]
-            v = ec - centroids[m]
-            wire_length += sqrt(v & v)
-
-    return ratios, centroids, dispersions, wire_length
+    return netlist, allocation, dispersions
 
 
 def refine_grid(netlist: Netlist, die_shape: Shape, n_rows: int, n_cols: int):
@@ -166,20 +159,20 @@ def main(prog: str | None = None, args: list[str] | None = None):
     alpha = float(options["alpha"])
     assert 0 <= alpha <= 1, "alpha must be between 0 and 1"
 
-    netlist = Netlist(infile)
+    in_netlist = Netlist(infile)
 
     cell_shape = Shape(die_shape.w / n_rows, die_shape.h / n_cols)
-    ratios, centroids, dispersions, wire_length = netlist_to_grid(netlist, n_rows, n_cols, cell_shape, alpha)
+    out_netlist, allocation, dispersions = netlist_to_grid(in_netlist, n_rows, n_cols, cell_shape, alpha)
 
     plot_file = options["plot"]
     if plot_file is not None:
-        plot_grid(netlist.modules, ratios, centroids, dispersions, wire_length, n_rows, n_cols, cell_shape,
+        plot_grid(out_netlist, allocation, dispersions,
                   filename=plot_file, suptitle=f"alpha = {alpha}")
 
     # TODO
 
-    # outfile = options["outfile"]
-    # netlist.dump_yaml_netlist(outfile)
+    outfile = options["outfile"]
+    out_netlist.dump_yaml_netlist(outfile)
 
 
 if __name__ == "__main__":
