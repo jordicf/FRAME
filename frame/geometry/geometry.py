@@ -257,9 +257,10 @@ class Rectangle:
         """
         :return: string representation of the rectangle
         """
-        s = f"{KW_CENTER}={self.center} {KW_SHAPE}={self.shape} {KW_REGION}={self.region}"
+        s = f"({KW_CENTER}={self.center}, {KW_SHAPE}={self.shape}, {KW_REGION}={self.region}"
         if self.fixed:
-            s += f" {KW_FIXED}"
+            s += f", {KW_FIXED}"
+        s += ")"
         return s
 
     __repr__ = __str__
