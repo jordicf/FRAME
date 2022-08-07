@@ -18,19 +18,24 @@ def parse_options(prog: str | None = None, args: list[str] | None = None) -> dic
     :param args: command-line arguments
     :return: a dictionary with the arguments
     """
-    parser = ArgumentParser(prog=prog, description="...")
+    parser = ArgumentParser(prog=prog, description="...")  # TODO: write description
     parser.add_argument("netlist",
                         help="input file (netlist)")
-    parser.add_argument("-d", "--die", metavar="<width>x<height> or filename",
+    parser.add_argument("-d", "--die", metavar="<width>x<height> or filename", default="1x1",
                         help="Size of the die (width x height) or name of the file")
     parser.add_argument("-g", "--grid", metavar="<rows>x<cols>", required=True,
                         help="Size of the initial grid (rows x columns)", )
     parser.add_argument("-a", "--alpha", type=float, required=True,
-                        help="Hyperparameter for the tradeoff between dispersion and wire length")
+                        help="Tradeoff hyperparameter between 0 and 1 to control the balance between dispersion and "
+                             "wire length")
+    parser.add_argument("-t", "--threshold", type=float, default=0.95,
+                        help="Threshold hyperparameter between 0 and 1 to decide if allocations must be refined")
     parser.add_argument("-p", "--plot",
-                        help="Output plot file (image). If not present, no plot is produced")
-    parser.add_argument("-o", "--outfile", required=True,
-                        help="Output file (netlist)")
+                        help="Output plot file (image). If not present, no file is produced")
+    parser.add_argument("--out-netlist",
+                        help="Output netlist file. If not present, no file is produced")
+    parser.add_argument("--out-allocation",
+                        help="Output allocation file. If not present, no file is produced")
     return vars(parser.parse_args(args))
 
 
@@ -42,7 +47,7 @@ def calculate_initial_allocation(netlist: Netlist, n_rows: int, n_cols: int, cel
     :param n_rows: initial number of rows in the grid
     :param n_cols: initial number of columns in the grid
     :param cell_shape: shape of the cells (typically the shape of the die scaled by the number of rows and columns)
-    :param alpha: hyperparameter between 0 and 1 to control the tradeoff between total dispersion and total wire length.
+    :param alpha: hyperparameter between 0 and 1 to control the balance between dispersion and wire length.
     Smaller values will reduce the dispersion and increase the wire length, and greater ones the other way around
     :return: the optimal solution found:
     - Netlist with the centroids of the modules updated.
@@ -144,8 +149,31 @@ def calculate_initial_allocation(netlist: Netlist, n_rows: int, n_cols: int, cel
     return netlist, allocation, dispersions
 
 
-def refine_grid(netlist: Netlist, die_shape: Shape, n_rows: int, n_cols: int):
-    raise NotImplemented  # TODO
+def optimize_allocation(netlist: Netlist, allocation: Allocation, alpha: float) \
+        -> tuple[Netlist, Allocation, dict[str, float]]:
+    raise NotImplementedError  # TODO
+
+
+def refine_and_optimize_allocation(netlist: Netlist, allocation: Allocation, threshold: float, alpha: float) \
+        -> tuple[Netlist, Allocation, dict[str, float]]:
+    """
+    Refine the given allocation and optimize it to minimize the dispersion and the wire length of the floor plan.
+    The netlist, and the threshold and alpha hyperparameters are also required.
+    :param netlist: netlist containing the modules with centroids initialized
+    :param allocation: allocation with the ratio of each module in each cell of the grid, which possibly must be refined
+    :param threshold: hyperparameter between 0 and 1 to decide if allocations must be refined
+    :param alpha: hyperparameter between 0 and 1 to control the balance between dispersion and wire length.
+    Smaller values will reduce the dispersion and increase the wire length, and greater ones the other way around
+    :return: the optimal solution found:
+    - Netlist with the centroids of the modules updated.
+    - Refined allocation with the ratio of each module in each cell of the grid.
+    - A dictionary from module name to float which indicates the dispersion value of each module in the found planning.
+    """
+    dispersions: dict[str, float] = {}  # TODO: think about what to do if no refinement is needed
+    while allocation.must_be_refined(threshold):
+        allocation.refine(threshold)
+        netlist, allocation, dispersions = optimize_allocation(netlist, allocation, alpha)
+    return netlist, allocation, dispersions
 
 
 def main(prog: str | None = None, args: list[str] | None = None):
@@ -155,16 +183,11 @@ def main(prog: str | None = None, args: list[str] | None = None):
     options = parse_options(prog, args)
 
     # Initial netlist
-    infile = options["netlist"]
-    in_netlist = Netlist(infile)
+    netlist = Netlist(options["netlist"])
 
     # Die shape
-    die_file = options["die"]
-    if die_file is not None:
-        die = Die(die_file)
-        die_shape = Shape(die.width, die.height)
-    else:
-        die_shape = Shape(1, 1)
+    die = Die(options["die"])
+    die_shape = Shape(die.width, die.height)
 
     # Initial grid
     n_rows, n_cols = map(int, options["grid"].split("x"))
@@ -174,17 +197,26 @@ def main(prog: str | None = None, args: list[str] | None = None):
     alpha = options["alpha"]
     assert 0 <= alpha <= 1, "alpha must be between 0 and 1"
 
-    out_netlist, allocation, dispersions = calculate_initial_allocation(in_netlist, n_rows, n_cols, cell_shape, alpha)
+    threshold = options["threshold"]
+    assert 0 <= threshold <= 1, "threshold must be between 0 and 1"
+
+    netlist, allocation, dispersions = calculate_initial_allocation(netlist, n_rows, n_cols, cell_shape, alpha)
+
+    # netlist, allocation, dispersions = refine_and_optimize_allocation(netlist, allocation, threshold, alpha)
+
+    # TODO: add intermediate plots of the process
 
     plot_file = options["plot"]
     if plot_file is not None:
-        plot_grid(out_netlist, allocation, dispersions,
-                  filename=plot_file, suptitle=f"alpha = {alpha}")
+        plot_grid(netlist, allocation, dispersions, filename=plot_file, suptitle=f"alpha = {alpha}")
 
-    # TODO
+    out_netlist_file = options["out_netlist"]
+    if out_netlist_file is not None:
+        netlist.dump_yaml_netlist(out_netlist_file)
 
-    outfile = options["outfile"]
-    out_netlist.dump_yaml_netlist(outfile)
+    out_allocation_file = options["out_allocation"]
+    if out_allocation_file is not None:
+        allocation.write_yaml(out_allocation_file)
 
 
 if __name__ == "__main__":
