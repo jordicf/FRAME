@@ -202,7 +202,7 @@ class Allocation:
             total_occup = 0
             for module, occup in d.items():
                 assert valid_identifier(module), f'Invalid module identifier: {module}'
-                assert is_number(occup) and 0 < occup <= 1, f'Invalid allocation for {module} in rectangle {r}'
+                assert is_number(occup) and 0 <= occup <= 1, f'Invalid allocation for {module} in rectangle {r}'
                 assert module not in dict_alloc, f'Multiple allocations of {module} in rectangle {r}'
                 total_occup += occup
                 dict_alloc[module] = occup
@@ -210,8 +210,8 @@ class Allocation:
                     self._module2rect[module] = []
                 self._module2rect[module].append(ModuleAlloc(i, occup))
 
-            # Check that a rectangle is not over-occupied
-            assert total_occup <= 1.0, f'Occupancy of rectangle {r} greater than 1: {total_occup}'
+            # Check that a rectangle is not over-occupied (assertion removed)
+            # assert total_occup <= 1.0, f'Occupancy of rectangle {r} greater than 1: {total_occup}'
             self._allocations.append(RectAlloc(rect, dict_alloc))
 
     def _check_no_overlap(self) -> None:
