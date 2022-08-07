@@ -176,9 +176,6 @@ def main(prog: str | None = None, args: list[str] | None = None):
 
     out_netlist, allocation, dispersions = calculate_initial_allocation(in_netlist, n_rows, n_cols, cell_shape, alpha)
 
-    cell_shape = Shape(die_shape.w / n_rows, die_shape.h / n_cols)
-    out_netlist, allocation, dispersions = netlist_to_grid(in_netlist, n_rows, n_cols, cell_shape, alpha)
-
     plot_file = options["plot"]
     if plot_file is not None:
         plot_grid(out_netlist, allocation, dispersions,
