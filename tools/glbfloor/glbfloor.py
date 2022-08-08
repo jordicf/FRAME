@@ -133,7 +133,7 @@ def calculate_initial_allocation(netlist: Netlist, n_rows: int, n_cols: int, cel
     g.solve()
 
     # Extract solution
-    allocation_list: list[None | list[list[float, float, float, float], dict[str, float]]] = [None] * n_cells
+    allocation_list: list[None | tuple[tuple[float, float, float, float], dict[str, float]]] = [None] * n_cells
     for c in range(n_cells):
         c_alloc = Alloc()
         for m, module in enumerate(netlist.modules):
