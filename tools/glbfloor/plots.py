@@ -52,7 +52,7 @@ def plot_grid(netlist: Netlist, allocation: Allocation, dispersions: dict[str, f
 
     s = Scaling(scale_factor, margin, margin, grid_width, grid_height)
 
-    for i, module in enumerate(netlist.modules):
+    for module in netlist.modules:
         for module_alloc in allocation.allocation_module(module.name):
             rect = allocation.allocation_rectangle(module_alloc.rect).rect
             bbox_min, bbox_max = rect.bounding_box

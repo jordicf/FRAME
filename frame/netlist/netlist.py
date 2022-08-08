@@ -119,7 +119,7 @@ class Netlist:
                 m.add_rectangle(parse_yaml_rectangle(r))
         self._clean_rectangles()
 
-    def dump_yaml_netlist(self, filename: str = None) -> None | str:
+    def write_yaml(self, filename: str = None) -> None | str:
         """
         Writes the netlist into a YAML file. If no file name is given, a string with the yaml contents
         is returned
