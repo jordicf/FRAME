@@ -2,7 +2,11 @@ from frame.allocation.allocation import RectAlloc, Allocation
 
 InputBox = tuple[float, float, float, float, float]
 InputProblem = list[InputBox]
-
+Dims = list[float]
+Module = dict[str, float]
+Mods = list[Module]
+IFileTerm = dict[str, Dims | Mods]
+IFileBox = dict[str, list[IFileTerm]]
 
 def getfile(input_problem: InputProblem, ifile, f: float) -> str:
     """
@@ -23,13 +27,17 @@ def getfile(input_problem: InputProblem, ifile, f: float) -> str:
 def get_ifile(fname: str):
     test = Allocation(fname)
     obj = {'Width': test.bounding_box.shape.w, 'Height': test.bounding_box.shape.h, 'Rectangles': []}
+    rectangles: list[IFileBox] = []
     for i in range(0, len(test.allocations)):
         b: RectAlloc = test.allocations[i]
         x, y, w, h = b.rect.center.x, b.rect.center.y, b.rect.shape.w, b.rect.shape.h
         item1 = [x, y, w, h]
         item2 = b.alloc
-        robj = {'b' + str(i): [{'dim': item1}, {'mod': list(map(lambda q: {q: item2[q]}, item2))}]}
-        obj['Rectangles'].append(robj)
+        dim: IFileTerm = {'dim': item1}
+        mod: IFileTerm = {'mod': list(map(lambda q: {q: item2[q]}, item2))}
+        robj = {'b' + str(i): [dim, mod]}
+        rectangles.append(robj)
+    obj['Rectangles'] = rectangles
     return obj
 
 

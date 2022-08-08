@@ -1,10 +1,11 @@
 import random
 from argparse import ArgumentParser
 from frame.utils.utils import write_yaml
+import typing
 
 
-def transpose(matrix: list[list[any]]) -> list[list[any]]:
-    res = []
+def transpose(matrix: list[list[typing.Any]]) -> list[list[typing.Any]]:
+    res: list[list[typing.Any]] = []
     for i in range(0, len(matrix[0])):
         res.append([])
         for j in range(0, len(matrix)):
@@ -12,7 +13,7 @@ def transpose(matrix: list[list[any]]) -> list[list[any]]:
     return res
 
 
-def tabulate(matrix: list[list[any]]) -> None:
+def tabulate(matrix: list[list[typing.Any]]) -> None:
     mlen = 0
     for vec in matrix:
         for elem in vec:
@@ -68,28 +69,30 @@ def randomadjacentpos(layout: list[list[int]], box: int) -> tuple[int, int] | No
     return random.choice(allpos)
 
 
-def fuzzify(options: dict[str, any], layout: list[list[int]], nblocks: int) -> list[list[list[float]]]:
+def fuzzify(options: dict[str, typing.Any], layout: list[list[int]], nblocks: int) -> list[list[list[float]]]:
     """
     Receives a deterministic layout and makes it fuzzy by
     adding noise.
     """
+    noise: float = options['noise']
+
     # Type 0 noise is no noise. The higher this number is,
     # the more similar the resulting layout will be from the
     # unaltered one
-    type0 = (1 - options['noise']) * (1 - options['noise'])
+    type0: float = (1 - noise) * (1 - noise)
     
     # Type 1 noise is proximity noise. The higher this number is,
     # the more the modules will mix up with nearby modules
-    type1 = 2 * options['noise'] * (1 - options['noise'])
+    type1: float = 2 * noise * (1 - noise)
 
     # Type 2 noise is white-ish noise. The higher this number is,
     # the more the resulting layout will just look like a
     # jarbled mess
-    type2 = options['noise'] * options['noise']
+    type2: float = noise * noise
 
     # Step one, construct the mixed layout
-    flayout = []
-    resout = []
+    flayout: list[list[list[float]]] = []
+    resout: list[list[list[float]]] = []
     for i in range(0, options['height']):
         flayout.append([])
         resout.append([])
@@ -150,25 +153,29 @@ def addblock(layout: list[list[int]], block: int, bounds: list[int]) -> int:
     return (maxx - minx) * (maxy - miny)
 
 
-def generatedie(options: dict[str, any]) -> list[list[list[float]]]:
+def generatedie(options: dict[str, typing.Any]) -> list[list[list[float]]]:
+    height: int = options['height']
+    width: int = options['width']
+    maxw: int = options['maxw']
+    maxn: int = options['maxn']
     random.seed(options['seed'])
     layout = []
-    for i in range(0, options['height']):
-        layout.append([-1] * options['width'])
-    counter = options['height'] * options['width']
+    for i in range(0, height):
+        layout.append([-1] * width)
+    counter = height * width
     block = 0
     while counter > 0:
         (minx, miny) = randompos(layout)
         maxx, maxy = minx, miny
-        for i in range(minx, minx + options['maxw']):
-            if i >= options['width']:
+        for i in range(minx, minx + maxw):
+            if i >= width:
                 break
             if layout[i][miny] == -1:
                 maxx = i
             else:
                 break
-        for j in range(miny, miny + options['maxw']):
-            if j >= options['height']:
+        for j in range(miny, miny + maxw):
+            if j >= height:
                 break
             ok = True
             for i in range(minx, maxx+1):
@@ -179,8 +186,8 @@ def generatedie(options: dict[str, any]) -> list[list[list[float]]]:
                 break
             maxy = j
         counter -= addblock(layout, block, [minx, miny, maxx, maxy])
-        for m in range(1, options['maxn']):
-            f = options['maxn'] + 1 - m
+        for m in range(1, maxn):
+            f = maxn + 1 - m
             p = float(f - 1) / float(f)
             if random.random() > p:
                 break
@@ -192,15 +199,15 @@ def generatedie(options: dict[str, any]) -> list[list[list[float]]]:
                 # We expand to the right
                 minx, miny = i, j
                 maxx, maxy = minx, miny
-                for i2 in range(minx, minx + options['maxw']):
+                for i2 in range(minx, minx + maxw):
                     if not isvaliddirection(layout, block, (i2, miny)):
                         break
                     if layout[i2][miny] == -1:
                         maxx = i2
                     else:
                         break
-                for j2 in range(miny, miny + options['maxw']):
-                    if j2 >= options['height']:
+                for j2 in range(miny, miny + maxw):
+                    if j2 >= height:
                         break
                     ok = True
                     for i2 in range(minx, maxx+1):
@@ -215,15 +222,15 @@ def generatedie(options: dict[str, any]) -> list[list[list[float]]]:
                 # We expand to the bottom
                 minx, miny = i, j
                 maxx, maxy = minx, miny
-                for j2 in range(miny, miny + options['maxw']):
+                for j2 in range(miny, miny + maxw):
                     if not isvaliddirection(layout, block, (minx, j2)):
                         break
                     if layout[minx][j2] == -1:
                         maxy = j2
                     else:
                         break
-                for i2 in range(minx, minx + options['maxw']):
-                    if i2 >= options['width']:
+                for i2 in range(minx, minx + maxw):
+                    if i2 >= width:
                         break
                     ok = True
                     for j2 in range(miny, maxy+1):
@@ -238,11 +245,11 @@ def generatedie(options: dict[str, any]) -> list[list[list[float]]]:
                 # We don't expand
                 counter -= addblock(layout, block, [i, j, i, j])
         block = block + 1
-    print(tabulate(transpose(layout)))
+    tabulate(transpose(layout))
     return fuzzify(options, layout, block)
 
 
-def check_integrity(options: dict[str, any]) -> None:
+def check_integrity(options: dict[str, typing.Any]) -> None:
     if options['width'] < 1:
         raise Exception("Width option must be minimum 1")
     if options['height'] < 1:
@@ -255,7 +262,7 @@ def check_integrity(options: dict[str, any]) -> None:
         raise Exception("Noise option must be between 0 and 1")
 
 
-def parse_options(prog: str | None = None, args: list[str] | None = None) -> dict[str, any]:
+def parse_options(prog: str | None = None, args: list[str] | None = None) -> dict[str, typing.Any]:
     """
     Parse the command-line arguments for the tool
     :param prog: tool name
@@ -274,7 +281,7 @@ def parse_options(prog: str | None = None, args: list[str] | None = None) -> dic
     return vars(parser.parse_args(args))
 
 
-def initout(options: dict[str, any]):
+def initout(options: dict[str, typing.Any]):
     if options['outfile'] is None:
         return print, lambda: print()
     else:

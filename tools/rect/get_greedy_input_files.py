@@ -1,9 +1,9 @@
-
+import typing
 from argparse import ArgumentParser
 from rect_io import get_ifile, getfile, selectbox
 
 
-def parse_options(prog: str | None = None, args: list[str] | None = None) -> dict[str, any]:
+def parse_options(prog: str | None = None, args: list[str] | None = None) -> dict[str, typing.Any]:
     """
     Parse the command-line arguments for the tool
     :param prog: tool name
@@ -21,7 +21,7 @@ def main(prog: str | None = None, args: list[str] | None = None) -> int:
     Main function.
     """
     options = parse_options(prog, args)
-    file = options['filename']
+    file: str = options['filename']
     if file[-5:] != ".yaml":
         raise Exception("Input file name should end in .yaml")
     basefile = file.split(sep="/")[-1][:-5]
@@ -37,9 +37,9 @@ def main(prog: str | None = None, args: list[str] | None = None) -> int:
     counter = 10
     for mod in sorted(module_names, key=lambda x: int(x[1:])):
         input_problem, selbox = selectbox(mod, ifile)
-        file = open(options["outdir"] + basefile + "." + mod + ".txt", "w")
-        file.write(getfile(input_problem, ifile, 2.00))
-        file.close()
+        iofile = open(options["outdir"] + basefile + "." + mod + ".txt", "w")
+        iofile.write(getfile(input_problem, ifile, 2.00))
+        iofile.close()
         counter = counter - 1
         if counter <= 0:
             break
