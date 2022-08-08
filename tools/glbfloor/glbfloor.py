@@ -31,7 +31,7 @@ def parse_options(prog: str | None = None, args: list[str] | None = None) -> dic
     parser.add_argument("-t", "--threshold", type=float, default=0.95,
                         help="Threshold hyperparameter between 0 and 1 to decide if allocations must be refined")
     parser.add_argument("-p", "--plot",
-                        help="Output plot file (image). If not present, no file is produced")
+                        help="Plot name. If not present, no plots are produced")
     parser.add_argument("--out-netlist",
                         help="Output netlist file. If not present, no file is produced")
     parser.add_argument("--out-allocation",
@@ -39,8 +39,8 @@ def parse_options(prog: str | None = None, args: list[str] | None = None) -> dic
     return vars(parser.parse_args(args))
 
 
-def calculate_initial_allocation(netlist: Netlist, n_rows: int, n_cols: int, cell_shape: Shape, alpha: float) \
-        -> tuple[Netlist, Allocation, dict[str, float]]:
+def calculate_initial_allocation(netlist: Netlist, n_rows: int, n_cols: int, cell_shape: Shape, alpha: float,
+                                 plot_name: str | None = None) -> tuple[Netlist, Allocation]:
     """
     Calculates the initial legal floorplan allocation given the netlist, grid info, and the alpha hyperparameter
     :param netlist: netlist containing the modules with centroids initialized
@@ -49,10 +49,11 @@ def calculate_initial_allocation(netlist: Netlist, n_rows: int, n_cols: int, cel
     :param cell_shape: shape of the cells (typically the shape of the die scaled by the number of rows and columns)
     :param alpha: hyperparameter between 0 and 1 to control the balance between dispersion and wire length.
     Smaller values will reduce the dispersion and increase the wire length, and greater ones the other way around
+    :param plot_name: name of the plot to be produced in each iteration The iteration number (0) and the PNG extension
+    are added automatically. If None, no plots are produced.
     :return: the optimal solution found:
-    - Netlist with the centroids of the modules updated.
-    - Allocation with the ratio of each module in each cell of the grid.
-    - A dictionary from module name to float which indicates the dispersion value of each module in the found planning.
+    - netlist - Netlist with the centroids of the modules updated.
+    - allocation - Allocation with the ratio of each module in each cell of the grid.
     """
     cells = [Rectangle()] * (n_rows * n_cols)
     for row in range(n_rows):
@@ -146,7 +147,11 @@ def calculate_initial_allocation(netlist: Netlist, n_rows: int, n_cols: int, cel
         module.center = Point(x[m].value[0], y[m].value[0])
         dispersions[module.name] = dx[m].value[0] + dy[m].value[0]
 
-    return netlist, allocation, dispersions
+    if plot_name is not None:
+        plot_grid(netlist, allocation, dispersions,
+                  filename=f"{plot_name}-0.png", suptitle=f"alpha = {alpha}")
+
+    return netlist, allocation
 
 
 def optimize_allocation(netlist: Netlist, allocation: Allocation, alpha: float) \
@@ -154,8 +159,8 @@ def optimize_allocation(netlist: Netlist, allocation: Allocation, alpha: float) 
     raise NotImplementedError  # TODO
 
 
-def refine_and_optimize_allocation(netlist: Netlist, allocation: Allocation, threshold: float, alpha: float) \
-        -> tuple[Netlist, Allocation, dict[str, float]]:
+def refine_and_optimize_allocation(netlist: Netlist, allocation: Allocation, threshold: float, alpha: float,
+                                   plot_name: str | None = None) -> tuple[Netlist, Allocation]:
     """
     Refine the given allocation and optimize it to minimize the dispersion and the wire length of the floor plan.
     The netlist, and the threshold and alpha hyperparameters are also required.
@@ -164,16 +169,23 @@ def refine_and_optimize_allocation(netlist: Netlist, allocation: Allocation, thr
     :param threshold: hyperparameter between 0 and 1 to decide if allocations must be refined
     :param alpha: hyperparameter between 0 and 1 to control the balance between dispersion and wire length.
     Smaller values will reduce the dispersion and increase the wire length, and greater ones the other way around
+    :param plot_name: name of the plot to be produced in each iteration The iteration number and the PNG extension
+    are added automatically. If None, no plots are produced.
     :return: the optimal solution found:
-    - Netlist with the centroids of the modules updated.
-    - Refined allocation with the ratio of each module in each cell of the grid.
-    - A dictionary from module name to float which indicates the dispersion value of each module in the found planning.
+    - netlist - Netlist with the centroids of the modules updated.
+    - allocation - Refined allocation with the ratio of each module in each cell of the grid.
     """
-    dispersions: dict[str, float] = {}  # TODO: think about what to do if no refinement is needed
+    n_iter = 1
     while allocation.must_be_refined(threshold):
         allocation.refine(threshold)
         netlist, allocation, dispersions = optimize_allocation(netlist, allocation, alpha)
-    return netlist, allocation, dispersions
+
+        if plot_name is not None:
+            plot_grid(netlist, allocation, dispersions,
+                      filename=f"{plot_name}-{n_iter}.png", suptitle=f"alpha = {alpha}")
+        n_iter += 1
+
+    return netlist, allocation
 
 
 def main(prog: str | None = None, args: list[str] | None = None):
@@ -200,15 +212,8 @@ def main(prog: str | None = None, args: list[str] | None = None):
     threshold = options["threshold"]
     assert 0 <= threshold <= 1, "threshold must be between 0 and 1"
 
-    netlist, allocation, dispersions = calculate_initial_allocation(netlist, n_rows, n_cols, cell_shape, alpha)
-
-    # netlist, allocation, dispersions = refine_and_optimize_allocation(netlist, allocation, threshold, alpha)
-
-    # TODO: add intermediate plots of the process
-
-    plot_file = options["plot"]
-    if plot_file is not None:
-        plot_grid(netlist, allocation, dispersions, filename=plot_file, suptitle=f"alpha = {alpha}")
+    netlist, allocation = calculate_initial_allocation(netlist, n_rows, n_cols, cell_shape, alpha, options["plot"])
+    # netlist, allocation = refine_and_optimize_allocation(netlist, allocation, threshold, alpha, options["plot"])
 
     out_netlist_file = options["out_netlist"]
     if out_netlist_file is not None:
