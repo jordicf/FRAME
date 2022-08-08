@@ -1,6 +1,5 @@
 import matplotlib.pyplot as plt
 import numpy as np
-import seaborn as sns
 from matplotlib import rcParams
 
 rcParams['font.family'] = 'monospace'
@@ -39,8 +38,7 @@ def plot_result(module_areas: list[float], ratios, centroids, dispersions, wire_
                                              np.linspace(cell_height / 2, n_rows * cell_height - cell_height / 2,
                                                          n_rows))
         for x, y, color, val in zip(text_x_pos.flat, text_y_pos.flat, mesh.get_facecolors(), matrix.flat):
-            text_kwargs = dict(color=".15" if sns.utils.relative_luminance(color) > 1 / 2 else "w", ha="center",
-                               va="center")
+            text_kwargs = dict(color=".5", ha="center", va="center")  # TODO: improve text color
             ax.text(x, y, val, **text_kwargs, zorder=2)
 
         # Plot the centroids with x makers
