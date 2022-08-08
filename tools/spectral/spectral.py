@@ -106,7 +106,7 @@ def main(prog: str | None = None, args: list[str] | None = None) -> int:
     infile = options['netlist']
     netlist = Spectral(infile)
     status = netlist.spectral_layout(die)
-    netlist.dump_yaml_netlist(options['outfile'])
+    netlist.write_yaml(options['outfile'])
     return status
 
 

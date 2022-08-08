@@ -79,9 +79,9 @@ def dictdiff(yamla, yamlb, path, key):
 class TestYaml(unittest.TestCase):
     def read_write_netlist(self, yaml_netlist: str) -> None:
         n1 = Netlist(yaml_netlist)
-        n1_yaml = n1.dump_yaml_netlist()
+        n1_yaml = n1.write_yaml()
         n2 = Netlist(n1_yaml)
-        n2_yaml = n2.dump_yaml_netlist()
+        n2_yaml = n2.write_yaml()
         diffs = [x for x in yaml_diff(n1_yaml, n2_yaml)]
         if len(diffs) > 0:
             print(diffs)

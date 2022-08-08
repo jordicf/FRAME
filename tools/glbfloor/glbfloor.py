@@ -216,7 +216,7 @@ def main(prog: str | None = None, args: list[str] | None = None):
 
     out_netlist_file = options["out_netlist"]
     if out_netlist_file is not None:
-        netlist.dump_yaml_netlist(out_netlist_file)
+        netlist.write_yaml(out_netlist_file)
 
     out_allocation_file = options["out_allocation"]
     if out_allocation_file is not None:
