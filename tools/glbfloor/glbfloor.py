@@ -70,8 +70,8 @@ def calculate_initial_allocation(netlist: Netlist, n_rows: int, n_cols: int, cel
     # Centroid of modules
     x = g.Array(g.Var, n_modules, lb=0, ub=n_rows * cell_shape.h)
     y = g.Array(g.Var, n_modules, lb=0, ub=n_cols * cell_shape.w)
-    for m in range(netlist.num_modules):
-        center = netlist.modules[m].center
+    for m, module in enumerate(netlist.modules):
+        center = module.center
         assert center is not None, "Modules should have initial center values. Maybe run the spectral tool?"
         x[m].value, y[m].value = center  # Initial values
 
@@ -87,12 +87,8 @@ def calculate_initial_allocation(netlist: Netlist, n_rows: int, n_cols: int, cel
         # Cells cannot be over-occupied
         g.Equation(g.sum([a[m][c] for m in range(n_modules)]) <= 1)
 
-    mod2m = {}
-
     # Module constraints
-    for m in range(netlist.num_modules):
-        mod2m[netlist.modules[m]] = m
-
+    for m in range(n_modules):
         m_area = netlist.modules[m].area()
 
         # Modules must have sufficient area
@@ -112,19 +108,23 @@ def calculate_initial_allocation(netlist: Netlist, n_rows: int, n_cols: int, cel
 
     # Objective function: alpha * total wire length + (1 - alpha) * total dispersion
 
+    module2m = {}
+    for m, module in enumerate(netlist.modules):
+        module2m[module] = m
+
     # Total wire length
     for e in netlist.edges:
         if len(e.modules) == 2:
-            m0 = mod2m[e.modules[0]]
-            m1 = mod2m[e.modules[1]]
+            m0 = module2m[e.modules[0]]
+            m1 = module2m[e.modules[1]]
             g.Minimize(alpha * e.weight * ((x[m0] - x[m1])**2 + (y[m0] - y[m1])**2) / 2)
         else:
             ex = g.Var()
-            g.Equation(g.sum([x[mod2m[mod]] for mod in e.modules]) / len(e.modules) == ex)
+            g.Equation(g.sum([x[module2m[module]] for module in e.modules]) / len(e.modules) == ex)
             ey = g.Var()
-            g.Equation(g.sum([y[mod2m[mod]] for mod in e.modules]) / len(e.modules) == ey)
-            for mod in e.modules:
-                m = mod2m[mod]
+            g.Equation(g.sum([y[module2m[module]] for module in e.modules]) / len(e.modules) == ey)
+            for module in e.modules:
+                m = module2m[module]
                 g.Minimize(alpha * e.weight * ((ex - x[m])**2 + (ey - y[m])**2))
 
     # Total dispersion
@@ -136,14 +136,13 @@ def calculate_initial_allocation(netlist: Netlist, n_rows: int, n_cols: int, cel
     allocation_list: list[None | list[list[float, float, float, float], dict[str, float]]] = [None] * n_cells
     for c in range(n_cells):
         c_alloc = Alloc()
-        for m in range(n_modules):
-            c_alloc[netlist.modules[m].name] = a[m][c].value[0]
+        for m, module in enumerate(netlist.modules):
+            c_alloc[module.name] = a[m][c].value[0]
         allocation_list[c] = [cells[c].vector_spec, c_alloc]
     allocation = Allocation(allocation_list)
 
     dispersions = {}
-    for m in range(n_modules):
-        module = netlist.modules[m]
+    for m, module in enumerate(netlist.modules):
         module.center = Point(x[m].value[0], y[m].value[0])
         dispersions[module.name] = dx[m].value[0] + dy[m].value[0]
 
