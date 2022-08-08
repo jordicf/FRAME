@@ -58,9 +58,19 @@ class Netlist:
         return self._modules
 
     @property
+    def num_edges(self) -> int:
+        """Number of hyperedges of the netlist"""
+        return len(self._edges)
+
+    @property
     def edges(self) -> list[HyperEdge]:
         """List of hyperedges of the netlist"""
         return self._edges
+
+    @property
+    def wire_length(self) -> float:
+        """Total wire length to construct the netlist (sum of netlist hyperedges wire lengths)"""
+        return sum([e.wire_length for e in self.edges])
 
     @property
     def num_rectangles(self) -> int:
@@ -109,7 +119,7 @@ class Netlist:
                 m.add_rectangle(parse_yaml_rectangle(r))
         self._clean_rectangles()
 
-    def dump_yaml_netlist(self, filename: str = None) -> None | str:
+    def write_yaml(self, filename: str = None) -> None | str:
         """
         Writes the netlist into a YAML file. If no file name is given, a string with the yaml contents
         is returned

@@ -28,7 +28,7 @@ options:
 
 The option `--die` is used to specify the size of the die. It can be done in two ways:
 
-* By specifiying the width and the height in a string, e.g., `--die 50x40`
+* By specifying the width and the height in a string, e.g., `--die 50x40`
 * By specifying the name of a file that describes the die, e.g., `--die die.yml`.
   In this case, the width and height of the die is obtained from the file.
 

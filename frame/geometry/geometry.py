@@ -2,11 +2,11 @@
 Module to represent points, shapes and rectangles
 """
 
-from typing import Any, Union
+from typing import Any, Union, Sequence
 from dataclasses import dataclass
 
 from frame.utils.keywords import KW_FIXED, KW_CENTER, KW_SHAPE, KW_REGION, KW_NAME, KW_GROUND
-from frame.utils.utils import Vector, valid_identifier
+from frame.utils.utils import valid_identifier
 
 
 class Point:
@@ -98,7 +98,7 @@ class Point:
 
     def __pow__(self, exponent: float) -> 'Point':
         """Return self**exponent using component-wise exponentiation."""
-        return Point(self.x ** exponent, self.y ** exponent)
+        return Point(self.x**exponent, self.y**exponent)
 
     def __truediv__(self, other: Union['Point', tuple[float, float], float]) -> 'Point':
         """Return self / other using component-wise true division. other can either be a number or another point."""
@@ -204,9 +204,9 @@ class Rectangle:
         return Point(xmin, ymin), Point(xmax, ymax)
 
     @property
-    def vector_spec(self) -> Vector:
+    def vector_spec(self) -> tuple[float, float, float, float]:
         """Returns a vector specification of the rectangle [x, y, w, h]"""
-        return [self.center.x, self.center.y, self.shape.w, self.shape.h]
+        return self.center.x, self.center.y, self.shape.w, self.shape.h
 
     @property
     def area(self) -> float:
@@ -257,23 +257,26 @@ class Rectangle:
         """
         :return: string representation of the rectangle
         """
-        s = f"{KW_CENTER}={self.center} {KW_SHAPE}={self.shape} {KW_REGION}={self.region}"
+        s = f"({KW_CENTER}={self.center}, {KW_SHAPE}={self.shape}, {KW_REGION}={self.region}"
         if self.fixed:
-            s += f" {KW_FIXED}"
+            s += f", {KW_FIXED}"
+        s += ")"
         return s
 
     __repr__ = __str__
 
 
-def parse_yaml_rectangle(r: list[float | int | str], fixed: bool = False, name: str = "") -> Rectangle:
+def parse_yaml_rectangle(r: Sequence[float | int | str], fixed: bool = False, name: str = "") -> Rectangle:
     """Parses a rectangle
-    :param r: a YAML description of the rectangle (a list with 4 numeric values (x, y, w, h)).
+    :param r: a YAML description of the rectangle (a tuple or list with 4 numeric values (x, y, w, h)).
     Optionally, it may contain a fifth parameter (string) specifying a region
     :param fixed: Indicates whether the rectangle should be fixed
     :param name: name of the module
     :return: a rectangle
     """
-    assert isinstance(r, list) and 4 <= len(r) <= 5, f"Incorrect format for rectangle in module {name}"
+    if isinstance(r, list):
+        r = tuple(r)
+    assert isinstance(r, tuple) and 4 <= len(r) <= 5, f"Incorrect format for rectangle in module {name}"
     for i in range(4):
         x = r[i]
         assert isinstance(x, (int, float)) and x >= 0, f"Incorrect value for rectangle in module {name}"

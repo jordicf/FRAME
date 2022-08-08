@@ -29,8 +29,8 @@ def optimize(alpha: float, module_areas: list[float], wire_costs: dict[tuple[int
     :param cell_width: The width of the cells
     :param cell_height: The height of the cells
     :return:
-        - ratios - An n_modules x (n_rows x n_cols) array containing the optimal ratio of each module in each cell in the
-        cell grid.
+        - ratios - An n_modules x (n_rows x n_cols) array containing the optimal ratio of each module
+        in each cell in the cell grid.
         - centroids - An array of Point with the centroid of each module in the optimal floorplan.
         - dispersions - An array of floats with the dispersion of each module in the optimal floorplan.
         - wire_length - The total wire cost.

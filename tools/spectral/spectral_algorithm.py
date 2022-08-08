@@ -38,15 +38,16 @@ def spectral_layout_unit_square(adj: AdjList, mass: Vector, dim: int = 2) -> Mat
         num_iter = 0
         # Add a limit of iterations to reduce the CPU time
         while dotprod < one_minus_epsilon and num_iter < 100:
-            # print("  Iter =", iter)
+            # print("  Iter =", num_iter)
             num_iter += 1
             # print("  Normalized (K =", k, "):", coord[k])
             orthogonalize(coord, degree, scaled_mass, k)  # Orthogonalize coord[k] wrt to the other coordinates
             # print("  Orthogonalized (K =", k, "):", coord[k])
             new_coord = calculate_centroids(adj, coord[k], degree)
-            # print("  Centroids (K =", k, "):", coord[k])
+            # print("  Centroids (K =", k, "):", new_coord)
             # Sanity check (not all nodes in the same place). If so, a more modest move is done
-            assert max(new_coord) - min(new_coord) > epsilon
+            # print("diff =", max(new_coord) - min(new_coord))
+            # assert max(new_coord) - min(new_coord) > epsilon
             if max(new_coord) - min(new_coord) < epsilon:
                 # new_coord = [random.uniform(-1, 1) for i in range(n)]
                 new_coord = [0.5 * (new_coord[i] + coord[k][i]) for i in range(n)]

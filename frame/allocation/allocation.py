@@ -6,7 +6,7 @@ from dataclasses import dataclass
 from frame.netlist.netlist import Netlist
 from frame.geometry.geometry import Point, Shape, Rectangle, parse_yaml_rectangle
 from frame.utils.keywords import KW_CENTER, KW_SHAPE
-from frame.utils.utils import TextIO_String, read_yaml, write_yaml, YAML_tree, is_number, valid_identifier, Vector
+from frame.utils.utils import TextIO_String, read_yaml, write_yaml, YAML_tree, is_number, valid_identifier
 
 Alloc = dict[str, float]  # Allocation in a rectangle (area ratio for each module)
 
@@ -126,7 +126,7 @@ class Allocation:
         """
         return {m.name for m in netlist.modules} == {m for m in self._module2rect.keys()}
 
-    def refine(self, threshold: float, levels: int) -> 'Allocation':
+    def refine(self, threshold: float, levels: int = 2) -> 'Allocation':
         """
         Refines an allocation into a set of smaller rectangles. A rectangle in the allocation
         is refined if no module has an occupancy greater than a threshold. In case a rectangle
@@ -137,13 +137,22 @@ class Allocation:
         :return: A new allocation
         """
         assert levels > 0
-        new_alloc: list[list[Vector | Alloc]] = []
+        new_alloc: list[tuple[tuple[float, float, float, float], Alloc]] = []
         for a in self.allocations:
             vec = a.rect.vector_spec
             # Check the allocations and see if the rectangle must be split
-            split = len(a.alloc) > 1 and all(x <= threshold for x in a.alloc.values())
+            split = len(a.alloc) > 0 and all(x <= threshold for x in a.alloc.values())
             new_alloc.extend(self._split_allocation(vec, a.alloc, levels if split else 0))
         return Allocation(new_alloc)
+
+    def must_be_refined(self, threshold: float) -> bool:
+        """
+        Checks whether the allocation must be refined. An allocation must be refined if there is
+        a rectangle in which no modules have an occupancy greater than a threshold
+        :param threshold: rectangles must be split if no module has an occupancy greater than this threshold
+        :return: True if the allocation must be refined
+        """
+        return any(all(x <= threshold for x in a.alloc.values()) for a in self.allocations)
 
     def write_yaml(self, filename: str = None) -> None | str:
         """
@@ -151,7 +160,7 @@ class Allocation:
         is returned
         :param filename: name of the output file
         """
-        list_modules = [[r.rect.vector_spec, r.alloc] for r in self._allocations]
+        list_modules = [[r.rect.vector_spec, r.alloc] for r in self.allocations]
         return write_yaml(list_modules, filename)
 
     def _calculate_bounding_box(self) -> None:
@@ -181,7 +190,10 @@ class Allocation:
         self._module2rect = {}
         for i, alloc in enumerate(tree):
             # Read one rectangle allocation
-            assert isinstance(alloc, list) and len(alloc) == 2, f'Incorrect format for rectangle {alloc}'
+
+            if isinstance(alloc, list):
+                alloc = tuple(alloc)
+            assert isinstance(alloc, tuple) and len(alloc) == 2, f'Incorrect format for rectangle {alloc}'
             r, d = alloc[0], alloc[1]  # Rectangle and dictionary of allocations
 
             # Create the rectangle
@@ -193,7 +205,7 @@ class Allocation:
             total_occup = 0
             for module, occup in d.items():
                 assert valid_identifier(module), f'Invalid module identifier: {module}'
-                assert is_number(occup) and 0 < occup <= 1, f'Invalid allocation for {module} in rectangle {r}'
+                assert is_number(occup) and 0 <= occup <= 1, f'Invalid allocation for {module} in rectangle {r}'
                 assert module not in dict_alloc, f'Multiple allocations of {module} in rectangle {r}'
                 total_occup += occup
                 dict_alloc[module] = occup
@@ -201,8 +213,8 @@ class Allocation:
                     self._module2rect[module] = []
                 self._module2rect[module].append(ModuleAlloc(i, occup))
 
-            # Check that a rectangle is not over-occupied
-            assert total_occup <= 1.0, f'Occupancy of rectangle {r} greater than 1'
+            # Check that a rectangle is not over-occupied (assertion removed)
+            # assert total_occup <= 1.0, f'Occupancy of rectangle {r} greater than 1: {total_occup}'
             self._allocations.append(RectAlloc(rect, dict_alloc))
 
     def _check_no_overlap(self) -> None:
@@ -226,7 +238,8 @@ class Allocation:
             self._centers[module] = center / total_area
 
     @staticmethod
-    def _split_allocation(rect: Vector, alloc: Alloc, levels: int = 0) -> list[list[Vector | Alloc]]:
+    def _split_allocation(rect: tuple[float, float, float, float], alloc: Alloc, levels: int = 0) \
+            -> list[tuple[tuple[float, float, float, float], Alloc]]:
         """
         Splits a rectangle into 2^levels rectangles and returns a list of rectangle allocations
         :param rect: the rectangle
@@ -235,19 +248,19 @@ class Allocation:
         :return: a list of allocations
         """
         if levels == 0:
-            return [[rect, {m: r for m, r in alloc.items()}]]
+            return [(rect, {m: r for m, r in alloc.items()})]
 
         # Split the largest dimension
         if rect[2] >= rect[3]:
             # Split width
             w2, w4 = rect[2] / 2, rect[2] / 4
-            rect1 = [rect[0] - w4, rect[1], w2, rect[3]]
-            rect2 = [rect[0] + w4, rect[1], w2, rect[3]]
+            rect1 = (rect[0] - w4, rect[1], w2, rect[3])
+            rect2 = (rect[0] + w4, rect[1], w2, rect[3])
         else:
             # Split height
             h2, h4 = rect[3] / 2, rect[3] / 4
-            rect1 = [rect[0], rect[1] - h4, rect[2], h2]
-            rect2 = [rect[0], rect[1] + h4, rect[2], h2]
+            rect1 = (rect[0], rect[1] - h4, rect[2], h2)
+            rect2 = (rect[0], rect[1] + h4, rect[2], h2)
 
         return Allocation._split_allocation(rect1, alloc, levels - 1) + \
             Allocation._split_allocation(rect2, alloc, levels - 1)

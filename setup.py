@@ -31,7 +31,6 @@ INSTALL_REQUIRES = [
     "numpy",
     "gekko",
     "matplotlib",
-    "seaborn",
     "distinctipy",
     "Pillow"
 ]
