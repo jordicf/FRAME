@@ -274,7 +274,8 @@ def parse_yaml_rectangle(r: Sequence[float | int | str], fixed: bool = False, na
     :param name: name of the module
     :return: a rectangle
     """
-    r = tuple(r)
+    if isinstance(r, list):
+        r = tuple(r)
     assert isinstance(r, tuple) and 4 <= len(r) <= 5, f"Incorrect format for rectangle in module {name}"
     for i in range(4):
         x = r[i]
