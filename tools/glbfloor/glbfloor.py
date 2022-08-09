@@ -39,6 +39,34 @@ def parse_options(prog: str | None = None, args: list[str] | None = None) -> dic
     return vars(parser.parse_args(args))
 
 
+def add_objective(g, netlist: Netlist, alpha: float):
+    # Objective function: alpha * total wire length + (1 - alpha) * total dispersion
+
+    module2m = {}
+    for m, module in enumerate(netlist.modules):
+        module2m[module] = m
+
+    # Total wire length
+    for e in netlist.edges:
+        if len(e.modules) == 2:
+            m0 = module2m[e.modules[0]]
+            m1 = module2m[e.modules[1]]
+            g.Minimize(alpha * e.weight * ((g.x[m0] - g.x[m1])**2 + (g.y[m0] - g.y[m1])**2) / 2)
+        else:
+            ex = g.Var()
+            g.Equation(g.sum([g.x[module2m[module]] for module in e.modules]) / len(e.modules) == ex)
+            ey = g.Var()
+            g.Equation(g.sum([g.y[module2m[module]] for module in e.modules]) / len(e.modules) == ey)
+            for module in e.modules:
+                m = module2m[module]
+                g.Minimize(alpha * e.weight * ((ex - g.x[m])**2 + (ey - g.y[m])**2))
+
+    # Total dispersion
+    g.Minimize((1 - alpha) * g.sum([g.dx[m] + g.dy[m] for m in range(netlist.num_modules)]))
+
+    return g
+
+
 def calculate_initial_allocation(netlist: Netlist, n_rows: int, n_cols: int, cell_shape: Shape, alpha: float,
                                  plot_name: str | None = None) -> tuple[Netlist, Allocation]:
     """
@@ -68,68 +96,45 @@ def calculate_initial_allocation(netlist: Netlist, n_rows: int, n_cols: int, cel
     g = GEKKO(remote=False)
 
     # Centroid of modules
-    x = g.Array(g.Var, n_modules, lb=0, ub=n_rows * cell_shape.h)
-    y = g.Array(g.Var, n_modules, lb=0, ub=n_cols * cell_shape.w)
+    g.x = g.Array(g.Var, n_modules, lb=0, ub=n_rows * cell_shape.h)
+    g.y = g.Array(g.Var, n_modules, lb=0, ub=n_cols * cell_shape.w)
     for m, module in enumerate(netlist.modules):
         center = module.center
         assert center is not None, "Modules should have initial center values. Maybe run the spectral tool?"
-        x[m].value, y[m].value = center  # Initial values
+        g.x[m].value, g.y[m].value = center  # Initial values
 
     # Dispersion of modules
-    dx = g.Array(g.Var, n_modules, lb=0)
-    dy = g.Array(g.Var, n_modules, lb=0)
+    g.dx = g.Array(g.Var, n_modules, lb=0)
+    g.dy = g.Array(g.Var, n_modules, lb=0)
 
     # Ratios of area of c used by module m
-    a = g.Array(g.Var, (n_modules, n_cells), lb=0, ub=1)
+    g.a = g.Array(g.Var, (n_modules, n_cells), lb=0, ub=1)
 
     # Cell constraints
     for c in range(n_cells):
         # Cells cannot be over-occupied
-        g.Equation(g.sum([a[m][c] for m in range(n_modules)]) <= 1)
+        g.Equation(g.sum([g.a[m][c] for m in range(n_modules)]) <= 1)
 
     # Module constraints
     for m in range(n_modules):
         m_area = netlist.modules[m].area()
 
         # Modules must have sufficient area
-        g.Equation(g.sum([cells[c].area * a[m][c] for c in range(n_cells)]) >= m_area)
+        g.Equation(g.sum([cells[c].area * g.a[m][c] for c in range(n_cells)]) >= m_area)
 
         # Centroid of modules
-        g.Equation(1 / m_area * g.sum([cells[c].area * cells[c].center.x * a[m][c]
-                                       for c in range(n_cells)]) == x[m])
-        g.Equation(1 / m_area * g.sum([cells[c].area * cells[c].center.y * a[m][c]
-                                       for c in range(n_cells)]) == y[m])
+        g.Equation(1 / m_area * g.sum([cells[c].area * cells[c].center.x * g.a[m][c]
+                                       for c in range(n_cells)]) == g.x[m])
+        g.Equation(1 / m_area * g.sum([cells[c].area * cells[c].center.y * g.a[m][c]
+                                       for c in range(n_cells)]) == g.y[m])
 
         # Dispersion of modules
-        g.Equation(g.sum([cells[c].area * a[m][c] * (x[m] - cells[c].center.x)**2
-                          for c in range(n_cells)]) == dx[m])
-        g.Equation(g.sum([cells[c].area * a[m][c] * (y[m] - cells[c].center.y)**2
-                          for c in range(n_cells)]) == dy[m])
+        g.Equation(g.sum([cells[c].area * g.a[m][c] * (g.x[m] - cells[c].center.x)**2
+                          for c in range(n_cells)]) == g.dx[m])
+        g.Equation(g.sum([cells[c].area * g.a[m][c] * (g.y[m] - cells[c].center.y)**2
+                          for c in range(n_cells)]) == g.dy[m])
 
-    # Objective function: alpha * total wire length + (1 - alpha) * total dispersion
-
-    module2m = {}
-    for m, module in enumerate(netlist.modules):
-        module2m[module] = m
-
-    # Total wire length
-    for e in netlist.edges:
-        if len(e.modules) == 2:
-            m0 = module2m[e.modules[0]]
-            m1 = module2m[e.modules[1]]
-            g.Minimize(alpha * e.weight * ((x[m0] - x[m1])**2 + (y[m0] - y[m1])**2) / 2)
-        else:
-            ex = g.Var()
-            g.Equation(g.sum([x[module2m[module]] for module in e.modules]) / len(e.modules) == ex)
-            ey = g.Var()
-            g.Equation(g.sum([y[module2m[module]] for module in e.modules]) / len(e.modules) == ey)
-            for module in e.modules:
-                m = module2m[module]
-                g.Minimize(alpha * e.weight * ((ex - x[m])**2 + (ey - y[m])**2))
-
-    # Total dispersion
-    g.Minimize((1 - alpha) * g.sum([dx[m] + dy[m] for m in range(n_modules)]))
-
+    g = add_objective(g, netlist, alpha)
     g.solve()
 
     # Extract solution
@@ -137,14 +142,14 @@ def calculate_initial_allocation(netlist: Netlist, n_rows: int, n_cols: int, cel
     for c in range(n_cells):
         c_alloc = Alloc()
         for m, module in enumerate(netlist.modules):
-            c_alloc[module.name] = a[m][c].value[0]
-        allocation_list[c] = [cells[c].vector_spec, c_alloc]
+            c_alloc[module.name] = g.a[m][c].value[0]
+        allocation_list[c] = (cells[c].vector_spec, c_alloc)
     allocation = Allocation(allocation_list)
 
     dispersions = {}
     for m, module in enumerate(netlist.modules):
-        module.center = Point(x[m].value[0], y[m].value[0])
-        dispersions[module.name] = dx[m].value[0] + dy[m].value[0]
+        module.center = Point(g.x[m].value[0], g.y[m].value[0])
+        dispersions[module.name] = g.dx[m].value[0] + g.dy[m].value[0]
 
     if plot_name is not None:
         plot_grid(netlist, allocation, dispersions,
@@ -153,7 +158,7 @@ def calculate_initial_allocation(netlist: Netlist, n_rows: int, n_cols: int, cel
     return netlist, allocation
 
 
-def optimize_allocation(netlist: Netlist, allocation: Allocation, alpha: float) \
+def optimize_allocation(netlist: Netlist, allocation: Allocation, threshold: float, alpha: float) \
         -> tuple[Netlist, Allocation, dict[str, float]]:
     raise NotImplementedError  # TODO
 
@@ -176,8 +181,8 @@ def refine_and_optimize_allocation(netlist: Netlist, allocation: Allocation, thr
     """
     n_iter = 1
     while allocation.must_be_refined(threshold):
-        allocation.refine(threshold)
-        netlist, allocation, dispersions = optimize_allocation(netlist, allocation, alpha)
+        allocation = allocation.refine(threshold)
+        netlist, allocation, dispersions = optimize_allocation(netlist, allocation, threshold, alpha)
 
         if plot_name is not None:
             plot_grid(netlist, allocation, dispersions,
