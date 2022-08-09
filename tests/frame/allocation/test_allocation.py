@@ -71,6 +71,13 @@ class TestAllocation(unittest.TestCase):
         self.assertTrue(a.check_compatible(n1))
         self.assertFalse(a.check_compatible(n2))
 
+    def test_uniform_refinement(self):
+        a = Allocation(alloc7)
+        self.assertEqual(3, a.num_rectangles)
+        a4 = a.refine(0.7, 2)
+        self.assertEqual(9, a4.num_rectangles)
+        a_uniform = a4.uniform_refinement()
+        self.assertEqual(12, a_uniform.num_rectangles)
 
 if __name__ == '__main__':
     unittest.main()

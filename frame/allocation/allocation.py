@@ -10,12 +10,16 @@ from frame.utils.utils import TextIO_String, read_yaml, write_yaml, YAML_tree, i
 
 Alloc = dict[str, float]  # Allocation in a rectangle (area ratio for each module)
 
+RectDescriptor = tuple[float, float, float, float]  # [x,y,w,h]
+AllocDescriptor = tuple[RectDescriptor, Alloc, int]
+
 
 @dataclass()
 class RectAlloc:
     """Representation of the allocation in a rectangle."""
     rect: Rectangle  # Rectangle of the allocation
     alloc: Alloc  # Area ratio for each module (in [0,1])
+    depth: int  # refinment depth
 
 
 @dataclass()
@@ -137,12 +141,11 @@ class Allocation:
         :return: A new allocation
         """
         assert levels > 0
-        new_alloc: list[tuple[tuple[float, float, float, float], Alloc]] = []
+        new_alloc: list[AllocDescriptor] = []
         for a in self.allocations:
-            vec = a.rect.vector_spec
             # Check the allocations and see if the rectangle must be split
             split = len(a.alloc) > 0 and all(x <= threshold for x in a.alloc.values())
-            new_alloc.extend(self._split_allocation(vec, a.alloc, levels if split else 0))
+            new_alloc.extend(self._split_allocation(a.rect.vector_spec, a.alloc, a.depth, levels if split else 0))
         return Allocation(new_alloc)
 
     def must_be_refined(self, threshold: float) -> bool:
@@ -154,13 +157,29 @@ class Allocation:
         """
         return any(all(x <= threshold for x in a.alloc.values()) for a in self.allocations)
 
+    def uniform_refinement(self) -> 'Allocation':
+        """
+        Generates an allocation in which all rectangles have the same refinement depth
+        :return: A new allocation
+        """
+        max_depth = max(r.depth for r in self.allocations)
+        min_depth = min(r.depth for r in self.allocations)
+        if min_depth == max_depth:
+            return self
+
+        new_alloc: list[AllocDescriptor] = []
+        for a in self.allocations:
+            new_alloc.extend(self._split_allocation(a.rect.vector_spec, a.alloc, a.depth, max_depth - a.depth))
+        return Allocation(new_alloc)
+
     def write_yaml(self, filename: str = None) -> None | str:
         """
         Writes the allocation into a YAML file. If no file name is given, a string with the yaml contents
         is returned
         :param filename: name of the output file
         """
-        list_modules = [[r.rect.vector_spec, r.alloc] for r in self.allocations]
+        list_modules = [[r.rect.vector_spec, r.alloc, r.depth] if r.depth > 0
+                        else [r.rect.vector_spec, r.alloc] for r in self.allocations]
         return write_yaml(list_modules, filename)
 
     def _calculate_bounding_box(self) -> None:
@@ -193,8 +212,11 @@ class Allocation:
 
             if isinstance(alloc, list):
                 alloc = tuple(alloc)
-            assert isinstance(alloc, tuple) and len(alloc) == 2, f'Incorrect format for rectangle {alloc}'
+            assert isinstance(alloc, tuple) and 2 <= len(alloc) <= 3, f'Incorrect format for rectangle {alloc}'
             r, d = alloc[0], alloc[1]  # Rectangle and dictionary of allocations
+
+            depth = 0 if len(alloc) == 2 else alloc[2]
+            assert isinstance(depth, int) and depth >= 0, f'Incorrect depth for rectangle {alloc}'
 
             # Create the rectangle
             rect = parse_yaml_rectangle(r)
@@ -215,7 +237,7 @@ class Allocation:
 
             # Check that a rectangle is not over-occupied (assertion removed)
             # assert total_occup <= 1.0, f'Occupancy of rectangle {r} greater than 1: {total_occup}'
-            self._allocations.append(RectAlloc(rect, dict_alloc))
+            self._allocations.append(RectAlloc(rect, dict_alloc, depth))
 
     def _check_no_overlap(self) -> None:
         """Checks that rectangles do not overlap"""
@@ -238,17 +260,18 @@ class Allocation:
             self._centers[module] = center / total_area
 
     @staticmethod
-    def _split_allocation(rect: tuple[float, float, float, float], alloc: Alloc, levels: int = 0) \
-            -> list[tuple[tuple[float, float, float, float], Alloc]]:
+    def _split_allocation(rect: RectDescriptor, alloc: Alloc, depth: int, levels: int = 0) \
+            -> list[AllocDescriptor]:
         """
         Splits a rectangle into 2^levels rectangles and returns a list of rectangle allocations
         :param rect: the rectangle
         :param alloc: the module allocation fo the rectangle
+        :param depth: refinment depth of the rectangle
         :param levels: number of splitting levels
         :return: a list of allocations
         """
         if levels == 0:
-            return [(rect, {m: r for m, r in alloc.items()})]
+            return [(rect, {m: r for m, r in alloc.items()}, depth)]
 
         # Split the largest dimension
         if rect[2] >= rect[3]:
@@ -262,5 +285,5 @@ class Allocation:
             rect1 = (rect[0], rect[1] - h4, rect[2], h2)
             rect2 = (rect[0], rect[1] + h4, rect[2], h2)
 
-        return Allocation._split_allocation(rect1, alloc, levels - 1) + \
-            Allocation._split_allocation(rect2, alloc, levels - 1)
+        return Allocation._split_allocation(rect1, alloc, depth + 1, levels - 1) + \
+            Allocation._split_allocation(rect2, alloc, depth + 1, levels - 1)
