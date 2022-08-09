@@ -1,21 +1,9 @@
 import collections
-from typing import Callable
+import typing
 
 
-class Literal:
-    pass
-
-
-class Term:
-    pass
-
-
-class Expr:
-    pass
-
-
-AddTerm = str | int | float | Literal | Term | Expr
-ROBDDTerm = int | tuple[int, int, int]
+AddTerm = str | int | float | object
+ROBDDTerm = int | tuple[(str | int), int, int]
 
 
 class Literal:
@@ -23,10 +11,10 @@ class Literal:
         self.v = str(var)
         self.s = sign
 
-    def __mul__(self, other: int | float):
+    def __mul__(self, other: int):
         return Term(self, other)
 
-    def __rmul__(self, other: int | float):
+    def __rmul__(self, other: int):
         return self * other
 
     def __neg__(self):
@@ -52,7 +40,7 @@ class Literal:
     def __lt__(self, other: AddTerm):
         return (Expr() + self) < (Expr() + other)
 
-    def __eq__(self, other: AddTerm):
+    def __eq__(self, other: object):
         return (Expr() + self) == (Expr() + other)
 
     def tostr(self):
@@ -113,12 +101,11 @@ class Expr:
 
     def __add__(self, term: AddTerm):
         rets = Expr(self.c, self.t)
-        if type(term) is str:
+        if isinstance(term, str):
             return self + Term(Literal(term))
-        elif type(term) is Literal:
+        elif isinstance(term, Literal):
             return self + Term(term)
-        elif type(term) is Term:
-            term: Term
+        elif isinstance(term, Term):
             if term.c == 0.0:
                 return rets
             if term.L.v in rets.t:
@@ -137,10 +124,9 @@ class Expr:
                 rets.c += rets.t[term.L.v].c
                 rets.t[term.L.v].c = -rets.t[term.L.v].c
                 rets.t[term.L.v].L.s = not rets.t[term.L.v].L.s
-        elif type(term) is float or type(term) is int:
+        elif isinstance(term, float) or isinstance(term, int):
             rets.c += int(term)
-        elif type(term) is Expr:
-            term: Expr
+        elif isinstance(term, Expr):
             rets.c += term.c
             for v in term.t:
                 rets = rets + term.t[v]
@@ -149,17 +135,15 @@ class Expr:
         return rets
 
     def __sub__(self, term: AddTerm):
-        if type(term) is str:
+        if isinstance(term, str):
             return self - Term(Literal(term))
-        elif type(term) is Literal:
+        elif isinstance(term, Literal):
             return self - Term(term)
-        elif type(term) is Term:
-            term: Term
+        elif isinstance(term, Term):
             return self + Term(term.L, -term.c)
-        elif type(term) is float or type(term) is int:
+        elif isinstance(term, float) or isinstance(term, int):
             return self + (- int(term))
-        elif type(term) is Expr:
-            term: Expr
+        elif isinstance(term, Expr):
             tmp = self + (-term.c)
             for v in term.t:
                 tmp = tmp - term.t[v]
@@ -168,7 +152,7 @@ class Expr:
             raise Exception("Invalid type")
 
     def __mul__(self, term: int | float):
-        if type(term) is int or type(term) is float:
+        if isinstance(term, int) or isinstance(term, float):
             rets = Expr(self.c, self.t)
             removes = []
             for t in rets.t:
@@ -236,6 +220,9 @@ def insert(lst: list[Term], trm: Term):
     return lst
 
 
+BaseType = tuple[list[Term], int]
+
+
 class Ineq:
     def __init__(self, lhs: Expr = Expr(), rhs: Expr = Expr(), op: str = ">=") -> None:
         if op != ">=" and op != "<=" and op != ">" and op != "<" and op != "=" and op != "==":
@@ -248,11 +235,11 @@ class Ineq:
             op = ">"
         if op == "==":
             op = "="
-        self.lhs = lhs - rhs
-        self.rhs = - self.lhs.c
-        self.lhs.c = 0.0
-        self.op = op
-        self.clause = None
+        self.lhs: Expr = lhs - rhs
+        self.rhs: int = - self.lhs.c
+        self.lhs.c = 0
+        self.op: str = op
+        self.clause: None | list[Literal] = None
 
     def isclause(self) -> bool:
         if self.op != ">=" and self.op != ">":
@@ -295,34 +282,54 @@ class Ineq:
         for v in self.lhs.t:
             lst.append(self.lhs.t[v])
         lst.sort(key=lambda x: -x.c)
+
+        data: BaseType
+        bccond: typing.Callable[[BaseType], bool]
+        bcconstr: typing.Callable[[BaseType], int]
+        dvar: typing.Callable[[BaseType], str]
+        ifprop: typing.Callable[[BaseType], BaseType]
+        elprop: typing.Callable[[BaseType], BaseType]
+        serdat: typing.Callable[[BaseType], str]
         if self.op == ">=":
             if not coefficientdecomposition:
-                return constructrobdd((lst, self.rhs),
-                                      lambda x: maxsum(x[0]) < x[1] or x[1] <= 0,
-                                      lambda x: 1 if x[1] <= 0 else 0,
-                                      lambda x: x[0][0].L.v,
-                                      lambda x: (x[0][1:], x[1] - x[0][0].c if x[0][0].L.s else x[1]),
-                                      lambda x: (x[0][1:], x[1] if x[0][0].L.s else x[1] - x[0][0].c),
-                                      lambda x: ",".join(map(lambda y: y.tostr(), x[0])) + ";" + str(x[1]))
+                data = (lst, self.rhs)
+                bccond = lambda x: maxsum(x[0]) < x[1] or x[1] <= 0
+                bcconstr = \
+                    lambda x: 1 if x[1] <= 0 else 0
+                dvar = lambda x: x[0][0].L.v
+                ifprop = \
+                    lambda x: (x[0][1:], x[1] - x[0][0].c if x[0][0].L.s else x[1])
+                elprop = \
+                    lambda x: (x[0][1:], x[1] if x[0][0].L.s else x[1] - x[0][0].c)
+                serdat = \
+                    lambda x: ",".join(map(lambda y: y.tostr(), x[0])) + ";" + str(x[1])
+                return constructrobdd(data, bccond, bcconstr, dvar, ifprop, elprop, serdat)
             else:
-                return constructrobdd((lst, self.rhs),
-                                      lambda x: maxsum(x[0]) < x[1] or x[1] <= 0,
-                                      lambda x: 1 if x[1] <= 0 else 0,
-                                      lambda x: x[0][0].L.v,
-                                      lambda x: (insert(x[0][1:], Term(x[0][0].L, x[0][0].c - largebit(x[0][0].c))),
-                                                 x[1] - largebit(x[0][0].c) if x[0][0].L.s else x[1]),
-                                      lambda x: (insert(x[0][1:], Term(x[0][0].L, x[0][0].c - largebit(x[0][0].c))),
-                                                 x[1] if x[0][0].L.s else x[1] - largebit(x[0][0].c)),
-                                      lambda x: ",".join(map(lambda y: y.tostr(), x[0])) + ";" + str(x[1]))
+                data = (lst, self.rhs)
+                bccond = lambda x: maxsum(x[0]) < x[1] or x[1] <= 0
+                bcconstr = lambda x: 1 if x[1] <= 0 else 0
+                dvar = lambda x: x[0][0].L.v
+                ifprop = \
+                    lambda x: (insert(x[0][1:], Term(x[0][0].L, x[0][0].c - largebit(x[0][0].c))),
+                               x[1] - largebit(x[0][0].c) if x[0][0].L.s else x[1])
+                elprop = \
+                    lambda x: (insert(x[0][1:], Term(x[0][0].L, x[0][0].c - largebit(x[0][0].c))),
+                               x[1] if x[0][0].L.s else x[1] - largebit(x[0][0].c))
+                serdat = \
+                    lambda x: ",".join(map(lambda y: y.tostr(), x[0])) + ";" + str(x[1])
+                return constructrobdd(data, bccond, bcconstr, dvar, ifprop, elprop, serdat)
+        else:
+            raise Exception("Not implemented yet.")
 
 
 memory: list[ROBDDTerm] = [0, 1]
-mmap: dict[tuple[str | int, int, int], int] = {}
+mmap: dict[ROBDDTerm, int] = {}
 
-
-def constructrobdd(data: any, bccond: Callable[[any], bool], bcconstr: Callable[[any], int],
-                   dvar: Callable[[any], str | int], ifprop: Callable[[any], any], elprop: Callable[[any], any],
-                   serdat: Callable[[any], str], memo: dict[str, tuple[int, int, int]] = None) -> ROBDDTerm:
+T = typing.TypeVar('T')
+def constructrobdd(data: typing.Any, bccond: typing.Callable[[T], bool], bcconstr: typing.Callable[[T], int],
+                   dvar: typing.Callable[[T], str | int], ifprop: typing.Callable[[T], T],
+                   elprop: typing.Callable[[T], T], serdat: typing.Callable[[T], str],
+                   memo: dict[str, int] = None) -> int:
     if memo is None:
         memo = {}
     if serdat(data) in memo:
