@@ -181,7 +181,7 @@ def refine_and_optimize_allocation(netlist: Netlist, allocation: Allocation, thr
     """
     n_iter = 1
     while allocation.must_be_refined(threshold):
-        allocation.refine(threshold)
+        allocation = allocation.refine(threshold)
         netlist, allocation, dispersions = optimize_allocation(netlist, allocation, threshold, alpha)
 
         if plot_name is not None:
