@@ -3,7 +3,7 @@
 ```
 frame netgen --type grid --size 2 3 -o 1.yml
 frame spectral --die 2x3 -o 2.yml 1.yml
-frame draw 2.yml --die 2x3
+frame draw --die 2x3 2.yml
 ```
 
 <img src="2.gif" alt="spectral" style="width: 200px;"/>
@@ -34,6 +34,11 @@ frame glbfloor -d 2x3 -g 4x4 -a 0.3 -i 6 --out-netlist 3-4x4-0.3-netlist.yml --o
 ![glbfloor-4x4-0.3-simple-4](3-4x4-0.3-simple-4.png)
 ![glbfloor-4x4-0.3-simple-5](3-4x4-0.3-simple-5.png)
 
+```
+frame draw --die 2x3 --alloc 3-4x4-0.3-alloc.yml 3-4x4-0.3-netlist.yml -o 3.gif
+```
+
+<img src="3.gif" alt="spectral" style="width: 200px;"/>
 
 ---
 
