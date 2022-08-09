@@ -25,7 +25,8 @@ class Scaling:
 
 
 def plot_grid(netlist: Netlist, allocation: Allocation, dispersions: dict[str, float],
-              suptitle: str | None = None, filename: str | None = None) -> None:
+              suptitle: str | None = None, filename: str | None = None,
+              simple_plot: bool = False, colormap_name: str = "OrRd") -> None:
     """
     Plot a floorplan given the netlist and allocation of each module in each cell, and additional information to
     annotate the graphics.
@@ -36,10 +37,11 @@ def plot_grid(netlist: Netlist, allocation: Allocation, dispersions: dict[str, f
     """
     margin = 40
     scale_factor = 150
-    cell_font = ImageFont.truetype("arial.ttf", round(scale_factor / 10))
-    subtitle_font = ImageFont.truetype("arial.ttf", round(scale_factor / 8))
-    suptitle_font = ImageFont.truetype("arial.ttf", round(scale_factor / 6))
-    color_map = cm.get_cmap("Blues")
+    font_name = "arial.ttf"
+    cell_font = ImageFont.truetype(font_name, round(scale_factor / 10))
+    medium_font = ImageFont.truetype(font_name, round(scale_factor / 8))
+    large_font = ImageFont.truetype(font_name, round(scale_factor / 6))
+    color_map = cm.get_cmap(colormap_name)
 
     grid_width, grid_height = map(ceil, astuple(allocation.bounding_box.shape))
     grid_width *= scale_factor
@@ -55,31 +57,44 @@ def plot_grid(netlist: Netlist, allocation: Allocation, dispersions: dict[str, f
     for module in netlist.modules:
         for module_alloc in allocation.allocation_module(module.name):
             rect = allocation.allocation_rectangle(module_alloc.rect).rect
-            bbox_min, bbox_max = rect.bounding_box
+            unscaled_bbox_min, unscaled_bbox_max = rect.bounding_box
+            bbox_min, bbox_max = s.scale(unscaled_bbox_min), s.scale(unscaled_bbox_max)
+
             ratio = module_alloc.area
-
             color = tuple((np.array(color_map(round(ratio * 255))) * 255).astype(np.uint8))
-            draw.rectangle((s.scale(bbox_min), s.scale(bbox_max)), fill=color, outline="Black")  # type: ignore
 
-            text_color = (round(get_text_color((color[0] / 255, color[1] / 255, color[2] / 255))[0] * 255),) * 3
-            draw.text(s.scale(rect.center), f"{ratio:.2f}", anchor="mm", font=cell_font, fill=text_color)
+            draw.rectangle((bbox_min, bbox_max),
+                           fill=color,  # type: ignore
+                           outline=None if simple_plot else "Black")
+
+            if not simple_plot:
+                cell_width, cell_height = bbox_max[0] - bbox_min[0], bbox_min[1] - bbox_max[1]
+                assert cell_width > 0 and cell_height > 0
+                cell_text = f"{ratio:.2f}"
+                text_bbox = cell_font.getbbox(cell_text, anchor="mm")  # left, top, left + width, top + height
+                text_width, text_height = text_bbox[2] - text_bbox[0], text_bbox[3] - text_bbox[1]
+                if text_width <= cell_width and text_height <= cell_height:
+                    text_color = (round(get_text_color((color[0] / 255, color[1] / 255, color[2] / 255))[0] * 255),) * 3
+                    draw.text(s.scale(rect.center), cell_text, anchor="mm", font=cell_font, fill=text_color)
 
         centroid = netlist.get_module(module.name).center
         assert centroid is not None
-        draw.text(s.scale(centroid), "X", anchor="mm", font=cell_font)
+        draw.text(s.scale(centroid), "X", anchor="mm", font=medium_font)
 
-        draw.text((s.x_offset, s.y_offset + grid_height + margin / 2),
-                  f"{module.name}| A = {module.area():.2f} | D = {dispersions[module.name]:.2f}",
-                  anchor="ls", font=subtitle_font, fill="Black", )
+        if not simple_plot:
+            draw.text((s.x_offset, s.y_offset + grid_height + margin / 2),
+                      f"{module.name}| A = {module.area():.2f} | D = {dispersions[module.name]:.2f}",
+                      anchor="ls", font=medium_font, fill="Black")
 
         s.x_offset += grid_width + margin
 
-    if suptitle is None:
-        suptitle = ""
-    else:
-        suptitle += " | "
-    suptitle += f"Wire length = {netlist.wire_length:.2f} | Total dispersion = {sum(dispersions.values()):.2f}"
-    draw.text((img.width / 2, 0), suptitle, anchor="ma", font=suptitle_font, fill="Black")
+    if not simple_plot:
+        if suptitle is None:
+            suptitle = ""
+        else:
+            suptitle += " | "
+        suptitle += f"Wire length = {netlist.wire_length:.2f} | Total dispersion = {sum(dispersions.values()):.2f}"
+        draw.text((img.width / 2, 0), suptitle, anchor="ma", font=large_font, fill="Black")
 
     if filename is None:
         img.show()
