@@ -26,7 +26,7 @@ class Scaling:
 
 def plot_grid(netlist: Netlist, allocation: Allocation, dispersions: dict[str, float],
               suptitle: str | None = None, filename: str | None = None,
-              simple_plot: bool = False, colormap_name: str = "OrRd") -> None:
+              simple_plot: bool = False, colormap_name: str = "Blues") -> None:
     """
     Plot a floorplan given the netlist and allocation of each module in each cell, and additional information to
     annotate the graphics.
