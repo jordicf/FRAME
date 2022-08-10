@@ -1,7 +1,12 @@
+"""A netlist generator."""
+
+import argparse
 from typing import Any
-from argparse import ArgumentParser
 from ruamel.yaml import YAML
-from frame.utils.keywords import KW_MODULES, KW_NETS, KW_AREA
+
+from frame.die.die import Die
+from frame.geometry.geometry import Shape
+from frame.utils.keywords import KW_MODULES, KW_NETS, KW_AREA, KW_CENTER
 
 
 def parse_options(prog: str | None = None, args: list[str] | None = None) -> dict[str, Any]:
@@ -11,17 +16,23 @@ def parse_options(prog: str | None = None, args: list[str] | None = None) -> dic
     :param args: command-line arguments
     :return: a dictionary with the arguments
     """
-    parser = ArgumentParser(prog=prog, description="A netlist generator", usage='%(prog)s [options]')
+    parser = argparse.ArgumentParser(prog=prog, description="A netlist generator.", usage='%(prog)s [options]')
     parser.add_argument("-o", "--outfile", help="output file (netlist)", required=True)
     parser.add_argument("--type", type=str, choices=['grid', 'chain', 'ring', 'star'], required=True,
                         help="type of netlist (grid, chain, ring, star)")
     parser.add_argument("--size", type=int, nargs='+', required=True, help="size of the netlist")
+    parser.add_argument("--add-centers", action=argparse.BooleanOptionalAction, default=False,
+                        help="add module centers (only supported for grid type, and requires to specify the die)")
+    parser.add_argument("-d", "--die", metavar="<width>x<height> or filename",
+                        help="size of the die (width x height) or name of the file"
+                             "(used only if --add-centers is present)")
     return vars(parser.parse_args(args))
 
 
 def main(prog: str | None = None, args: list[str] | None = None) -> int:
     """Main function."""
     options = parse_options(prog, args)
+
     size = options['size']
     nsize = len(size)
     net_type = options['type']
@@ -30,8 +41,16 @@ def main(prog: str | None = None, args: list[str] | None = None) -> int:
     else:
         assert nsize == 1, "Too many parameters for the size of the netlist"
 
+    add_centers = options["add_centers"]
+    die_shape = None
+    if add_centers:
+        assert net_type == 'grid', "--add-center is only supported for the grid type"
+        assert options['die'] is not None, "The die must be specified (with --die) when using --add-center"
+        die = Die(options["die"])
+        die_shape = Shape(die.width, die.height)
+
     if net_type == 'grid':
-        data = gen_grid(size[0], size[1], 1)
+        data = gen_grid(size[0], size[1], 1, add_centers, die_shape)
     elif net_type == 'chain':
         data = gen_chain(size[0], 1)
     elif net_type == 'ring':
@@ -39,7 +58,7 @@ def main(prog: str | None = None, args: list[str] | None = None) -> int:
     elif net_type == 'star':
         data = gen_star(size[0], 1)
     else:
-        assert False  # Should nver happen
+        assert False  # Should never happen
 
     yaml = YAML()
     yaml.default_flow_style = False
@@ -60,28 +79,45 @@ def module_name(i: int, j: int = -1) -> str:
     return "M%d_%d" % (i, j)
 
 
-def gen_modules(area: float, rows: int, columns: int = 0) -> dict[str, Any]:
+def gen_modules(area: float, rows: int, columns: int = 0, add_centers: bool = False, die_shape: Shape | None = None) \
+        -> dict[str, Any]:
     """
     Creates a chain or a grid of modules. If columns is zero, only a chain is created
     :param area: area of each module
     :param rows: number of rows of the grid
     :param columns: number of columns of the grid (a chain if zero)
+    :param add_centers: if True, centers are added to the modules
+    :param die_shape: the shape of the die used to calculate the centers when add_centers is True (else ignored)
     :return: the dictionary of modules
     """
     if columns <= 0:
         return {module_name(r): {KW_AREA: area} for r in range(rows)}
-    return {module_name(r, c): {KW_AREA: area} for r in range(rows) for c in range(columns)}
+
+    modules: dict[str, dict[str, float | list[float]]] = \
+        {module_name(r, c): {KW_AREA: area} for r in range(rows) for c in range(columns)}
+
+    if add_centers:
+        assert die_shape is not None
+        x_offset = die_shape.w / columns
+        y_offset = die_shape.h / rows
+        for r in range(rows):
+            for c in range(columns):
+                modules[module_name(r, c)][KW_CENTER] = [(0.5 + c) * x_offset, (0.5 + r) * y_offset]
+
+    return modules
 
 
-def gen_grid(rows: int, columns: int, area: float) -> dict[str, Any]:
+def gen_grid(rows: int, columns: int, area: float, add_centers: bool, die_shape: Shape | None = None) -> dict[str, Any]:
     """
     Generates the netlist of a grid
     :param rows: number of rows
-    :param columns: number of columns 
+    :param columns: number of columns
     :param area: area of each module
+    :param add_centers: if True, centers are added to the modules
+    :param die_shape: the shape of the die used to calculate the centers when add_centers is True (else ignored)
     :return: a dictionary of the modules
     """
-    modules = gen_modules(area, rows, columns)
+    modules = gen_modules(area, rows, columns, add_centers, die_shape)
     horiz_edges = [[module_name(r, c), module_name(r, c + 1)] for r in range(rows) for c in range(columns - 1)]
     vert_edges = [[module_name(r, c), module_name(r + 1, c)] for r in range(rows - 1) for c in range(columns)]
     return {KW_MODULES: modules, KW_NETS: [*horiz_edges, *vert_edges]}

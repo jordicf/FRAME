@@ -9,15 +9,16 @@ a circle.
 ```
 usage: frame draw [options]
 
-A floorplan drawing tool
+A floorplan drawing tool.
 
 positional arguments:
   netlist               input file (netlist)
 
 options:
   -h, --help            show this help message and exit
-  --die <width>x<height> or filename
-                        Size of the die (width x height) or name of the file
+  -d <width>x<height> or filename, --die <width>x<height> or filename
+                        size of the die (width x height) or name of the file
+  --alloc filename      Allocation of modules to rectangles
   -o OUTFILE, --outfile OUTFILE
                         output file (gif)
   --width WIDTH         width of the picture (in pixels)

@@ -8,15 +8,15 @@ The tool must be invoked as follows:
 ```
 usage: frame spectral [options]
 
-A floorplan drawing tool
+Compute the initial location for each module of the netlist using a combination of spectral and force-directed methods.
 
 positional arguments:
   netlist               input file (netlist)
 
 options:
   -h, --help            show this help message and exit
-  --die <width>x<height> or filename
-                        Size of the die (width x height) or name of the file
+  -d <width>x<height> or filename, --die <width>x<height> or filename
+                        size of the die (width x height) or name of the file
   -o OUTFILE, --outfile OUTFILE
                         output file (netlist)
 ```

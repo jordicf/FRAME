@@ -5,7 +5,7 @@ This is a tool to generate some netlists. The usage is
 ```
 usage: frame netgen [options]
 
-A netlist generator
+A netlist generator.
 
 options:
   -h, --help            show this help message and exit
@@ -15,6 +15,10 @@ options:
                         type of netlist (grid, chain, ring, star)
   --size SIZE [SIZE ...]
                         size of the netlist
+  --add-centers, --no-add-centers
+                        add module centers (only supported for grid type, and requires to specify the die) (default: False)
+  -d <width>x<height> or filename, --die <width>x<height> or filename
+                        size of the die (width x height) or name of the file(used only if --add-centers is present)
 ```
 The figure below depicts the netlists generated when selecting one the acceptable types.
 The option `size` can be followed by one or two positive integers, indicating the number of
