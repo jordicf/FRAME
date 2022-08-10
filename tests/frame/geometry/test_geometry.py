@@ -127,6 +127,12 @@ class TestRectangle(unittest.TestCase):
         self.assertTrue(r2.overlap(r3))
         self.assertFalse(r2.overlap(r4))
         self.assertTrue(r3.overlap(r4))
+        self.assertEqual(r1.area_overlap(r2), 0)
+        self.assertEqual(r1.area_overlap(r3), 0)
+        self.assertEqual(r1.area_overlap(r4), 0)
+        self.assertEqual(r2.area_overlap(r3), 2)
+        self.assertEqual(r2.area_overlap(r4), 0)
+        self.assertEqual(r3.area_overlap(r4), 2)
 
 
 if __name__ == '__main__':

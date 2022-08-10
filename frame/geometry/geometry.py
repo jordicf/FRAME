@@ -253,6 +253,24 @@ class Rectangle:
             return False
         return ur1.y > ll2.y and ur2.y > ll1.y
 
+    def area_overlap(self, r: 'Rectangle') -> float:
+        """
+        Returns the area overlap between the two rectangles
+        :param r: the other rectangle
+        :return: the area overlap
+        """
+        ll1, ur1 = self.bounding_box
+        ll2, ur2 = r.bounding_box
+        minx = max(ll1.x, ll2.x)
+        maxx = min(ur1.x, ur2.x)
+        if minx >= maxx:
+            return 0
+        miny = max(ll1.y, ll2.y)
+        maxy = min(ur1.y, ur2.y)
+        if miny >= maxy:
+            return 0
+        return (maxx-minx)*(maxy-miny)
+
     def __str__(self) -> str:
         """
         :return: string representation of the rectangle
