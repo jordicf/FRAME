@@ -1,5 +1,5 @@
+import argparse
 from typing import Any
-from argparse import ArgumentParser
 from ruamel.yaml import YAML
 from frame.utils.keywords import KW_MODULES, KW_NETS, KW_AREA
 
@@ -11,7 +11,7 @@ def parse_options(prog: str | None = None, args: list[str] | None = None) -> dic
     :param args: command-line arguments
     :return: a dictionary with the arguments
     """
-    parser = ArgumentParser(prog=prog, description="A netlist generator", usage='%(prog)s [options]')
+    parser = argparse.ArgumentParser(prog=prog, description="A netlist generator", usage='%(prog)s [options]')
     parser.add_argument("-o", "--outfile", help="output file (netlist)", required=True)
     parser.add_argument("--type", type=str, choices=['grid', 'chain', 'ring', 'star'], required=True,
                         help="type of netlist (grid, chain, ring, star)")

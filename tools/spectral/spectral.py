@@ -3,7 +3,7 @@ Module for spectral floorplan. The algorithm implemented in this module is based
 proposed by Yehuda Koren in his paper 'Drawing Graphs by Eigenvectors: Theory and Practice'. The algorithm has been
 modified to incorporate the mass of each node. The mass is interpreted as the multiplicity of the node.
 """
-from argparse import ArgumentParser
+import argparse
 from typing import Any
 
 from frame.die.die import Die
@@ -83,9 +83,9 @@ def parse_options(prog: str | None = None, args: list[str] | None = None) -> dic
     :param args: command-line arguments
     :return: a dictionary with the arguments
     """
-    parser = ArgumentParser(prog=prog, description="A floorplan drawing tool", usage='%(prog)s [options]')
+    parser = argparse.ArgumentParser(prog=prog, description="A floorplan drawing tool", usage='%(prog)s [options]')
     parser.add_argument("netlist", help="input file (netlist)")
-    parser.add_argument("--die", help="Size of the die (width x height) or name of the file",
+    parser.add_argument("-d", "--die", help="size of the die (width x height) or name of the file",
                         metavar="<width>x<height> or filename")
     parser.add_argument("-o", "--outfile", required=True, help="output file (netlist)")
     return vars(parser.parse_args(args))

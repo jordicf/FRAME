@@ -1,4 +1,4 @@
-from argparse import ArgumentParser
+import argparse
 from typing import Any
 
 
@@ -20,7 +20,7 @@ def parse_options(prog: str | None = None, args: list[str] | None = None) -> dic
     :param args: command-line arguments
     :return: a dictionary with the arguments
     """
-    parser = ArgumentParser(prog=prog, description="Says hello.")
+    parser = argparse.ArgumentParser(prog=prog, description="Says hello.")
     parser.add_argument("-n", "--name", type=str, help="name to say hello")
     return vars(parser.parse_args(args))
 
