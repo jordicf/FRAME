@@ -287,7 +287,7 @@ def refine_and_optimize_allocation(netlist: Netlist, allocation: Allocation,
         -> tuple[Netlist, Allocation]:
     """
     Refine the given allocation and optimize it to minimize the dispersion and the wire length of the floor plan.
-    The netlist, and the threshold and alpha hyperparameters are also required.
+    The netlist, and the threshold and alpha hyperparameters are also required
     :param netlist: netlist containing the modules with centroids initialized
     :param allocation: allocation with the ratio of each module in each cell of the grid, which possibly must be refined
     :param threshold: hyperparameter between 0 and 1 to decide if allocations must be refined
@@ -295,7 +295,7 @@ def refine_and_optimize_allocation(netlist: Netlist, allocation: Allocation,
     Smaller values will reduce the dispersion and increase the wire length, and greater ones the other way around
     :param max_iter: maximum number of optimization iterations performed, or None to stop when no more refinements
     can be performed
-    :param verbose: If True, the GEKKO optimization log and iteration numbers are displayed.
+    :param verbose: If True, the GEKKO optimization log and iteration numbers are displayed
     :param plot_name: name of the plot to be produced in each iteration. The iteration number and the PNG extension
     are added automatically. If None, no plots are produced
     :param simple_plot: If True, the plots are simpler by not including borders nor text annotations
