@@ -6,7 +6,7 @@ from gekko import GEKKO
 from frame.geometry.geometry import Shape, Point, Rectangle
 from frame.die.die import Die
 from frame.netlist.netlist import Netlist
-from frame.allocation.allocation import RectDescriptor, Alloc, Allocation
+from frame.allocation.allocation import AllocDescriptor, Alloc, Allocation
 
 from tools.glbfloor.plots import plot_grid
 
@@ -246,7 +246,7 @@ def optimize_allocation(netlist: Netlist, allocation: Allocation, alpha: float, 
     g.solve(disp=verbose)
 
     # Extract solution
-    allocation_list: list[None | RectDescriptor] = [None] * n_cells
+    allocation_list: list[None | AllocDescriptor] = [None] * n_cells
     for c in range(n_cells):
         c_alloc = Alloc()
         for m, module in enumerate(netlist.modules):
