@@ -251,7 +251,7 @@ class Allocation:
             total_occup = 0
             for module, occup in d.items():
                 assert valid_identifier(module), f'Invalid module identifier: {module}'
-                assert is_number(occup) and 0 <= occup <= 1, f'Invalid allocation for {module} in rectangle {r}'
+                assert is_number(occup) and 0 <= occup <= 1, f'Invalid allocation for {module} in rectangle {r}: {occup}'
                 assert module not in dict_alloc, f'Multiple allocations of {module} in rectangle {r}'
                 total_occup += occup
                 dict_alloc[module] = occup
