@@ -247,11 +247,7 @@ class Rectangle:
         :param r: the other rectangle.
         :return: True if they overlap, and False otherwise.
         """
-        ll1, ur1 = self.bounding_box
-        ll2, ur2 = r.bounding_box
-        if ur1.x <= ll2.x or ur2.x <= ll1.x:
-            return False
-        return ur1.y > ll2.y and ur2.y > ll1.y
+        return self.area_overlap(r) > 0
 
     def area_overlap(self, r: 'Rectangle') -> float:
         """
@@ -264,11 +260,11 @@ class Rectangle:
         minx = max(ll1.x, ll2.x)
         maxx = min(ur1.x, ur2.x)
         if minx >= maxx:
-            return 0
+            return 0.0
         miny = max(ll1.y, ll2.y)
         maxy = min(ur1.y, ur2.y)
         if miny >= maxy:
-            return 0
+            return 0.0
         return (maxx-minx)*(maxy-miny)
 
     def __str__(self) -> str:
