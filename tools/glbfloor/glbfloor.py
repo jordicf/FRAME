@@ -1,5 +1,6 @@
-from typing import Any
 import argparse
+from time import time
+from typing import Any
 
 from gekko import GEKKO
 
@@ -326,10 +327,16 @@ def main(prog: str | None = None, args: list[str] | None = None):
     max_iter = options["max_iter"]
     assert max_iter > 0, "The maximum number of iterations must be positive"
 
+    verbose = options["verbose"]
+    start_time = 0.0
+    if verbose:
+        start_time = time()
     netlist, allocation = calculate_initial_allocation(netlist, n_rows, n_cols, cell_shape, alpha,
-                                                       options["verbose"], options["plot"], options["simple_plot"])
+                                                       verbose, options["plot"], options["simple_plot"])
     netlist, allocation = refine_and_optimize_allocation(netlist, allocation, threshold, alpha, max_iter,
                                                          options["verbose"], options["plot"], options["simple_plot"])
+    if verbose:
+        print(f"Elapsed time: {time() - start_time:.3f}s")
 
     out_netlist_file = options["out_netlist"]
     if out_netlist_file is not None:
