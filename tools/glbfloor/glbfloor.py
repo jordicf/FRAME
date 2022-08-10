@@ -48,6 +48,15 @@ def parse_options(prog: str | None = None, args: list[str] | None = None) -> dic
     return vars(parser.parse_args(args))
 
 
+def get_value(v) -> float:
+    if not isinstance(v, float):
+        v = v.value.value
+        if hasattr(v, "__getitem__"):
+            v = v[0]
+    assert isinstance(v, float), f"{v}, type{v}"
+    return v
+
+
 def add_objective(g: GEKKO, netlist: Netlist, alpha: float) -> GEKKO:
     """
     Adds the objective function to the GEKKO model.
@@ -158,14 +167,14 @@ def calculate_initial_allocation(netlist: Netlist, n_rows: int, n_cols: int, cel
     for c in range(n_cells):
         c_alloc = Alloc()
         for m, module in enumerate(netlist.modules):
-            c_alloc[module.name] = g.a[m][c].value[0]
+            c_alloc[module.name] = get_value(g.a[m][c])
         allocation_list[c] = (cells[c].vector_spec, c_alloc)
     allocation = Allocation(allocation_list)
 
     dispersions = {}
     for m, module in enumerate(netlist.modules):
-        module.center = Point(g.x[m].value[0], g.y[m].value[0])
-        dispersions[module.name] = g.dx[m].value[0] + g.dy[m].value[0]
+        module.center = Point(get_value(g.x[m]), get_value(g.y[m]))
+        dispersions[module.name] = get_value(g.dx[m]) + get_value(g.dy[m])
 
     if plot_name is not None:
         plot_grid(netlist, allocation, dispersions,
@@ -205,18 +214,18 @@ def optimize_allocation(netlist: Netlist, allocation: Allocation, alpha: float, 
         for c in range(n_cells):
             g.a[m][c].value = allocation.allocation_module(module.name)[c].area  # Initial values
 
-    # Fix not refined cells and completed modules
+    # Make not refined cells and completed modules constant
     max_refinement_depth = allocation.max_refinement_depth()
     for m, module in enumerate(netlist.modules):
-        fix_module = True
+        const_module = True
         for c in range(n_cells):
             if allocation.allocation_rectangle(c).depth != max_refinement_depth:
-                g.fix(g.a[m][c])
-            elif fix_module:
-                fix_module = False
-        if fix_module:
-            g.fix(g.x[m])
-            g.fix(g.y[m])
+                g.a[m][c] = get_value(g.a[m][c])
+            elif const_module:
+                const_module = False
+        if const_module:
+            g.x[m] = get_value(g.x[m])
+            g.y[m] = get_value(g.y[m])
 
     # Cell constraints
     for c in range(n_cells):
@@ -251,14 +260,14 @@ def optimize_allocation(netlist: Netlist, allocation: Allocation, alpha: float, 
     for c in range(n_cells):
         c_alloc = Alloc()
         for m, module in enumerate(netlist.modules):
-            c_alloc[module.name] = g.a[m][c].value[0]
+            c_alloc[module.name] = get_value(g.a[m][c])
         allocation_list[c] = (allocs[c].rect.vector_spec, c_alloc, 0)
     allocation = Allocation(allocation_list)
 
     dispersions = {}
     for m, module in enumerate(netlist.modules):
-        module.center = Point(g.x[m].value[0], g.y[m].value[0])
-        dispersions[module.name] = g.dx[m].value[0] + g.dy[m].value[0]
+        module.center = Point(get_value(g.x[m]), get_value(g.y[m]))
+        dispersions[module.name] = get_value(g.dx[m]) + get_value(g.dy[m])
 
     return netlist, allocation, dispersions
 
