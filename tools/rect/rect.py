@@ -74,7 +74,7 @@ def enforce_bb(carrier: Carrier, ifile, sm: satmanager.SATManager, btag: str, cb
     var_bigx: dict[float, pseudobool.Literal] = {}
     var_lily: dict[float, pseudobool.Literal] = {}
     var_bigy: dict[float, pseudobool.Literal] = {}
-    var_b: dict[int, pseudobool.Literal]  = {}
+    var_b: dict[int, pseudobool.Literal] = {}
     xcoords: list[float] = carrier.xcoords
     ycoords: list[float] = carrier.ycoords
     blocks: list[int] = carrier.blocks
@@ -144,7 +144,7 @@ def solve(carrier: Carrier,
           nboxes: int) -> tuple[tuple[int, int], list[SimpleBox]]:
     """
     Generates the SAT problem, calls the solver and returns the solution
-    :param carrier: The blocks, input_problem, factor and theoreticalBestArea carrier
+    :param carrier: The blocks, input_problem, factor and theoretical_best_area carrier
     :param ifile: The input file (parsed)
     :param ratio: The f hyperparameter
     :param dif: The previous optimal solution (as a rational), for optimization purposes
@@ -156,12 +156,12 @@ def solve(carrier: Carrier,
     blocks: list[int] = carrier.blocks
     input_problem: InputProblem = carrier.input_problem
     factor: float = carrier.factor
-    theoreticalBestArea: float = carrier.theoreticalBestArea
+    theoretical_best_area: float = carrier.theoreticalBestArea
     selarea = pseudobool.Expr()
     allblocks = pseudobool.Expr()
     vars_b = []
     for b in blocks:
-        selarea = selarea + area(carrier, b, True) * sm.newvar("b_" + str(b), "")
+        selarea = selarea + sm.newvar("b_" + str(b), "") * int(area(carrier, b, True))
         allblocks = allblocks + sm.newvar("b_" + str(b), "")
         vars_b.append(- sm.newvar("b_" + str(b), ""))
         lst = []
@@ -172,7 +172,7 @@ def solve(carrier: Carrier,
     vars_b.sort(key=lambda x: x.v)
     realarea = pseudobool.Expr()
     for b in blocks:
-        realarea = realarea + area(carrier, b, False) * sm.newvar("b_" + str(b), "")
+        realarea = realarea + sm.newvar("b_" + str(b), "") * int(area(carrier, b, False))
     obj = ratio * selarea - realarea
 
     # Have at least one block, please
@@ -180,7 +180,7 @@ def solve(carrier: Carrier,
 
     # Min area approach
     if ratio < 1:
-        sm.pseudoboolencoding(realarea >= round(theoreticalBestArea * ratio))
+        sm.pseudoboolencoding(realarea >= round(theoretical_best_area * ratio))
         sm.pseudoboolencoding(selarea * dif[1] - realarea * dif[0] >= 0)
     # Min error approach
     else:
@@ -193,7 +193,7 @@ def solve(carrier: Carrier,
         return (0, 1), []
     print("Selected area:    " + str(float(sm.evalexpr(selarea)) / float(factor)))
     print("Real area:        " + str(float(sm.evalexpr(realarea)) / float(factor)))
-    print("Theoretical area: " + str(theoreticalBestArea / float(factor)))
+    print("Theoretical area: " + str(theoretical_best_area / float(factor)))
     print("Error objective:  " + str(sm.evalexpr(obj)))
 
     rects = [(float('inf'), float('inf'), -float('inf'), -float('inf'))] * nboxes
@@ -228,10 +228,12 @@ def area(carrier: Carrier, b: int | InputBox, sel: bool) -> float:
     :param sel: Whether we want the total area or just the proportion occupied by the module
     :return: The area
     """
-    if type(b) is tuple:
+    if isinstance(b, tuple):
         (x1, y1, x2, y2, p) = b
-    else:
+    elif isinstance(b, int):
         (x1, y1, x2, y2, p) = carrier.input_problem[b]
+    else:
+        raise Exception("Invalid type")
     if sel:
         return carrier.factor * p * (x2 - x1) * (y2 - y1)
     return carrier.factor * (x2 - x1) * (y2 - y1)
