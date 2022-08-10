@@ -118,10 +118,10 @@ def calculate_initial_allocation(netlist: Netlist, n_rows: int, n_cols: int, cel
     - allocation - Allocation with the ratio of each module in each cell of the grid
     """
     cells = [Rectangle()] * (n_rows * n_cols)
-    for row in range(n_rows):
-        for col in range(n_cols):
-            cells[row * n_cols + col] = Rectangle(
-                center=Point((col + 1 / 2) * cell_shape.w, (row + 1 / 2) * cell_shape.h),
+    for r in range(n_rows):
+        for c in range(n_cols):
+            cells[r * n_cols + c] = Rectangle(
+                center=Point((0.5 + c) * cell_shape.w, (0.5 + r) * cell_shape.h),
                 shape=cell_shape)
 
     n_cells = n_rows * n_cols
