@@ -1,5 +1,5 @@
 """
-Module for spectral floorplan. The algorithm implemented in this module is based on the one for Spectral Drawing
+Tool for spectral floorplan. The algorithm implemented in this tool is based on the one for Spectral Drawing
 proposed by Yehuda Koren in his paper 'Drawing Graphs by Eigenvectors: Theory and Practice'. The algorithm has been
 modified to incorporate the mass of each node. The mass is interpreted as the multiplicity of the node.
 """
@@ -83,7 +83,9 @@ def parse_options(prog: str | None = None, args: list[str] | None = None) -> dic
     :param args: command-line arguments
     :return: a dictionary with the arguments
     """
-    parser = argparse.ArgumentParser(prog=prog, description="A floorplan drawing tool", usage='%(prog)s [options]')
+    parser = argparse.ArgumentParser(prog=prog, usage='%(prog)s [options]',
+                                     description="Compute the initial location for each module of the netlist using a "
+                                                 "combination of spectral and force-directed methods.")
     parser.add_argument("netlist", help="input file (netlist)")
     parser.add_argument("-d", "--die", help="size of the die (width x height) or name of the file",
                         metavar="<width>x<height> or filename")

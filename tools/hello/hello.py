@@ -1,3 +1,4 @@
+"""Says hello."""
 import argparse
 from typing import Any
 
