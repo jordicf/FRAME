@@ -49,11 +49,20 @@ def parse_options(prog: str | None = None, args: list[str] | None = None) -> dic
 
 
 def get_value(v) -> float:
+    """
+    Get the value of the GEKKO object v
+    :param v: a variable or a value
+    :return: the value of v
+    """
     if not isinstance(v, float):
         v = v.value.value
         if hasattr(v, "__getitem__"):
             v = v[0]
-    assert isinstance(v, float), f"{v}, type{v}"
+    if not isinstance(v, float):
+        try:
+            v = float(v)
+        except TypeError:
+            raise ValueError(f"Could not get value of {v} (type: {type(v)}")
     return v
 
 
