@@ -11,7 +11,7 @@ from frame.utils.utils import TextIO_String, read_yaml, write_yaml, YAML_tree, i
 Alloc = dict[str, float]  # Allocation in a rectangle (area ratio for each module)
 
 RectDescriptor = tuple[float, float, float, float]  # (x,y,w,h)
-AllocDescriptor = tuple[RectDescriptor, Alloc, int]
+AllocDescriptor = tuple[RectDescriptor, Alloc, int]  # ([x,y,w,h], alloc, depth)
 
 
 @dataclass()
@@ -130,22 +130,27 @@ class Allocation:
         """
         return {m.name for m in netlist.modules} == {m for m in self._module2rect.keys()}
 
-    def initial_allocation(self, netlist: Netlist) -> None:
+    def initial_allocation(self, netlist: Netlist) -> 'Allocation':
         """
-        Defines an initial allocation for the modules of a netlist. The existing allocation is reset and each
-        rectangle allocates the corresponding intersection with each module. Initially, all modules without rectangles
+        Defines an initial allocation for the modules of a netlist. Initially, all modules without rectangles
         are assigned a square (therefore, the rectangles of the non-fixed modules might be modified). Modules with
-        rectangles are not modified.
+        rectangles are not modified. The allocation computes the intersection of the module rectangles with the die
+        rectangles
         :param netlist: The netlist in which each module has a center and an area
+        :return: the new allocation
         """
-        netlist.create_squares()
-        # Redefining the existing allocation
-        for r in self.allocations:
-            r.alloc = {}
+        netlist.create_squares()  # Creates a square for each of the modules without rectangles
+        # Creating the new allocation
+        new_alloc: list[AllocDescriptor] = []
+        for a in self.allocations:
+            r = a.rect.vector_spec
+            alloc: Alloc = {}
             for m in netlist.modules:
-                area = sum(r.rect.area_overlap(r_mod) for r_mod in m.rectangles)
+                area = sum(a.rect.area_overlap(r_mod) for r_mod in m.rectangles)
                 if area > 0:
-                    r.alloc[m.name] = area
+                    alloc[m.name] = area
+            new_alloc.append((r, alloc, a.depth))
+        return Allocation(new_alloc)
 
     def refine(self, threshold: float, levels: int = 2) -> 'Allocation':
         """
@@ -311,4 +316,4 @@ class Allocation:
             rect2 = (rect[0], rect[1] + h4, rect[2], h2)
 
         return Allocation._split_allocation(rect1, alloc, depth + 1, levels - 1) + \
-            Allocation._split_allocation(rect2, alloc, depth + 1, levels - 1)
+               Allocation._split_allocation(rect2, alloc, depth + 1, levels - 1)
