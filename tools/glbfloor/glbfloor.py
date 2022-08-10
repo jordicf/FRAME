@@ -334,7 +334,7 @@ def main(prog: str | None = None, args: list[str] | None = None):
     # Initial grid
     n_rows, n_cols = map(int, options["grid"].split("x"))
     assert n_rows > 0 and n_cols > 0, "The number of rows and columns of the grid must be positive"
-    cell_shape = Shape(die_shape.w / n_rows, die_shape.h / n_cols)
+    cell_shape = Shape(die_shape.w / n_cols, die_shape.h / n_rows)
 
     alpha = options["alpha"]
     assert 0 <= alpha <= 1, "alpha must be between 0 and 1"
