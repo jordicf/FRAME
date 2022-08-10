@@ -76,7 +76,7 @@ class TestAllocation(unittest.TestCase):
         self.assertEqual(3, a.num_rectangles)
         a4 = a.refine(0.7, 2)
         self.assertEqual(9, a4.num_rectangles)
-        a_uniform = a4.uniform_refinement()
+        a_uniform = a4.uniform_refinement_depth()
         self.assertEqual(12, a_uniform.num_rectangles)
 
 if __name__ == '__main__':

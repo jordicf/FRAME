@@ -10,7 +10,7 @@ from frame.utils.utils import TextIO_String, read_yaml, write_yaml, YAML_tree, i
 
 Alloc = dict[str, float]  # Allocation in a rectangle (area ratio for each module)
 
-RectDescriptor = tuple[float, float, float, float]  # [x,y,w,h]
+RectDescriptor = tuple[float, float, float, float]  # (x,y,w,h)
 AllocDescriptor = tuple[RectDescriptor, Alloc, int]
 
 
@@ -19,7 +19,7 @@ class RectAlloc:
     """Representation of the allocation in a rectangle."""
     rect: Rectangle  # Rectangle of the allocation
     alloc: Alloc  # Area ratio for each module (in [0,1])
-    depth: int  # refinment depth
+    depth: int  # Depth of refinements
 
 
 @dataclass()
@@ -157,14 +157,21 @@ class Allocation:
         """
         return any(all(x <= threshold for x in a.alloc.values()) for a in self.allocations)
 
-    def uniform_refinement(self) -> 'Allocation':
+    def max_refinement_depth(self) -> int:
         """
-        Generates an allocation in which all rectangles have the same refinement depth
-        :return: A new allocation
+        Checks the maximum depth of refinement of the rectangles.
+        :return: the maximum depth of refinement
         """
+        return max(r.depth for r in self.allocations)
+
+    def uniform_refinement_depth(self) -> 'Allocation':
+        """
+        Refines all rectangles in a way that all cells have the same refinement depth.
+        :return: a new Allocation"""
         max_depth = max(r.depth for r in self.allocations)
         min_depth = min(r.depth for r in self.allocations)
-        if min_depth == max_depth:
+        # Do we really need refinement?
+        if max_depth == min_depth:
             return self
 
         new_alloc: list[AllocDescriptor] = []
@@ -266,7 +273,7 @@ class Allocation:
         Splits a rectangle into 2^levels rectangles and returns a list of rectangle allocations
         :param rect: the rectangle
         :param alloc: the module allocation fo the rectangle
-        :param depth: refinment depth of the rectangle
+        :param depth: refinement depth of the rectangle
         :param levels: number of splitting levels
         :return: a list of allocations
         """
