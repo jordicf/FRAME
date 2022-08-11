@@ -129,13 +129,14 @@ class Allocation:
         """
         return {m.name for m in netlist.modules} == {m for m in self._module2rect.keys()}
 
-    def initial_allocation(self, netlist: Netlist) -> 'Allocation':
+    def initial_allocation(self, netlist: Netlist, include_area_zero: bool = False) -> 'Allocation':
         """
         Defines an initial allocation for the modules of a netlist. Initially, all modules without rectangles
         are assigned a square (therefore, the rectangles of the non-fixed modules might be modified). Modules with
         rectangles are not modified. The allocation computes the intersection of the module rectangles with the die
         rectangles
         :param netlist: The netlist in which each module has a center and an area
+        :param include_area_zero: Whether to include allocations with area 0 in the allocation
         :return: the new allocation
         """
         netlist.create_squares()  # Creates a square for each of the modules without rectangles
@@ -146,7 +147,7 @@ class Allocation:
             alloc: Alloc = {}
             for m in netlist.modules:
                 area = sum(a.rect.area_overlap(r_mod) for r_mod in m.rectangles)
-                if area > 0:
+                if include_area_zero or area > 0:
                     alloc[m.name] = area
             new_alloc.append((r, alloc, a.depth))
         return Allocation(new_alloc)
