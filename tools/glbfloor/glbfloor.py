@@ -69,8 +69,7 @@ def get_value(v) -> float:
 def create_initial_allocation(netlist: Netlist, n_rows: int, n_cols: int, cell_shape: Shape) -> Allocation:
     """
     Creates the initial allocation grid. The allocation ratios are assigned according to the intersection of the module
-    rectangles with the grid cells. All modules without rectangles are assigned a square.
-
+    rectangles with the grid cells. All modules without rectangles are assigned a square
     :param netlist: netlist containing the modules with centroids initialized
     :param n_rows: initial number of rows in the grid
     :param n_cols: initial number of columns in the grid
@@ -100,7 +99,7 @@ def create_initial_allocation(netlist: Netlist, n_rows: int, n_cols: int, cell_s
 def optimize_allocation(netlist: Netlist, allocation: Allocation, alpha: float, verbose: bool = False) \
         -> tuple[Netlist, Allocation, dict[str, float]]:
     """
-    Optimizes the given allocation to minimize the dispersion and the wire length of the floor plan.
+    Optimizes the given allocation to minimize the dispersion and the wire length of the floor plan
     :param netlist: netlist containing the modules with centroids initialized
     :param allocation: allocation to optimize
     :param alpha: hyperparameter between 0 and 1 to control the balance between dispersion and wire length.
@@ -224,7 +223,7 @@ def glbfloor(netlist: Netlist, n_rows: int, n_cols: int, cell_shape: Shape,
     """
     Calculates the initial allocation and optimizes it to minimize the dispersion and the wire length of the floor plan.
     Afterwards, the allocation is repeatedly refined and optimized until it cannot be further refined or the maximum
-    number of iterations is reached.
+    number of iterations is reached
     :param netlist: netlist containing the modules with centroids initialized
     :param n_rows: initial number of rows in the grid
     :param n_cols: initial number of columns in the grid

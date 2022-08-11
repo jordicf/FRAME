@@ -316,4 +316,4 @@ class Allocation:
             rect2 = (rect[0], rect[1] + h4, rect[2], h2)
 
         return Allocation._split_allocation(rect1, alloc, depth + 1, levels - 1) + \
-               Allocation._split_allocation(rect2, alloc, depth + 1, levels - 1)
+            Allocation._split_allocation(rect2, alloc, depth + 1, levels - 1)
