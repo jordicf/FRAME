@@ -66,137 +66,51 @@ def get_value(v) -> float:
     return v
 
 
-def add_objective(g: GEKKO, netlist: Netlist, alpha: float) -> GEKKO:
+def create_initial_allocation(netlist: Netlist, n_rows: int, n_cols: int, cell_shape: Shape) -> Allocation:
     """
-    Adds the objective function to the GEKKO model.
+    Creates the initial allocation grid. The allocation ratios are assigned according to the intersection of the module
+    rectangles with the grid cells. All modules without rectangles are assigned a square.
 
-    Objective function: alpha * total wire length + (1 - alpha) * total dispersion
-    """
-
-    module2m = {}
-    for m, module in enumerate(netlist.modules):
-        module2m[module] = m
-
-    # Total wire length
-    for e in netlist.edges:
-        if len(e.modules) == 2:
-            m0 = module2m[e.modules[0]]
-            m1 = module2m[e.modules[1]]
-            g.Minimize(alpha * e.weight * ((g.x[m0] - g.x[m1])**2 + (g.y[m0] - g.y[m1])**2) / 2)
-        else:
-            ex = g.Var()
-            g.Equation(g.sum([g.x[module2m[module]] for module in e.modules]) / len(e.modules) == ex)
-            ey = g.Var()
-            g.Equation(g.sum([g.y[module2m[module]] for module in e.modules]) / len(e.modules) == ey)
-            for module in e.modules:
-                m = module2m[module]
-                g.Minimize(alpha * e.weight * ((ex - g.x[m])**2 + (ey - g.y[m])**2))
-
-    # Total dispersion
-    g.Minimize((1 - alpha) * g.sum([g.dx[m] + g.dy[m] for m in range(netlist.num_modules)]))
-
-    return g
-
-
-def calculate_initial_allocation(netlist: Netlist, n_rows: int, n_cols: int, cell_shape: Shape, alpha: float,
-                                 verbose: bool = False, plot_name: str | None = None, simple_plot: bool = False) \
-        -> tuple[Netlist, Allocation]:
-    """
-    Calculates the initial legal floorplan allocation given the netlist, grid info, and the alpha hyperparameter
     :param netlist: netlist containing the modules with centroids initialized
     :param n_rows: initial number of rows in the grid
     :param n_cols: initial number of columns in the grid
     :param cell_shape: shape of the cells (typically the shape of the die scaled by the number of rows and columns)
-    :param alpha: hyperparameter between 0 and 1 to control the balance between dispersion and wire length.
-    Smaller values will reduce the dispersion and increase the wire length, and greater ones the other way around
-    :param verbose: If True, the GEKKO optimization log is displayed
-    :param plot_name: name of the plot to be produced in each iteration The iteration number (0) and the PNG extension
-    are added automatically. If None, no plots are produced
-    :param simple_plot: If True, the plots are simpler by not including borders nor text annotations
-    :return: the optimal solution found:
-    - netlist - Netlist with the centroids of the modules updated
-    - allocation - Allocation with the ratio of each module in each cell of the grid
+    :return: the initial allocation
     """
-    cells = [Rectangle()] * (n_rows * n_cols)
+    n_cells = n_rows * n_cols
+
+    cells = [Rectangle()] * n_cells
     for r in range(n_rows):
         for c in range(n_cols):
-            cells[r * n_cols + c] = Rectangle(
-                center=Point((0.5 + c) * cell_shape.w, (0.5 + r) * cell_shape.h),
-                shape=cell_shape)
+            cells[r * n_cols + c] = Rectangle(center=Point((0.5 + c) * cell_shape.w, (0.5 + r) * cell_shape.h),
+                                              shape=cell_shape)
 
-    n_cells = n_rows * n_cols
-    n_modules = netlist.num_modules
-
-    g = GEKKO(remote=False)
-
-    # Centroid of modules
-    g.x = g.Array(g.Var, n_modules, lb=0, ub=n_rows * cell_shape.h)
-    g.y = g.Array(g.Var, n_modules, lb=0, ub=n_cols * cell_shape.w)
-    for m, module in enumerate(netlist.modules):
-        center = module.center
-        assert center is not None, "Modules should have initial center values. Maybe run the spectral tool?"
-        g.x[m].value, g.y[m].value = center  # Initial values
-
-    # Dispersion of modules
-    g.dx = g.Array(g.Var, n_modules, lb=0)
-    g.dy = g.Array(g.Var, n_modules, lb=0)
-
-    # Ratios of area of c used by module m
-    g.a = g.Array(g.Var, (n_modules, n_cells), lb=0, ub=1)
-
-    # Cell constraints
-    for c in range(n_cells):
-        # Cells cannot be over-occupied
-        g.Equation(g.sum([g.a[m][c] for m in range(n_modules)]) <= 1)
-
-    # Module constraints
-    for m in range(n_modules):
-        m_area = netlist.modules[m].area()
-
-        # Modules must have sufficient area
-        g.Equation(g.sum([cells[c].area * g.a[m][c] for c in range(n_cells)]) >= m_area)
-
-        # Centroid of modules
-        g.Equation(1 / m_area * g.sum([cells[c].area * cells[c].center.x * g.a[m][c]
-                                       for c in range(n_cells)]) == g.x[m])
-        g.Equation(1 / m_area * g.sum([cells[c].area * cells[c].center.y * g.a[m][c]
-                                       for c in range(n_cells)]) == g.y[m])
-
-        # Dispersion of modules
-        g.Equation(g.sum([cells[c].area * g.a[m][c] * (g.x[m] - cells[c].center.x)**2
-                          for c in range(n_cells)]) == g.dx[m])
-        g.Equation(g.sum([cells[c].area * g.a[m][c] * (g.y[m] - cells[c].center.y)**2
-                          for c in range(n_cells)]) == g.dy[m])
-
-    g = add_objective(g, netlist, alpha)
-    g.solve(disp=verbose)
-
-    # Extract solution
-    allocation_list: list[None | tuple[tuple[float, float, float, float], dict[str, float]]] = [None] * n_cells
+    allocation_list: list[AllocDescriptor | None] = [None] * n_cells
     for c in range(n_cells):
         c_alloc = Alloc()
-        for m, module in enumerate(netlist.modules):
-            c_alloc[module.name] = get_value(g.a[m][c])
-        allocation_list[c] = (cells[c].vector_spec, c_alloc)
-    allocation = Allocation(allocation_list)
+        for module in netlist.modules:
+            # Initialize to 1 for all modules so the center can be computed (0 raises ZeroDivisionError)
+            # This value will be ignored when calling the initial_allocation method.
+            c_alloc[module.name] = 1.0
+        allocation_list[c] = (cells[c].vector_spec, c_alloc, 0)
 
-    dispersions = {}
-    for m, module in enumerate(netlist.modules):
-        module.center = Point(get_value(g.x[m]), get_value(g.y[m]))
-        dispersions[module.name] = get_value(g.dx[m]) + get_value(g.dy[m])
-
-    if plot_name is not None:
-        plot_grid(netlist, allocation, dispersions,
-                  suptitle=f"alpha = {alpha}", filename=f"{plot_name}-0.png", simple_plot=simple_plot)
-
-    if verbose:
-        print("Iteration 0 finished\n")
-
-    return netlist, allocation
+    return Allocation(allocation_list).initial_allocation(netlist, include_area_zero=True)
 
 
 def optimize_allocation(netlist: Netlist, allocation: Allocation, alpha: float, verbose: bool = False) \
         -> tuple[Netlist, Allocation, dict[str, float]]:
+    """
+    Optimizes the given allocation to minimize the dispersion and the wire length of the floor plan.
+    :param netlist: netlist containing the modules with centroids initialized
+    :param allocation: allocation to optimize
+    :param alpha: hyperparameter between 0 and 1 to control the balance between dispersion and wire length.
+    Smaller values will reduce the dispersion and increase the wire length, and greater ones the other way around
+    :param verbose: if True, the GEKKO optimization log is displayed
+    :return: the optimal solution found:
+    - netlist - netlist with the centroids of the modules updated
+    - allocation - optimized allocation
+    - dispersions - a dictionary from module name to float which indicates the dispersion of each module
+    """
     n_modules = netlist.num_modules
     n_cells = allocation.num_rectangles
     allocs = allocation.allocations
@@ -228,7 +142,7 @@ def optimize_allocation(netlist: Netlist, allocation: Allocation, alpha: float, 
     for m, module in enumerate(netlist.modules):
         const_module = True
         for c in range(n_cells):
-            if allocation.allocation_rectangle(c).depth != max_refinement_depth:
+            if allocs[c].depth != max_refinement_depth:
                 g.a[m][c] = get_value(g.a[m][c])
             elif const_module:
                 const_module = False
@@ -260,12 +174,34 @@ def optimize_allocation(netlist: Netlist, allocation: Allocation, alpha: float, 
         g.Equation(g.sum([allocs[c].rect.area * g.a[m][c] * (g.y[m] - allocs[c].rect.center.y)**2
                           for c in range(n_cells)]) == g.dy[m])
 
-    g = add_objective(g, netlist, alpha)
+    module2m = {}
+    for m, module in enumerate(netlist.modules):
+        module2m[module] = m
+
+    # Objective function: alpha * total wire length + (1 - alpha) * total dispersion
+
+    # Total wire length
+    for e in netlist.edges:
+        if len(e.modules) == 2:
+            m0 = module2m[e.modules[0]]
+            m1 = module2m[e.modules[1]]
+            g.Minimize(alpha * e.weight * ((g.x[m0] - g.x[m1])**2 + (g.y[m0] - g.y[m1])**2) / 2)
+        else:
+            ex = g.Var()
+            g.Equation(g.sum([g.x[module2m[module]] for module in e.modules]) / len(e.modules) == ex)
+            ey = g.Var()
+            g.Equation(g.sum([g.y[module2m[module]] for module in e.modules]) / len(e.modules) == ey)
+            for module in e.modules:
+                m = module2m[module]
+                g.Minimize(alpha * e.weight * ((ex - g.x[m])**2 + (ey - g.y[m])**2))
+
+    # Total dispersion
+    g.Minimize((1 - alpha) * g.sum([g.dx[m] + g.dy[m] for m in range(netlist.num_modules)]))
 
     g.solve(disp=verbose)
 
     # Extract solution
-    allocation_list: list[None | AllocDescriptor] = [None] * n_cells
+    allocation_list: list[AllocDescriptor | None] = [None] * n_cells
     for c in range(n_cells):
         c_alloc = Alloc()
         for m, module in enumerate(netlist.modules):
@@ -281,15 +217,18 @@ def optimize_allocation(netlist: Netlist, allocation: Allocation, alpha: float, 
     return netlist, allocation, dispersions
 
 
-def refine_and_optimize_allocation(netlist: Netlist, allocation: Allocation,
-                                   threshold: float, alpha: float, max_iter: int | None = None,
-                                   verbose: bool = False, plot_name: str | None = None, simple_plot: bool = False) \
+def glbfloor(netlist: Netlist, n_rows: int, n_cols: int, cell_shape: Shape,
+             threshold: float, alpha: float, max_iter: int | None = None,
+             verbose: bool = False, plot_name: str | None = None, simple_plot: bool = False) \
         -> tuple[Netlist, Allocation]:
     """
-    Refine the given allocation and optimize it to minimize the dispersion and the wire length of the floor plan.
-    The netlist, and the threshold and alpha hyperparameters are also required
+    Calculates the initial allocation and optimizes it to minimize the dispersion and the wire length of the floor plan.
+    Afterwards, the allocation is repeatedly refined and optimized until it cannot be further refined or the maximum
+    number of iterations is reached.
     :param netlist: netlist containing the modules with centroids initialized
-    :param allocation: allocation with the ratio of each module in each cell of the grid, which possibly must be refined
+    :param n_rows: initial number of rows in the grid
+    :param n_cols: initial number of columns in the grid
+    :param cell_shape: shape of the cells (typically the shape of the die scaled by the number of rows and columns)
     :param threshold: hyperparameter between 0 and 1 to decide if allocations must be refined
     :param alpha: hyperparameter between 0 and 1 to control the balance between dispersion and wire length.
     Smaller values will reduce the dispersion and increase the wire length, and greater ones the other way around
@@ -303,9 +242,18 @@ def refine_and_optimize_allocation(netlist: Netlist, allocation: Allocation,
     - netlist - Netlist with the centroids of the modules updated.
     - allocation - Refined allocation with the ratio of each module in each cell of the grid.
     """
-    n_iter = 1
-    while allocation.must_be_refined(threshold) and ((max_iter is None) or (n_iter < max_iter)):
-        allocation = allocation.refine(threshold)
+    n_iter = 0
+    allocation = None
+    while max_iter is None or n_iter < max_iter:
+        if n_iter == 0:
+            allocation = create_initial_allocation(netlist, n_rows, n_cols, cell_shape)
+        else:  # n_iter > 0
+            assert allocation is not None  # Assertion to suppress Mypy error (should never happen)
+            if allocation.must_be_refined(threshold):
+                allocation = allocation.refine(threshold)
+            else:
+                break
+
         netlist, allocation, dispersions = optimize_allocation(netlist, allocation, alpha, verbose)
 
         if plot_name is not None:
@@ -317,11 +265,13 @@ def refine_and_optimize_allocation(netlist: Netlist, allocation: Allocation,
 
         n_iter += 1
 
+    assert allocation is not None  # Assertion to suppress Mypy error (should never happen)
     return netlist, allocation
 
 
 def main(prog: str | None = None, args: list[str] | None = None):
     """Main function."""
+
     options = parse_options(prog, args)
 
     # Initial netlist
@@ -336,31 +286,34 @@ def main(prog: str | None = None, args: list[str] | None = None):
     assert n_rows > 0 and n_cols > 0, "The number of rows and columns of the grid must be positive"
     cell_shape = Shape(die_shape.w / n_cols, die_shape.h / n_rows)
 
-    alpha = options["alpha"]
+    alpha: bool = options["alpha"]
     assert 0 <= alpha <= 1, "alpha must be between 0 and 1"
 
-    threshold = options["threshold"]
+    threshold: float = options["threshold"]
     assert 0 <= threshold <= 1, "threshold must be between 0 and 1"
 
-    max_iter = options["max_iter"]
+    max_iter: int = options["max_iter"]
     assert max_iter > 0, "The maximum number of iterations must be positive"
 
-    verbose = options["verbose"]
+    verbose: bool = options["verbose"]
+    plot_name: str = options["plot"]
+    simple_plot: bool = options["simple_plot"]
+
     start_time = 0.0
     if verbose:
         start_time = time()
-    netlist, allocation = calculate_initial_allocation(netlist, n_rows, n_cols, cell_shape, alpha,
-                                                       verbose, options["plot"], options["simple_plot"])
-    netlist, allocation = refine_and_optimize_allocation(netlist, allocation, threshold, alpha, max_iter,
-                                                         options["verbose"], options["plot"], options["simple_plot"])
-    if verbose:
-        print(f"Elapsed time: {time() - start_time:.3f}s")
 
-    out_netlist_file = options["out_netlist"]
+    netlist, allocation = glbfloor(netlist, n_rows, n_cols, cell_shape, threshold, alpha, max_iter,
+                                   verbose, plot_name, simple_plot)
+
+    if verbose:
+        print(f"Elapsed time: {time() - start_time:.3f} s")
+
+    out_netlist_file: str | None = options["out_netlist"]
     if out_netlist_file is not None:
         netlist.write_yaml(out_netlist_file)
 
-    out_allocation_file = options["out_allocation"]
+    out_allocation_file: str | None = options["out_allocation"]
     if out_allocation_file is not None:
         allocation.write_yaml(out_allocation_file)
 
