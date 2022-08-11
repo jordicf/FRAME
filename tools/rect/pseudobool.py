@@ -1,7 +1,6 @@
 import collections
 import typing
 
-
 AddTerm = str | int | float | object
 
 
@@ -292,30 +291,49 @@ class Ineq:
         if self.op == ">=":
             if not coefficientdecomposition:
                 data = (lst, self.rhs)
-                bccond = lambda x: maxsum(x[0]) < x[1] or x[1] <= 0
-                bcconstr = \
-                    lambda x: 1 if x[1] <= 0 else 0
-                dvar = lambda x: x[0][0].L.v
-                ifprop = \
-                    lambda x: (x[0][1:], x[1] - x[0][0].c if x[0][0].L.s else x[1])
-                elprop = \
-                    lambda x: (x[0][1:], x[1] if x[0][0].L.s else x[1] - x[0][0].c)
-                serdat = \
-                    lambda x: ",".join(map(lambda y: y.tostr(), x[0])) + ";" + str(x[1])
+
+                def bccond(x):
+                    return maxsum(x[0]) < x[1] or x[1] <= 0
+
+                def bcconstr(x):
+                    return 1 if x[1] <= 0 else 0
+
+                def dvar(x):
+                    return x[0][0].L.v
+
+                def ifprop(x):
+                    return x[0][1:], x[1] - x[0][0].c if x[0][0].L.s else x[1]
+
+                def elprop(x):
+                    return x[0][1:], x[1] if x[0][0].L.s else x[1] - x[0][0].c
+
+                def serdat(x):
+                    return ",".join(map(lambda y: y.tostr(), x[0])) + ";" + str(x[1])
+
                 return constructrobdd(data, bccond, bcconstr, dvar, ifprop, elprop, serdat)
             else:
                 data = (lst, self.rhs)
-                bccond = lambda x: maxsum(x[0]) < x[1] or x[1] <= 0
-                bcconstr = lambda x: 1 if x[1] <= 0 else 0
-                dvar = lambda x: x[0][0].L.v
-                ifprop = \
-                    lambda x: (insert(x[0][1:], Term(x[0][0].L, x[0][0].c - largebit(x[0][0].c))),
-                               x[1] - largebit(x[0][0].c) if x[0][0].L.s else x[1])
-                elprop = \
-                    lambda x: (insert(x[0][1:], Term(x[0][0].L, x[0][0].c - largebit(x[0][0].c))),
-                               x[1] if x[0][0].L.s else x[1] - largebit(x[0][0].c))
-                serdat = \
-                    lambda x: ",".join(map(lambda y: y.tostr(), x[0])) + ";" + str(x[1])
+
+                def bccond(x):
+                    return maxsum(x[0]) < x[1] or x[1] <= 0
+
+                def bcconstr(x):
+                    return 1 if x[1] <= 0 else 0
+
+                def dvar(x):
+                    return x[0][0].L.v
+
+                def ifprop(x):
+                    return (insert(x[0][1:], Term(x[0][0].L, x[0][0].c - largebit(x[0][0].c))),
+                            x[1] - largebit(x[0][0].c) if x[0][0].L.s else x[1])
+
+                def elprop(x):
+                    return (insert(x[0][1:], Term(x[0][0].L, x[0][0].c - largebit(x[0][0].c))),
+                            x[1] if x[0][0].L.s else x[1] - largebit(x[0][0].c))
+
+                def serdat(x):
+                    return ",".join(map(lambda y: y.tostr(), x[0])) + ";" + str(x[1])
+
                 return constructrobdd(data, bccond, bcconstr, dvar, ifprop, elprop, serdat)
         else:
             raise Exception("Not implemented yet.")
@@ -325,6 +343,8 @@ memory: list[int | tuple[(str | int), int, int]] = [0, 1]
 mmap: dict[int | tuple[(str | int), int, int], int] = {}
 
 T = typing.TypeVar('T')
+
+
 def constructrobdd(data: typing.Any, bccond: typing.Callable[[T], bool], bcconstr: typing.Callable[[T], int],
                    dvar: typing.Callable[[T], str | int], ifprop: typing.Callable[[T], T],
                    elprop: typing.Callable[[T], T], serdat: typing.Callable[[T], str],
