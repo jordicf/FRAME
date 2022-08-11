@@ -1,6 +1,6 @@
 import typing
 from argparse import ArgumentParser
-from rect_io import get_ifile, getfile, selectbox
+from tools.rect.rect_io import get_ifile, getfile, selectbox
 
 
 def parse_options(prog: str | None = None, args: list[str] | None = None) -> dict[str, typing.Any]:

@@ -1,7 +1,7 @@
 import unittest
 
-import pseudobool
-import satmanager
+import tools.rect.pseudobool as pseudobool
+import tools.rect.satmanager as satmanager
 
 
 def exactlyone(sm: satmanager.SATManager, lst: list[pseudobool.Literal]):

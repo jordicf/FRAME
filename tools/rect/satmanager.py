@@ -1,6 +1,6 @@
 import subprocess
 
-from pseudobool import Literal, Expr, Ineq, memory
+from tools.rect.pseudobool import Literal, Expr, Ineq, memory
 
 
 class SATManager:
@@ -71,13 +71,16 @@ class SATManager:
                 self.clauses.append([pnode])
             else:
                 robdd = memory[robdd_id]
-                self._codifyrobdd(robdd[1])
-                self._codifyrobdd(robdd[2])
-                dvar = self.newvar(robdd[0], "")
-                inode = self.newvar(robdd[1], "robdd_")
-                enode = self.newvar(robdd[2], "robdd_")
-                self.clauses.append([-pnode, -dvar, inode])
-                self.clauses.append([-pnode, dvar, enode])
+                if isinstance(robdd, tuple):
+                    self._codifyrobdd(robdd[1])
+                    self._codifyrobdd(robdd[2])
+                    dvar = self.newvar(robdd[0], "")
+                    inode = self.newvar(robdd[1], "robdd_")
+                    enode = self.newvar(robdd[2], "robdd_")
+                    self.clauses.append([-pnode, -dvar, inode])
+                    self.clauses.append([-pnode, dvar, enode])
+                else:
+                    raise Exception("ROBDD index " + str(robdd_id) + " should be a tuple but it's not!")
 
     def pseudoboolencoding(self, ineq: Ineq, coefficientdecomposition: bool = False) -> None:
         if ineq.isclause():

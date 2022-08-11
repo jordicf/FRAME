@@ -28,7 +28,7 @@ def getfile(input_problem: InputProblem, ifile, f: float) -> str:
 def get_ifile(fname: str):
     test = Allocation(fname)
     obj = {'Width': test.bounding_box.shape.w, 'Height': test.bounding_box.shape.h, 'Rectangles': []}
-    rectangles: list[IFileBox] = []
+    rectangle_list: list[IFileBox] = []
     for i in range(0, len(test.allocations)):
         b: RectAlloc = test.allocations[i]
         x, y, w, h = b.rect.center.x, b.rect.center.y, b.rect.shape.w, b.rect.shape.h
@@ -36,9 +36,10 @@ def get_ifile(fname: str):
         item2 = b.alloc
         dim: IFileTerm = {'dim': item1}
         mod: IFileTerm = {'mod': list(map(lambda q: {q: item2[q]}, item2))}
-        robj = {'b' + str(i): [dim, mod]}
-        rectangles.append(robj)
-    obj['Rectangles'] = rectangles
+        lst: list[IFileTerm] = [dim, mod]
+        rob: IFileBox = {f"b{str(i)}": lst}
+        rectangle_list.append(rob)
+    obj['Rectangles'] = rectangle_list
     return obj
 
 

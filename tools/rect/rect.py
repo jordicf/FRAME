@@ -7,13 +7,13 @@ adjacent rectangles.
 import subprocess
 from argparse import ArgumentParser
 
-import pseudobool
-import satmanager
+import tools.rect.pseudobool as pseudobool
+import tools.rect.satmanager as satmanager
 import typing
-from rect_io import get_ifile, getfile, selectbox
+from tools.rect.rect_io import get_ifile, getfile, selectbox
 
 from frame.utils.utils import write_yaml
-from canvas import Canvas, colmix
+from tools.rect.canvas import Canvas, colmix
 
 # Custom types
 SimpleBox = tuple[float, float, float, float]
@@ -191,33 +191,44 @@ def solve(carrier: Carrier,
     if not sm.solve():
         print("Insat")
         return (0, 1), []
-    print("Selected area:    " + str(float(sm.evalexpr(selarea)) / float(factor)))
-    print("Real area:        " + str(float(sm.evalexpr(realarea)) / float(factor)))
-    print("Theoretical area: " + str(theoretical_best_area / float(factor)))
-    print("Error objective:  " + str(sm.evalexpr(obj)))
 
-    rects = [(float('inf'), float('inf'), -float('inf'), -float('inf'))] * nboxes
-    for i in range(0, nboxes):
-        for b in blocks:
-            if sm.value(sm.newvar("b" + str(i) + "_" + str(b), "")) == 1:
-                (cx0, cy0, cx1, cy1) = rects[i]
-                (nx0, ny0, nx1, ny1, p) = input_problem[b]
-                if cx0 > nx0:
-                    cx0 = nx0
-                if cy0 > ny0:
-                    cy0 = ny0
-                if cx1 < nx1:
-                    cx1 = nx1
-                if cy1 < ny1:
-                    cy1 = ny1
-                rects[i] = (cx0, cy0, cx1, cy1)
+    sa = sm.evalexpr(selarea)
+    ra = sm.evalexpr(realarea)
 
-    # Min area approach
-    if ratio < 1:
-        return (int(sm.evalexpr(selarea) + 1), int(sm.evalexpr(realarea))), rects
-    # Min error approach
+    if isinstance(sa, float) and isinstance(ra, float):
+        print("Selected area:    " + str(float(sa) / float(factor)))
+        print("Real area:        " + str(float(ra) / float(factor)))
+        print("Theoretical area: " + str(theoretical_best_area / float(factor)))
+        print("Error objective:  " + str(sm.evalexpr(obj)))
+
+        rects = [(float('inf'), float('inf'), -float('inf'), -float('inf'))] * nboxes
+        for i in range(0, nboxes):
+            for b in blocks:
+                if sm.value(sm.newvar("b" + str(i) + "_" + str(b), "")) == 1:
+                    (cx0, cy0, cx1, cy1) = rects[i]
+                    (nx0, ny0, nx1, ny1, p) = input_problem[b]
+                    if cx0 > nx0:
+                        cx0 = nx0
+                    if cy0 > ny0:
+                        cy0 = ny0
+                    if cx1 < nx1:
+                        cx1 = nx1
+                    if cy1 < ny1:
+                        cy1 = ny1
+                    rects[i] = (cx0, cy0, cx1, cy1)
+
+        # Min area approach
+        if ratio < 1:
+            return (int(sa + 1), int(ra)), rects
+        # Min error approach
+        else:
+            o = sm.evalexpr(obj)
+            if isinstance(o, float):
+                return (int(o + 1), 1), rects
+            else:
+                raise Exception("No solution!!!")
     else:
-        return (int(sm.evalexpr(obj) + 1), 1), rects
+        raise Exception("No solution!!!")
 
 
 def area(carrier: Carrier, b: int | InputBox, sel: bool) -> float:
