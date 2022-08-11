@@ -3,7 +3,6 @@ import typing
 
 
 AddTerm = str | int | float | object
-ROBDDTerm = int | tuple[(str | int), int, int]
 
 
 class Literal:
@@ -322,8 +321,8 @@ class Ineq:
             raise Exception("Not implemented yet.")
 
 
-memory: list[ROBDDTerm] = [0, 1]
-mmap: dict[ROBDDTerm, int] = {}
+memory: list[int | tuple[(str | int), int, int]] = [0, 1]
+mmap: dict[int | tuple[(str | int), int, int], int] = {}
 
 T = typing.TypeVar('T')
 def constructrobdd(data: typing.Any, bccond: typing.Callable[[T], bool], bcconstr: typing.Callable[[T], int],
