@@ -8,6 +8,7 @@ Mods = list[Module]
 IFileTerm = dict[str, Dims | Mods]
 IFileBox = dict[str, list[IFileTerm]]
 
+
 def getfile(input_problem: InputProblem, ifile, f: float) -> str:
     """
     Outputs the input file for the greedy algorithm
