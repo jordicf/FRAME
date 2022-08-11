@@ -32,7 +32,8 @@ INSTALL_REQUIRES = [
     "gekko",
     "matplotlib",
     "distinctipy",
-    "Pillow"
+    "Pillow",
+    "types-Pillow"
 ]
 
 ENTRY_POINTS = {
