@@ -10,7 +10,7 @@ from argparse import ArgumentParser
 import pseudobool
 import satmanager
 import typing
-from rect_io import get_ifile, getfile, selectbox
+from tools.rect.rect_io import get_ifile, getfile, selectbox
 
 from frame.utils.utils import write_yaml
 from canvas import Canvas, colmix

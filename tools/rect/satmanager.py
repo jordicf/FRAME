@@ -1,6 +1,6 @@
 import subprocess
 
-from pseudobool import Literal, Expr, Ineq, memory
+from tools.rect.pseudobool import Literal, Expr, Ineq, memory
 
 
 class SATManager:
