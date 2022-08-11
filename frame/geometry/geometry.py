@@ -8,6 +8,8 @@ from dataclasses import dataclass
 from frame.utils.keywords import KW_FIXED, KW_CENTER, KW_SHAPE, KW_REGION, KW_NAME, KW_GROUND
 from frame.utils.utils import valid_identifier
 
+RectDescriptor = tuple[float, float, float, float]  # (x,y,w,h)
+
 
 class Point:
     """
@@ -204,7 +206,7 @@ class Rectangle:
         return Point(xmin, ymin), Point(xmax, ymax)
 
     @property
-    def vector_spec(self) -> tuple[float, float, float, float]:
+    def vector_spec(self) -> RectDescriptor:
         """Returns a vector specification of the rectangle [x, y, w, h]"""
         return self.center.x, self.center.y, self.shape.w, self.shape.h
 
@@ -265,7 +267,7 @@ class Rectangle:
         maxy = min(ur1.y, ur2.y)
         if miny >= maxy:
             return 0.0
-        return (maxx-minx)*(maxy-miny)
+        return (maxx - minx) * (maxy - miny)
 
     def __str__(self) -> str:
         """

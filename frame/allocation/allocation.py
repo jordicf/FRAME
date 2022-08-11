@@ -4,14 +4,13 @@ import math
 from dataclasses import dataclass
 
 from frame.netlist.netlist import Netlist
-from frame.geometry.geometry import Point, Shape, Rectangle, parse_yaml_rectangle
+from frame.geometry.geometry import Point, Shape, Rectangle, RectDescriptor, parse_yaml_rectangle
 from frame.utils.keywords import KW_CENTER, KW_SHAPE
 from frame.utils.utils import TextIO_String, read_yaml, write_yaml, YAML_tree, is_number, valid_identifier
 
 Alloc = dict[str, float]  # Allocation in a rectangle (area ratio for each module)
 
-RectDescriptor = tuple[float, float, float, float]  # (x,y,w,h)
-AllocDescriptor = tuple[RectDescriptor, Alloc, int]  # ([x,y,w,h], alloc, depth)
+AllocDescriptor = tuple[RectDescriptor, Alloc, int]  # ((x,y,w,h), alloc, depth)
 
 
 @dataclass()
