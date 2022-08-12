@@ -33,7 +33,8 @@ INSTALL_REQUIRES = [
     "matplotlib",
     "distinctipy",
     "Pillow",
-    "types-Pillow"
+    "types-Pillow",
+    "python-sat"
 ]
 
 ENTRY_POINTS = {

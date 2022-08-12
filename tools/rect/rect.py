@@ -195,7 +195,7 @@ def solve(carrier: Carrier,
     sa = sm.evalexpr(selarea)
     ra = sm.evalexpr(realarea)
 
-    if isinstance(sa, float) and isinstance(ra, float):
+    if isinstance(sa, int) and isinstance(ra, int):
         print("Selected area:    " + str(float(sa) / float(factor)))
         print("Real area:        " + str(float(ra) / float(factor)))
         print("Theoretical area: " + str(theoretical_best_area / float(factor)))
@@ -223,7 +223,7 @@ def solve(carrier: Carrier,
         # Min error approach
         else:
             o = sm.evalexpr(obj)
-            if isinstance(o, float):
+            if isinstance(o, int):
                 return (int(o + 1), 1), rects
             else:
                 raise Exception("No solution!!!")
@@ -231,7 +231,7 @@ def solve(carrier: Carrier,
         raise Exception("No solution!!!")
 
 
-def area(carrier: Carrier, b: int | InputBox, sel: bool) -> float:
+def area(carrier: Carrier, b: int | InputBox, sel: bool) -> int:
     """
     Returns the area of box b
     :param carrier: The input_problem and factor variable carrier
@@ -246,8 +246,8 @@ def area(carrier: Carrier, b: int | InputBox, sel: bool) -> float:
     else:
         raise Exception("Invalid type")
     if sel:
-        return carrier.factor * p * (x2 - x1) * (y2 - y1)
-    return carrier.factor * (x2 - x1) * (y2 - y1)
+        return int(carrier.factor * p * (x2 - x1) * (y2 - y1))
+    return int(carrier.factor * (x2 - x1) * (y2 - y1))
 
 
 def fstr_to_tuple(carrier: Carrier, p: str, f: float) -> tuple[int, int]:

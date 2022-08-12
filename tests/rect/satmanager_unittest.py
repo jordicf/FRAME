@@ -4,7 +4,7 @@ import tools.rect.pseudobool as pseudobool
 import tools.rect.satmanager as satmanager
 
 
-def exactlyone(sm: satmanager.SATManager, lst: list[pseudobool.Literal]):
+def exactly_one(sm: satmanager.SATManager, lst: list[pseudobool.Literal]):
     e = pseudobool.Expr()
     for i in lst:
         e = e + i
@@ -13,7 +13,7 @@ def exactlyone(sm: satmanager.SATManager, lst: list[pseudobool.Literal]):
     return e
 
 
-def alldifferent(lst: list[int]):
+def check_all_different(lst: list[int]):
     for i in lst:
         if lst.count(i) != 1:
             return False
@@ -25,9 +25,9 @@ class TestSAT(unittest.TestCase):
     def test_atmostone(self):
         sm = satmanager.SATManager()
         lst = []
-        for i in range(0, 100):
+        for i in range(0, 10):
             lst.append(sm.newvar(str(i)))
-        e1 = exactlyone(sm, lst)
+        e1 = exactly_one(sm, lst)
         self.assertTrue(sm.solve())
         res = sm.evalexpr(e1)
         self.assertEqual(res, 1)
@@ -53,16 +53,16 @@ class TestSAT(unittest.TestCase):
         for i in cord:
             for j in cord:
                 # Every cell has exactly one number
-                exactlyone(sm, [table[i][j][k] for k in cord])
+                exactly_one(sm, [table[i][j][k] for k in cord])
                 # Numbers do not repeat on each row
-                exactlyone(sm, [table[i][k][j] for k in cord])
+                exactly_one(sm, [table[i][k][j] for k in cord])
                 # Numbers do not repeat on each column
-                exactlyone(sm, [table[k][i][j] for k in cord])
+                exactly_one(sm, [table[k][i][j] for k in cord])
         for i in range(0, size):
             for j in range(0, size):
                 for k in cord:
                     # Numbers do not repeat on each quadrant
-                    exactlyone(sm, [table[size * i + k1][size * j + k2][k] for k2 in range(0, size) for k1 in
+                    exactly_one(sm, [table[size * i + k1][size * j + k2][k] for k2 in range(0, size) for k1 in
                                     range(0, size)])
 
         # Solving the sudoku
@@ -85,14 +85,15 @@ class TestSAT(unittest.TestCase):
         # Verifying the correctness
         for i in cord:
             # Numbers do not repeat on each row
-            self.assertTrue(alldifferent([sol[i][j] for j in cord]))
+            self.assertTrue(check_all_different([sol[i][j] for j in cord]))
             # Numbers do not repeat on each column
-            self.assertTrue(alldifferent([sol[j][i] for j in cord]))
+            self.assertTrue(check_all_different([sol[j][i] for j in cord]))
         for i in range(0, size):
             for j in range(0, size):
                 # Numbers do not repeat on each quadrant
                 self.assertTrue(
-                    alldifferent([sol[size * i + k1][size * j + k2] for k2 in range(0, size) for k1 in range(0, size)]))
+                    check_all_different([sol[size * i + k1][size * j + k2] for k2 in range(0, size) for k1 in
+                                         range(0, size)]))
 
 
 if __name__ == '__main__':

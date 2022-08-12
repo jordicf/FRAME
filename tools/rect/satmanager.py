@@ -1,18 +1,24 @@
-import subprocess
-
 from tools.rect.pseudobool import Literal, Expr, Ineq, memory
+from pysat.solvers import Solver
+
+
+Clause = list[Literal]
 
 
 class SATManager:
     def __init__(self) -> None:
+        self.solver:   Solver = Solver()
         self.ttable:   dict[str, int] = {}
         self.tcount:   int = 1
         self.vtable:   list[str] = ['0']
         self.auxcount: int = 0
-        self.clauses:  list[list[Literal]] = []
+        self.clauses:  list[Clause] = []
         self.model:    dict[str, int] = {}
         self.codified: dict[int, bool] = {}
         self.flipped:  dict[str, bool] = {}
+
+    def add_clause(self, clause: Clause) -> None:
+        self.clauses.append(clause)
 
     def newvar(self, name: int | float | str, pre: str = "def_") -> Literal:
         vname = pre + str(name)
@@ -40,7 +46,7 @@ class SATManager:
     def quadraticencoding(self, lst: list[Literal]) -> None:  # At most 1 constraint
         for i in range(0, len(lst)):
             for j in range(i + 1, len(lst)):
-                self.clauses.append([-lst[i], -lst[j]])
+                self.add_clause([-lst[i], -lst[j]])
 
     def heuleencoding(self, lst: list[Literal], k: int = 3) -> None:  # At most 1 constraint
         if k < 3:
@@ -59,16 +65,16 @@ class SATManager:
     def imply(self, list1: list[Literal], l2: Literal) -> None:  # l1 -> l2
         lst = list(map(lambda x: -x, list1))
         lst.append(l2)
-        self.clauses.append(lst)
+        self.add_clause(lst)
 
     def _codifyrobdd(self, robdd_id: int) -> None:
         if robdd_id not in self.codified:
             self.codified[robdd_id] = True
             pnode = self.newvar(robdd_id, "robdd_")
             if robdd_id == 0:
-                self.clauses.append([-pnode])
+                self.add_clause([-pnode])
             elif robdd_id == 1:
-                self.clauses.append([pnode])
+                self.add_clause([pnode])
             else:
                 robdd = memory[robdd_id]
                 if isinstance(robdd, tuple):
@@ -77,19 +83,19 @@ class SATManager:
                     dvar = self.newvar(robdd[0], "")
                     inode = self.newvar(robdd[1], "robdd_")
                     enode = self.newvar(robdd[2], "robdd_")
-                    self.clauses.append([-pnode, -dvar, inode])
-                    self.clauses.append([-pnode, dvar, enode])
+                    self.add_clause([-pnode, -dvar, inode])
+                    self.add_clause([-pnode, dvar, enode])
                 else:
                     raise Exception("ROBDD index " + str(robdd_id) + " should be a tuple but it's not!")
 
     def pseudoboolencoding(self, ineq: Ineq, coefficientdecomposition: bool = False) -> None:
         if ineq.isclause():
             if ineq.clause is not None:
-                self.clauses.append(ineq.clause)
+                self.add_clause(ineq.clause)
         else:
             robdd = ineq.getrobdd(coefficientdecomposition)
             self._codifyrobdd(robdd)
-            self.clauses.append([self.newvar(robdd, "robdd_")])
+            self.add_clause([self.newvar(robdd, "robdd_")])
 
     def printclauses(self) -> None:
         for c in self.clauses:
@@ -139,28 +145,25 @@ class SATManager:
             i = i + 1
 
     def solve(self) -> bool:
-        out = self.tocnf()
-        file = open("tmp.cnf", "w")
-        file.write(out)
-        file.close()
-        run = subprocess.Popen(["bash"], stdin=subprocess.PIPE, stdout=subprocess.PIPE, bufsize=32)
-        run.communicate(input=b'minisat ./tmp.cnf ./output.out\n')
-        run.wait()
-        file = open("output.out", "r")
-        fline = file.readline()
-        if fline == "SAT\n":
+        # Wipe the solver clean
+        self.solver = Solver()
+
+        # Define the model again
+        for clause in self.clauses:
+            c: list[int] = list(map(
+                lambda x: - self.ttable[x.v] if x.s == self.isflipped(x.v) else self.ttable[x.v], clause))
+            self.solver.add_clause(c)
+        if self.solver.solve():
             arr = [0] * self.tcount
-            while fline:
-                fline = str(file.readline())
-                for word in fline.split():
-                    if word[0] == '-':
-                        arr[int(word[1:])] = 0
-                    else:
-                        arr[int(word)] = 1
+            mod = self.solver.get_model()
+            for i in range(0, len(mod)):
+                word = mod[i]
+                if word < 0:
+                    arr[-word] = 0
+                else:
+                    arr[word] = 1
             for v in self.ttable:
                 self.model[v] = arr[self.ttable[v]]
-            file.close()
             return True
         else:
-            file.close()
             return False
