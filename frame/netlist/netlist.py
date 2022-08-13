@@ -47,6 +47,8 @@ class Netlist:
             assert e.weight > 0, f'Incorrect edge weight {e.weight}'
             self._edges.append(HyperEdge(modules, e.weight))
 
+        self._create_rectangles()
+
     @property
     def num_modules(self) -> int:
         """Number of modules of the netlist"""
@@ -139,6 +141,15 @@ class Netlist:
 
     def _create_rectangles(self) -> None:
         """
-        Creates the list of rectangles of the netlist
+        Creates the list of rectangles of the netlist. For fixed nodes without rectangles,
+        it creates a square.
         """
+        # Check that all fixed nodes have either a center or a rectangle
+        for m in self.modules:
+            assert not m.fixed or m.center is not None or m.num_rectangles > 0,\
+                f'Module {m.name} is fixed and has neither center nor rectangles'
+            if m.fixed and m.num_rectangles == 0:
+                m.create_square()
+            if m.num_rectangles > 0:
+                m.calculate_center_from_rectangles()
         self._rectangles = [r for b in self.modules for r in b.rectangles]

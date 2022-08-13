@@ -10,55 +10,87 @@ from frame.utils.utils import Vector, Matrix
 from .spectral_types import AdjEdge, AdjList
 
 
-def spectral_layout_unit_square(adj: AdjList, mass: Vector, dim: int = 2) -> Matrix:
+def spectral_layout_unit_square(adj: AdjList, mass: Vector, size: Vector, dim, fixed: Matrix) \
+        -> tuple[Matrix, float, list[int]]:
     """
     Computes a spectral layout of a graph in the square [+/-1,+/-1]
     :param adj: adjacency list (a list of edges for every node). Nodes are numbered from 0 to len(adj)-1
     :param mass: mass (size) of each node
+    :param size: length of each dimension (usually width and height)
     :param dim: number of dimensions of the layout
-    :return: a matrix dim x nodes. Each vector represents the coordinates of one of the dimensions for each node
+    :param fixed: a matrix with the coordinates of the fixed nodes. If the coordinates are negative, the nodes
+                  are floating
+    :return: a matrix dim x nodes. Each vector represents the coordinates of one of the dimensions for each node.
+             It also returns the total wirelength and the number of iterations used for each dimension
     """
     # print("Adj =", adj)
     # print("Mass =", mass)
     dim += 1
-    epsilon = 1e-3
-    one_minus_epsilon: float = 1 - epsilon  # tolerance for convergence
+    new_size = [2.0] + size
     n = len(adj)  # number of nodes
-    degree: Vector = [sum([e.weight for e in adj[i]]) for i in range(n)]  # degree of each node (sum of edge weights)
-    # Initial random coordinates for the nodes
-    coord: Matrix = [[random.uniform(-1, 1) for _ in range(n)] for _ in range(dim)]
-    sum_mass = sum(mass)
-    mass_factor = n / sum_mass
-    scaled_mass: Vector = [mass_factor * x for x in mass]
-    coord[0] = [1 / math.sqrt(n)] * n
+    epsilon = max(size) * n * 1e-10
+    one_minus_epsilon: float = 1 - epsilon  # tolerance for convergence
+    degree = [sum([e.weight for e in adj[i]]) for i in range(n)]  # degree of each node (sum of edge weights)
+    radius = [math.sqrt(mass[i] / math.pi) for i in range(n)]  # radius of each node, assuming it is a circle
+    max_span = [[new_size[d] / 2 - radius[i] for i in range(n)] for d in
+                range(dim)]  # max span of each node in each dimension
+    # Initial random coordinates for the nodes (always inside the die)
+    coord: Matrix = [[random.uniform(-max_span[d][i], max_span[d][i]) for i in range(n)] for d in range(dim)]
+    coord[0] = [1] * n
 
-    for k in range(1, dim):
-        normalize(coord[k], scaled_mass)
+    # Fixed coordinates
+    is_fixed: list[bool] = [x >= 0 for x in fixed[0]]
+    # Apply the fixed coordinates (center the coordinates)
+    for i in range(n):
+        if is_fixed[i]:
+            for d in range(1, dim):
+                coord[d][i] = fixed[d - 1][i] - new_size[d] / 2
+
+    float_mass = [0 if is_fixed[i] else mass[i] for i in range(n)]
+
+    iterations = []
+    for d in range(1, dim):
+        # Apply the fixed coordinates
+        normalize_die(coord[d], max_span[d], is_fixed)
         dotprod = 0.0
         num_iter = 0
         # Add a limit of iterations to reduce the CPU time
-        while dotprod < one_minus_epsilon and num_iter < 100:
-            # print("  Iter =", num_iter)
+        while (dotprod < one_minus_epsilon or dotprod > 1 + epsilon) and num_iter < 10000:
+            # print("  Iter =", d, num_iter)
             num_iter += 1
-            # print("  Normalized (K =", k, "):", coord[k])
-            orthogonalize(coord, degree, scaled_mass, k)  # Orthogonalize coord[k] wrt to the other coordinates
-            # print("  Orthogonalized (K =", k, "):", coord[k])
-            new_coord = calculate_centroids(adj, coord[k], degree)
-            # print("  Centroids (K =", k, "):", new_coord)
+            # print("  Normalized (D =", d, "):", coord[d])
+            orthogonalize(coord, float_mass, d, is_fixed)  # Orthogonalize coord[d] wrt to the other coordinates
+            # print("  Orthogonalized (D =", d, "):", coord[k])
+            tmp_coord = calculate_centroids(adj, coord[d], degree)
+            # Keep the fixed coordinates
+            new_coord = [coord[d][i] if is_fixed[i] else tmp_coord[i] for i in range(n)]
+            # print("  Centroids (D =", d, "):", new_coord)
             # Sanity check (not all nodes in the same place). If so, a more modest move is done
             # print("diff =", max(new_coord) - min(new_coord))
             # assert max(new_coord) - min(new_coord) > epsilon
             if max(new_coord) - min(new_coord) < epsilon:
                 # new_coord = [random.uniform(-1, 1) for i in range(n)]
-                new_coord = [0.5 * (new_coord[i] + coord[k][i]) for i in range(n)]
-            normalize(new_coord, scaled_mass)
-            dotprod = abs(dot_product(coord[k], new_coord, scaled_mass))
+                new_coord = [0.5 * (new_coord[i] + coord[d][i]) for i in range(n)]
+            normalize_die(new_coord, max_span[d], is_fixed)
+            dotprod = abs_norm_dot_product(coord[d], new_coord, float_mass)
             # print("    Dotprod =", dotprod)
-            coord[k] = new_coord
+            coord[d] = new_coord
+        iterations.append(num_iter)
         # print("Num iters =", num_iter)
-        make_canonical(coord[k])
+        # make_canonical(coord[k])
     # print("Coord unit =", coord[1:dim])
-    return coord[1:dim]
+    final_coord = coord[1:dim]
+    return final_coord, wirelength(adj, final_coord), iterations
+
+
+def wirelength(adj: AdjList, coord: Matrix) -> float:
+    """Returns the Manhattan wirelength"""
+    ndim, nmod = len(coord), len(coord[0])
+    total = 0.0
+    for i in range(nmod):
+        for e in adj[i]:
+            total += e.weight * sum(abs(coord[d][e.node] - coord[d][i]) for d in range(ndim))
+    return total / 2
 
 
 def normalize(x: Vector, mass: Vector) -> None:
@@ -70,6 +102,20 @@ def normalize(x: Vector, mass: Vector) -> None:
     norm = calculate_norm(x, mass)
     for i in range(len(x)):
         x[i] /= norm
+
+
+def normalize_die(x: Vector, max_span: Vector, is_fixed: list[bool]) -> None:
+    """
+    Normalizes a vector by scaling the coordinates such that they fit inside the die.
+    The normalization is done in-place
+    :param x: the vector to be normalized
+    :param max_span: the maximum span of each node
+    :param is_fixed: indicates which nodes are fixed
+    """
+    scale = min(max_span[i] / abs(x[i]) for i in range(len(x)) if not is_fixed[i] and abs(x[i]) > 10e-10)
+    for i in range(len(x)):
+        if not is_fixed[i]:
+            x[i] *= scale
 
 
 def calculate_norm(x: Vector, mass: Vector) -> float:
@@ -85,23 +131,28 @@ def calculate_norm(x: Vector, mass: Vector) -> float:
     return math.sqrt(s)
 
 
-def orthogonalize(coord: Matrix, degree: Vector, mass: Vector, dim: int = 2) -> None:
+def orthogonalize(coord: Matrix, mass: Vector, dim: int, is_fixed: list[bool]) -> None:
     """
     Orthogonalizes coord[dim] with regard to coord[0..dim-1]. The orthogonalization is done in-place
     :param coord: coordinates of the nodes
-    :param degree: degree of each node
     :param mass: mass of each node
     :param dim: dimension to be orthogonalized
+    :param is_fixed: indicates which nodes are fixed
     """
-    n = len(degree)
+    n = len(mass)
     for k in range(dim):
         num, den = 0.0, 0.0
         for i in range(n):
-            tmp = degree[i] * coord[k][i] * mass[i]
-            num += coord[dim][i] * tmp
-            den += coord[k][i] * tmp
+            if not is_fixed[i]:
+                # tmp = degree[i] * coord[k][i] * mass[i]
+                tmp = coord[k][i] * mass[i]
+                num += coord[dim][i] * tmp
+                den += coord[k][i] * tmp
         factor = num / den
-        coord[dim] = [coord[dim][i] - factor * coord[k][i] for i in range(n)]
+        coord[dim] = [coord[dim][i] if is_fixed[i] else coord[dim][i] - factor * coord[k][i] for i in range(n)]
+        dotprod = abs_norm_dot_product(coord[dim], coord[k], mass)
+        assert dotprod < 10e-12
+        # print("dotprod =", dotprod)
 
 
 def calculate_centroids(adj: AdjList, coord: Vector, degree: Vector) -> Vector:
@@ -120,15 +171,17 @@ def calculate_centroids(adj: AdjList, coord: Vector, degree: Vector) -> Vector:
     return new_coord
 
 
-def dot_product(v1: Vector, v2: Vector, weight: Vector) -> float:
+def abs_norm_dot_product(v1: Vector, v2: Vector, weight: Vector) -> float:
     """
-    Returns the weighted dot product of two vectors
+    Returns the normalized weighted dot product of two vectors
     :param v1: first vector
     :param v2: second vector
     :param weight: weight of each element
-    :return: the weighted dot product
+    :return: the normalized weighted dot product
     """
-    return sum(weight[i] * v1[i] * v2[i] for i in range(len(v1)))
+    dotprod = sum(weight[i] * v1[i] * v2[i] for i in range(len(v1)))
+    norm = sum(weight[i] * v1[i] * v1[i] for i in range(len(v1)))
+    return abs(dotprod / norm)
 
 
 def make_canonical(coord: Vector) -> None:
@@ -142,55 +195,12 @@ def make_canonical(coord: Vector) -> None:
             coord[i] = -coord[i]
 
 
-def scale_coordinates(coord: Matrix, area: Vector, width: float, height: float) -> None:
-    """
-    Scales the coordinates to spread maximally in the die
-    :param coord: list of coordinates 
-    :param area: area of each node
-    :param width: width of the die
-    :param height: height of the die
-    """
-    radius = [math.sqrt(a / math.pi) for a in area]
-    n = len(area)
-    xmax = [coord[0][i] + radius[i] for i in range(n)]
-    xmin = [coord[0][i] - radius[i] for i in range(n)]
-    ymax = [coord[1][i] + radius[i] for i in range(n)]
-    ymin = [coord[1][i] - radius[i] for i in range(n)]
-    xspan = max(xmax) - min(xmin)
-    yspan = max(ymax) - min(ymin)
-    coordinates_wider = xspan > yspan
-    layout_wider = width > height
-
-    # Swap coordinates to have a smaller scaling
-    if coordinates_wider != layout_wider:
-        coord[0], coord[1] = coord[1], coord[0]
-        xmax, xmin, ymax, ymin = ymax, ymin, xmax, xmin
-        xspan, yspan = yspan, xspan
-
-    # Center the coordinates
-    xshift, yshift = max(xmax) - xspan / 2, max(ymax) - yspan / 2
-
-    for xcoord in coord[0], xmax, xmin:
-        for i, x in enumerate(xcoord):
-            xcoord[i] = x - xshift
-    for ycoord in coord[1], ymax, ymin:
-        for i, y in enumerate(ycoord):
-            ycoord[i] = y - yshift
-
-    # Expand the coordinates
-    w2, h2 = width / 2, height / 2
-    xfactor = min(abs((w2 - radius[i]) / coord[0][i]) for i in range(n))
-    yfactor = min(abs((h2 - radius[i]) / coord[1][i]) for i in range(n))
-    coord[0] = [x * xfactor + w2 for x in coord[0]]
-    coord[1] = [y * yfactor + h2 for y in coord[1]]
-
-
 def check_orthogonal(coord: Matrix, mass: Vector) -> Vector:
     dim = len(coord)
     prod = []
     for d1 in range(1, dim):
         for d2 in range(d1):
-            prod.append(dot_product(coord[d1], coord[d2], mass))
+            prod.append(abs_norm_dot_product(coord[d1], coord[d2], mass))
     return prod
 
 

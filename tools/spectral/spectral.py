@@ -4,14 +4,15 @@ proposed by Yehuda Koren in his paper 'Drawing Graphs by Eigenvectors: Theory an
 modified to incorporate the mass of each node. The mass is interpreted as the multiplicity of the node.
 """
 import argparse
+import math
 from typing import Any
 
 from frame.die.die import Die
 from frame.geometry.geometry import Point, Shape
 from frame.netlist.netlist import Netlist
-from frame.utils.utils import Vector, TextIO_String
+from frame.utils.utils import Vector, Matrix, TextIO_String
 from tools.spectral.spectral_types import AdjEdge, AdjList
-from tools.spectral.spectral_algorithm import spectral_layout_unit_square, scale_coordinates
+from tools.spectral.spectral_algorithm import spectral_layout_unit_square
 
 
 class Spectral(Netlist):
@@ -21,8 +22,10 @@ class Spectral(Netlist):
 
     _adj: AdjList  # Adjacency list
     _mass: Vector  # Mass (size) of each node in _G
+    _fixed_coord: Matrix  # A 2xn matrix with the fixed coordinates (negative if floating)
 
     def __init__(self, stream: TextIO_String):
+        """Constructor"""
         Netlist.__init__(self, stream)
         self._build_graph()
 
@@ -38,9 +41,15 @@ class Spectral(Netlist):
 
         # Number of nodes, including the centers of the hyperedges with more than two nodes
         nnodes = self.num_modules + sum(1 for e in self.edges if len(e.modules) > 2)
-        self._mass = [0.0] * nnodes  # List of masses (initially all zero)
-        for i, m in enumerate(self.modules):  # Only the masses of the non-fake nodes
-            self._mass[i] = m.area()
+        # Masses (0 for the centers of hyperedges)
+        self._mass = [m.area() for m in self.modules] + [0.0] * (nnodes - self.num_modules)
+
+        # Find the fixed modules
+        self._fixed_coord = [[-1.0] * nnodes, [-1.0] * nnodes]
+        for i, m in enumerate(self.modules):
+            if m.fixed:
+                assert m.center is not None
+                self._fixed_coord[0][i], self._fixed_coord[1][i] = m.center
 
         # Let us now create the adjacency list
         self._adj = [[] for _ in range(nnodes)]  # Adjacency list (list of lists)
@@ -60,18 +69,33 @@ class Spectral(Netlist):
                     self._adj[fake_node].append(AdjEdge(idx, e.weight))
                 fake_node += 1
 
-    def spectral_layout(self, shape: Shape) -> int:
+    def spectral_layout(self, shape: Shape, nfloorplans: int, verbose: bool) -> int:
         """
         Computes a spectral layout of a graph in the rectangle with ll=(0,0).
         It defines the center of the modules
         :param shape: shape of the die (width and height)
+        :param nfloorplans: number of generated floorplans
+        :param verbose: indicates whether some verbose information must be printed
         """
         assert len(self._mass) > 2, "Graph too small. Spectral layout needs more than 2 nodes."
-        coord = spectral_layout_unit_square(self._adj, self._mass, 3)
-        scale_coordinates(coord, self._mass, shape.w, shape.h)
+        best_wl = math.inf
+        best_coord = None
+        if verbose:
+            print("Spectral: verbose information")
+        for i in range(nfloorplans):
+            coord, wl, niter = spectral_layout_unit_square(self._adj, self._mass,
+                                                           [shape.w, shape.h], 2, self._fixed_coord)
+            if verbose:
+                print("{:3d}:".format(i), "  WL =", "{:7.3f}".format(wl),
+                      ", iterations(x,y) = (", niter[0], ",", niter[1], ")", sep='')
+            if wl < best_wl:
+                best_coord = coord
+                best_wl = wl
+
+        assert best_coord is not None
 
         for i, m in enumerate(self.modules):
-            m.center = Point(coord[0][i], coord[1][i])
+            m.center = Point(best_coord[0][i] + shape.w / 2, best_coord[1][i] + shape.h / 2)
 
         return 0
 
@@ -87,8 +111,11 @@ def parse_options(prog: str | None = None, args: list[str] | None = None) -> dic
                                      description="Compute the initial location for each module of the netlist using a "
                                                  "combination of spectral and force-directed methods.")
     parser.add_argument("netlist", help="input file (netlist)")
+    parser.add_argument("-v", "--verbose", action='store_true')
     parser.add_argument("-d", "--die", help="size of the die (width x height) or name of the file",
                         metavar="<width>x<height> or filename")
+    parser.add_argument("--bestof", type=int, default=5,
+                        help="Number of floorplans generated to select the best. Default: 5")
     parser.add_argument("-o", "--outfile", required=True, help="output file (netlist)")
     return vars(parser.parse_args(args))
 
@@ -107,7 +134,9 @@ def main(prog: str | None = None, args: list[str] | None = None) -> int:
 
     infile = options['netlist']
     netlist = Spectral(infile)
-    status = netlist.spectral_layout(die)
+    nfloorplans = options['bestof']
+    assert nfloorplans > 0, "The number of floorplans must be a positive integer"
+    status = netlist.spectral_layout(die, nfloorplans, options['verbose'])
     netlist.write_yaml(options['outfile'])
     return status
 
