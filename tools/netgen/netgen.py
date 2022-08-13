@@ -18,8 +18,9 @@ def parse_options(prog: str | None = None, args: list[str] | None = None) -> dic
     """
     parser = argparse.ArgumentParser(prog=prog, description="A netlist generator.", usage='%(prog)s [options]')
     parser.add_argument("-o", "--outfile", help="output file (netlist)", required=True)
-    parser.add_argument("--type", type=str, choices=['grid', 'chain', 'ring', 'star'], required=True,
-                        help="type of netlist (grid, chain, ring, star)")
+    parser.add_argument("--type", type=str,
+                        choices=['grid', 'chain', 'ring', 'star', 'ring-star', 'one-net', 'htree'], required=True,
+                        help="type of netlist (grid, chain, ring, star, ring-star, one-net, htree)")
     parser.add_argument("--size", type=int, nargs='+', required=True, help="size of the netlist")
     parser.add_argument("--add-centers", action="store_true",
                         help="add module centers (only supported for grid type, and requires to specify the die)")
@@ -57,6 +58,12 @@ def main(prog: str | None = None, args: list[str] | None = None) -> int:
         data = gen_ring(size[0], 1)
     elif net_type == 'star':
         data = gen_star(size[0], 1)
+    elif net_type == 'ring-star':
+        data = gen_ring_star(size[0], 1)
+    elif net_type == 'one-net':
+        data = gen_one_net(size[0], 1)
+    elif net_type == 'htree':
+        data = gen_htree(size[0], 1)
     else:
         assert False  # Should never happen
 
@@ -115,7 +122,7 @@ def gen_grid(rows: int, columns: int, area: float, add_centers: bool, die_shape:
     :param area: area of each module
     :param add_centers: if True, centers are added to the modules
     :param die_shape: the shape of the die used to calculate the centers when add_centers is True (else ignored)
-    :return: a dictionary of the modules
+    :return: a dictionary of the modules and the edges
     """
     modules = gen_modules(area, rows, columns, add_centers, die_shape)
     horiz_edges = [[module_name(r, c), module_name(r, c + 1)] for r in range(rows) for c in range(columns - 1)]
@@ -128,7 +135,7 @@ def gen_chain(n: int, area: float) -> dict[str, Any]:
     Generates the netlist of a chain
     :param n: number of modules
     :param area: area of each module
-    :return: a dictionary of the modules
+    :return: a dictionary of the modules and the edges
     """
     modules = gen_modules(area, n)
     edges = [[module_name(i), module_name(i + 1)] for i in range(n - 1)]
@@ -140,23 +147,98 @@ def gen_ring(n: int, area: float) -> dict[str, Any]:
     Generates the netlist of a ring
     :param n: number of modules
     :param area: area of each module
-    :return: a dictionary of the modules
+    :return: a dictionary of the modules and the edges
     """
     modules = gen_modules(area, n)
     edges = [[module_name(i), module_name((i + 1) % n)] for i in range(n)]
     return {KW_MODULES: modules, KW_NETS: edges}
 
 
-def gen_star(n: int, area: float) -> dict[str, Any]:
+def gen_one_net(n: int, area: float) -> dict[str, Any]:
     """
-    Generates the netlist of a star with only one net
+    Generates the netlist of a star with only one net that connects all nodes
     :param n: number of modules
     :param area: area of each module
-    :return: a dictionary of the modules
+    :return: a dictionary of the modules and the edges
     """
     modules = gen_modules(area, n)
     edges = [[module_name(i) for i in range(n)]]
     return {KW_MODULES: modules, KW_NETS: edges}
+
+
+def gen_star(n: int, area: float) -> dict[str, Any]:
+    """
+    Generates the netlist of a star with one node in the middle
+    :param n: total number of modules
+    :param area: area of each module
+    :return: a dictionary of the modules and the edges
+    """
+    modules = gen_modules(area, n)
+    edges = [[module_name(0), module_name(i)] for i in range(1, n)]
+    return {KW_MODULES: modules, KW_NETS: edges}
+
+
+def gen_ring_star(n: int, area: float) -> dict[str, Any]:
+    """
+    Generates the netlist of a ring, including one node in the middle connected to all the other nodes
+    :param n: total number of modules
+    :param area: area of each module
+    :return: a dictionary of the modules and the edges
+    """
+    modules = gen_modules(area, n)
+    edges_ring = [[module_name(i), module_name(i + 1)] for i in range(1, n - 1)] + [
+        [module_name(n - 1), module_name(1)]]
+    edge_star = [[module_name(0), module_name(i)] for i in range(1, n)]
+    return {KW_MODULES: modules, KW_NETS: edges_ring + edge_star}
+
+
+def gen_htree(nlevels: int, area: float) -> dict[str, Any]:
+    """
+    Generates an htree
+    :param nlevels: number of levels of the qtree
+    :param area: area of each module
+    :return: a dictionary of the modules and the edges
+    """
+    modules, edges, i = gen_htree_rec(nlevels, area, 1.0, 0)
+    return {KW_MODULES: modules, KW_NETS: edges}
+
+
+def gen_htree_rec(nlevels: int, area: float, weight: float, first_module: int)\
+        -> tuple[dict[str, Any], list[list[str | float]], int]:
+    """
+    Generates an htree
+    :param nlevels: number of levels of the htree
+    :param area: area of each module
+    :param weight: weight of the edges
+    :param first_module: index of the first_module 
+    :return: the dictionary of modules, the set of edges and the next available index for modules
+    """
+    assert nlevels > 0
+    name_center = module_name(first_module)
+    modules = {name_center: {KW_AREA: area}}
+    edges: list[list[str | float]] = []
+    if nlevels == 1:
+        return modules, [], first_module + 1
+
+    name_left, name_right = module_name(first_module + 1), module_name(first_module + 2)
+    modules[name_left] = {KW_AREA: area}
+    modules[name_right] = {KW_AREA: area}
+    edges.append([name_left, name_center, weight])
+    edges.append([name_right, name_center, weight])
+
+    i = first_module + 3
+    centers: list[int] = []
+    for _ in range(4):
+        centers.append(i)
+        edges.append([module_name(first_module), module_name(i), weight])
+        m, e, i = gen_htree_rec(nlevels - 1, area, 2*weight, i)
+        modules.update(m)
+        edges.extend(e)
+    edges.append([name_left, module_name(centers[0]), weight])
+    edges.append([name_left, module_name(centers[1]), weight])
+    edges.append([name_right, module_name(centers[2]), weight])
+    edges.append([name_right, module_name(centers[3]), weight])
+    return modules, edges, i
 
 
 if __name__ == "__main__":
