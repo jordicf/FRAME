@@ -23,7 +23,7 @@ def parse_options(prog: str | None = None, args: list[str] | None = None) -> dic
                                      description="...")  # TODO: write description
     parser.add_argument("netlist",
                         help="input file (netlist)")
-    parser.add_argument("-v", "--verbose", action=argparse.BooleanOptionalAction, default=False,
+    parser.add_argument("-v", "--verbose", action="store_true",
                         help="print the optimization logs and additional information")
     parser.add_argument("-d", "--die", metavar="<width>x<height> or filename", default="1x1",
                         help="size of the die (width x height) or name of the file")
@@ -39,7 +39,7 @@ def parse_options(prog: str | None = None, args: list[str] | None = None) -> dic
                              "be performed)")
     parser.add_argument("-p", "--plot",
                         help="plot name (if not present, no plots are produced)")
-    parser.add_argument("--simple-plot", action=argparse.BooleanOptionalAction, default=False,
+    parser.add_argument("--simple-plot", action="store_true",
                         help="simplify the plots by not including borders nor text annotations")
     parser.add_argument("--out-netlist",
                         help="output netlist file (if not present, no file is produced)")

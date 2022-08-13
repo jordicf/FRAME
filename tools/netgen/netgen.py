@@ -21,7 +21,7 @@ def parse_options(prog: str | None = None, args: list[str] | None = None) -> dic
     parser.add_argument("--type", type=str, choices=['grid', 'chain', 'ring', 'star'], required=True,
                         help="type of netlist (grid, chain, ring, star)")
     parser.add_argument("--size", type=int, nargs='+', required=True, help="size of the netlist")
-    parser.add_argument("--add-centers", action=argparse.BooleanOptionalAction, default=False,
+    parser.add_argument("--add-centers", action="store_true",
                         help="add module centers (only supported for grid type, and requires to specify the die)")
     parser.add_argument("-d", "--die", metavar="<width>x<height> or filename",
                         help="size of the die (width x height) or name of the file"
