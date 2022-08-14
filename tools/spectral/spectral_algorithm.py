@@ -7,7 +7,7 @@ modified to incorporate the mass of each node. The mass is interpreted as the mu
 import math
 import random
 from frame.utils.utils import Vector, Matrix
-from .spectral_types import AdjEdge, AdjList
+from .spectral_types import AdjList
 
 
 def spectral_layout_unit_square(adj: AdjList, mass: Vector, size: Vector, dim, fixed: Matrix) \
@@ -51,7 +51,7 @@ def spectral_layout_unit_square(adj: AdjList, mass: Vector, size: Vector, dim, f
     iterations = []
     for d in range(1, dim):
         # Apply the fixed coordinates
-        normalize_die(coord[d], max_span[d], is_fixed)
+        normalize(coord[d], max_span[d], is_fixed)
         dotprod = 0.0
         num_iter = 0
         # Add a limit of iterations to reduce the CPU time
@@ -71,7 +71,7 @@ def spectral_layout_unit_square(adj: AdjList, mass: Vector, size: Vector, dim, f
             if max(new_coord) - min(new_coord) < epsilon:
                 # new_coord = [random.uniform(-1, 1) for i in range(n)]
                 new_coord = [0.5 * (new_coord[i] + coord[d][i]) for i in range(n)]
-            normalize_die(new_coord, max_span[d], is_fixed)
+            normalize(new_coord, max_span[d], is_fixed)
             dotprod = abs_norm_dot_product(coord[d], new_coord, float_mass)
             # print("    Dotprod =", dotprod)
             coord[d] = new_coord
@@ -93,21 +93,10 @@ def wirelength(adj: AdjList, coord: Matrix) -> float:
     return total / 2
 
 
-def normalize(x: Vector, mass: Vector) -> None:
-    """
-    Normalizes a vector. The normalization is done in-place
-    :param x: the vector to be normalized
-    :param mass: the mass of each node
-    """
-    norm = calculate_norm(x, mass)
-    for i in range(len(x)):
-        x[i] /= norm
-
-
-def normalize_die(x: Vector, max_span: Vector, is_fixed: list[bool]) -> None:
+def normalize(x: Vector, max_span: Vector, is_fixed: list[bool]) -> None:
     """
     Normalizes a vector by scaling the coordinates such that they fit inside the die.
-    The normalization is done in-place
+    The normalization is done in-place. The fixed nodes are not modified
     :param x: the vector to be normalized
     :param max_span: the maximum span of each node
     :param is_fixed: indicates which nodes are fixed
@@ -116,19 +105,6 @@ def normalize_die(x: Vector, max_span: Vector, is_fixed: list[bool]) -> None:
     for i in range(len(x)):
         if not is_fixed[i]:
             x[i] *= scale
-
-
-def calculate_norm(x: Vector, mass: Vector) -> float:
-    """
-    Calculates the weighted norm of a vector
-    :param x: the vector
-    :param mass: the mass of each element
-    :return: the norm
-    """
-    s = 0.0
-    for i, v in enumerate(x):
-        s += v * v * mass[i]
-    return math.sqrt(s)
 
 
 def orthogonalize(coord: Matrix, mass: Vector, dim: int, is_fixed: list[bool]) -> None:
@@ -184,17 +160,6 @@ def abs_norm_dot_product(v1: Vector, v2: Vector, weight: Vector) -> float:
     return abs(dotprod / norm)
 
 
-def make_canonical(coord: Vector) -> None:
-    """
-    Guarantees a canonical solution: the first coordinate is always positive.
-    The canonicalization is done in place
-    :param coord: list of coordinates
-    """
-    if coord[0] < 0:
-        for i in range(len(coord)):
-            coord[i] = -coord[i]
-
-
 def check_orthogonal(coord: Matrix, mass: Vector) -> Vector:
     dim = len(coord)
     prod = []
@@ -203,73 +168,3 @@ def check_orthogonal(coord: Matrix, mass: Vector) -> Vector:
             prod.append(abs_norm_dot_product(coord[d1], coord[d2], mass))
     return prod
 
-
-def test_unbalancedsquare():
-    """
-    Test with four nodes connected as a square.
-    """
-    mass = [1.0] * 4
-    mass[0] = 100.0
-    adj = [[AdjEdge(1, 1), AdjEdge(3, 1)],
-           [AdjEdge(0, 1), AdjEdge(2, 1)],
-           [AdjEdge(1, 1), AdjEdge(3, 1)],
-           [AdjEdge(0, 1), AdjEdge(2, 1)]]
-    return adj, mass
-
-
-def test_square():
-    """
-    Test with four nodes connected as a square.
-    """
-    mass = [1] * 4
-    adj = [[AdjEdge(1, 1), AdjEdge(3, 1)],
-           [AdjEdge(0, 1), AdjEdge(2, 1)],
-           [AdjEdge(1, 1), AdjEdge(3, 1)],
-           [AdjEdge(0, 1), AdjEdge(2, 1)]]
-    return adj, mass
-
-
-def test_hypersquare():
-    """
-    Test with four nodes connected as a square.
-    """
-    mass = [1.0] * 5
-    # mass[4] = 0
-    adj = [[AdjEdge(1, 1), AdjEdge(4, 4)],
-           [AdjEdge(0, 1), AdjEdge(2, 1)],
-           [AdjEdge(1, 1), AdjEdge(3, 1)],
-           [AdjEdge(4, 4), AdjEdge(2, 1)],
-           [AdjEdge(3, 4), AdjEdge(0, 4)]]
-    return adj, mass
-
-
-def test_triangle():
-    mass = [1.0, 1.0, 1.0]
-    adj = [[AdjEdge(1, 1), AdjEdge(2, 1)],
-           [AdjEdge(0, 1), AdjEdge(2, 1)],
-           [AdjEdge(0, 1), AdjEdge(1, 1)]
-           ]
-    return adj, mass
-
-
-def test_chain(n):
-    mass = [1.0] * n
-    adj = [[AdjEdge(1, 1)]]
-    for i in range(1, n - 1):
-        adj.append([AdjEdge(i - 1, 1), AdjEdge(i + 1, 1)])
-    adj.append([AdjEdge(n - 2, 1)])
-    return adj, mass
-
-
-def test_ring(n):
-    mass = [1.0] * n
-    adj = []
-    for i in range(n):
-        adj.append([AdjEdge((i - 1) % n, 1), AdjEdge((i + 1) % n, 1)])
-    return adj, mass
-
-
-def test_2nodes():
-    mass = [2.0, 1.0]
-    adj = [[AdjEdge(1, 1)], [AdjEdge(0, 1)]]
-    return adj, mass

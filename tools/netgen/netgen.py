@@ -194,7 +194,7 @@ def gen_ring_star(n: int, area: float) -> dict[str, Any]:
 
 def gen_htree(nlevels: int, area: float) -> dict[str, Any]:
     """
-    Generates an htree
+    Generates a H-tree
     :param nlevels: number of levels of the qtree
     :param area: area of each module
     :return: a dictionary of the modules and the edges
@@ -206,7 +206,7 @@ def gen_htree(nlevels: int, area: float) -> dict[str, Any]:
 def gen_htree_rec(nlevels: int, area: float, weight: float, first_module: int)\
         -> tuple[dict[str, Any], list[list[str | float]], int]:
     """
-    Generates an htree
+    Generates a H-tree
     :param nlevels: number of levels of the htree
     :param area: area of each module
     :param weight: weight of the edges
