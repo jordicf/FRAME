@@ -24,7 +24,7 @@ class Scaling:
                 round(self.grid_height - p.y * self.scale_factor + self.y_offset))
 
 
-def plot_grid(netlist: Netlist, allocation: Allocation, dispersions: dict[str, float],
+def plot_grid(netlist: Netlist, allocation: Allocation, dispersions: dict[str, tuple[float, float]],
               suptitle: str | None = None, filename: str | None = None,
               simple_plot: bool = False, colormap_name: str = "Blues") -> None:
     """
@@ -83,7 +83,7 @@ def plot_grid(netlist: Netlist, allocation: Allocation, dispersions: dict[str, f
 
         if not simple_plot:
             draw.text((s.x_offset, s.y_offset + grid_height + margin / 2),
-                      f"{module.name}| A = {module.area():.2f} | D = {dispersions[module.name]:.2f}",
+                      f"{module.name}| A = {module.area():.2f} | D = {sum(dispersions[module.name]):.2f}",
                       anchor="ls", font=medium_font, fill="Black")
 
         s.x_offset += grid_width + margin
@@ -93,7 +93,8 @@ def plot_grid(netlist: Netlist, allocation: Allocation, dispersions: dict[str, f
             suptitle = ""
         else:
             suptitle += " | "
-        suptitle += f"Wire length = {netlist.wire_length:.2f} | Total dispersion = {sum(dispersions.values()):.2f}"
+        suptitle += f"Wire length = {netlist.wire_length:.2f} | " \
+                    f"Total dispersion = {sum(sum(d) for d in dispersions.values()):.2f}"
         draw.text((img.width / 2, 0), suptitle, anchor="ma", font=large_font, fill="Black")
 
     if filename is None:

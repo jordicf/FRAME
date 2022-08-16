@@ -95,19 +95,42 @@ def create_initial_allocation(netlist: Netlist, n_rows: int, n_cols: int, cell_s
     return Allocation(allocation_list).initial_allocation(netlist, include_area_zero=True)
 
 
-def optimize_allocation(netlist: Netlist, allocation: Allocation, alpha: float, verbose: bool = False) \
-        -> tuple[Netlist, Allocation, dict[str, float]]:
+def calculate_dispersions(netlist: Netlist, allocation: Allocation) -> dict[str, tuple[float, float]]:
+    """
+    Calculate the dispersions of the modules
+    :param netlist: netlist containing the modules with centroids initialized
+    :param allocation: the allocation of the modules
+    :return: a dictionary from module name to float pair which indicates the dispersion of each module in the
+    given netlist and allocation
+    """
+    dispersions = {}
+    for module in netlist.modules:
+        assert module.center is not None
+        dx, dy = 0.0, 0.0
+        for c, cell in enumerate(allocation.allocations):
+            area = cell.rect.area * allocation.allocation_module(module.name)[c].area
+            dx += area * (module.center.x - cell.rect.center.x)**2
+            dy += area * (module.center.y - cell.rect.center.y)**2
+        dispersions[module.name] = dx, dy
+    return dispersions
+
+
+def optimize_allocation(netlist: Netlist, allocation: Allocation, dispersions: dict[str, tuple[float, float]],
+                        alpha: float, verbose: bool = False) \
+        -> tuple[Netlist, Allocation, dict[str, tuple[float, float]]]:
     """
     Optimizes the given allocation to minimize the dispersion and the wire length of the floor plan
     :param netlist: netlist containing the modules with centroids initialized
     :param allocation: allocation to optimize
+    :param dispersions: a dictionary from module name to float pair which indicates the dispersion of each module in the
+    given netlist and allocation
     :param alpha: hyperparameter between 0 and 1 to control the balance between dispersion and wire length.
     Smaller values will reduce the dispersion and increase the wire length, and greater ones the other way around
     :param verbose: if True, the GEKKO optimization log is displayed
     :return: the optimal solution found:
     - netlist - netlist with the centroids of the modules updated
     - allocation - optimized allocation
-    - dispersions - a dictionary from module name to float which indicates the dispersion of each module
+    - dispersions - a dictionary from module name to float pair which indicates the dispersion of each module
     """
     n_modules = netlist.num_modules
     n_cells = allocation.num_rectangles
@@ -120,10 +143,6 @@ def optimize_allocation(netlist: Netlist, allocation: Allocation, alpha: float, 
     # Centroid of modules
     g.x = g.Array(g.Var, n_modules, lb=x_min, ub=x_max)
     g.y = g.Array(g.Var, n_modules, lb=y_min, ub=y_max)
-    for m, module in enumerate(netlist.modules):
-        center = module.center
-        assert center is not None
-        g.x[m].value, g.y[m].value = center  # Initial values
 
     # Dispersion of modules
     g.dx = g.Array(g.Var, n_modules, lb=0)
@@ -131,23 +150,36 @@ def optimize_allocation(netlist: Netlist, allocation: Allocation, alpha: float, 
 
     # Ratios of area of c used by module m
     g.a = g.Array(g.Var, (n_modules, n_cells), lb=0, ub=1)
-    for m, module in enumerate(netlist.modules):
-        for c in range(n_cells):
-            g.a[m][c].value = allocation.allocation_module(module.name)[c].area  # Initial values
 
-    # Make not refined cells and completed modules constant
+    # Set initial values
+    for m, module in enumerate(netlist.modules):
+        center = module.center
+        assert center is not None
+        g.x[m].value, g.y[m].value = center
+
+        g.dx[m].value, g.dy[m].value = dispersions[module.name]
+
+        for c in range(n_cells):
+            g.a[m][c].value = allocation.allocation_module(module.name)[c].area
+
+    # Make not refined or almost zero cells and fixed or completed modules constant
     max_refinement_depth = allocation.max_refinement_depth()
     for m, module in enumerate(netlist.modules):
         const_module = True
-        for c in range(n_cells):
-            a_mc_value = get_value(g.a[m][c])
-            if allocs[c].depth != max_refinement_depth or a_mc_value < 0.001:
-                g.a[m][c] = a_mc_value
-            elif const_module:
-                const_module = False
+        if not module.fixed:
+            for c in range(n_cells):
+                a_mc_value = get_value(g.a[m][c])
+                if allocs[c].depth != max_refinement_depth or a_mc_value < 0.001:
+                    g.a[m][c] = a_mc_value
+                elif const_module:
+                    const_module = False
         if const_module:
             g.x[m] = get_value(g.x[m])
             g.y[m] = get_value(g.y[m])
+            g.dx[m] = get_value(g.dx[m])
+            g.dy[m] = get_value(g.dy[m])
+            for c in range(n_cells):
+                g.a[m][c] = get_value(g.a[m][c])
 
     # Cell constraints
     for c in range(n_cells):
@@ -211,7 +243,7 @@ def optimize_allocation(netlist: Netlist, allocation: Allocation, alpha: float, 
     dispersions = {}
     for m, module in enumerate(netlist.modules):
         module.center = Point(get_value(g.x[m]), get_value(g.y[m]))
-        dispersions[module.name] = get_value(g.dx[m]) + get_value(g.dy[m])
+        dispersions[module.name] = get_value(g.dx[m]), get_value(g.dy[m])
 
     return netlist, allocation, dispersions
 
@@ -243,17 +275,21 @@ def glbfloor(netlist: Netlist, n_rows: int, n_cols: int, cell_shape: Shape,
     """
     n_iter = 0
     allocation = None
+    dispersions = None
     while max_iter is None or n_iter < max_iter:
         if n_iter == 0:
             allocation = create_initial_allocation(netlist, n_rows, n_cols, cell_shape)
+            dispersions = calculate_dispersions(netlist, allocation)
         else:  # n_iter > 0
-            assert allocation is not None  # Assertion to suppress Mypy error (should never happen)
+            # Assertion to suppress Mypy errors (should never happen)
+            assert allocation is not None and dispersions is not None
+
             if allocation.must_be_refined(threshold):
                 allocation = allocation.refine(threshold)
             else:
                 break
 
-        netlist, allocation, dispersions = optimize_allocation(netlist, allocation, alpha, verbose)
+        netlist, allocation, dispersions = optimize_allocation(netlist, allocation, dispersions, alpha, verbose)
 
         if plot_name is not None:
             plot_grid(netlist, allocation, dispersions,
