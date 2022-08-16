@@ -63,7 +63,7 @@ class TestSAT(unittest.TestCase):
                 for k in cord:
                     # Numbers do not repeat on each quadrant
                     exactly_one(sm, [table[size * i + k1][size * j + k2][k] for k2 in range(0, size) for k1 in
-                                    range(0, size)])
+                                     range(0, size)])
 
         # Solving the sudoku
         sm.solve()

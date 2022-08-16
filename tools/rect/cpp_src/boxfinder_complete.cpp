@@ -1,6 +1,10 @@
 #ifndef COMPLETE_CPP
 #define COMPLETE_CPP
 
+// For better compatibility
+#define and &&
+#define or ||
+
 #include <algorithm>
 #include <vector>
 #include <set> 
@@ -36,7 +40,7 @@ namespace complete {
 	typedef std::map< point, double > integral;
 	
 	
-	operator< (const quad & t1, const quad & t2){
+	bool operator< (const quad & t1, const quad & t2){
 		if(t1.x1 < t2.x1) return true;
 		if(t1.x1 > t2.x1) return false;
 		if(t1.y1 < t2.y1) return true;
@@ -47,14 +51,14 @@ namespace complete {
 	}
 	
 	
-	operator< (const vpoint & t1, const vpoint & t2){
+	bool operator< (const vpoint & t1, const vpoint & t2){
 		if(t1.x < t2.x) return true;
 		if(t1.x > t2.x) return false;
 		return t1.y < t2.y;
 	}
 	
 	
-	operator< (const hpoint & t1, const hpoint & t2){
+	bool operator< (const hpoint & t1, const hpoint & t2){
 		if(t1.y < t2.y) return true;
 		if(t1.y > t2.y) return false;
 		return t1.x < t2.x;
@@ -81,7 +85,7 @@ namespace complete {
 		{
 			int ib = 0, ir = 0;
 			while(ib < Blocks.size()){
-				if(2 * ir < B.size() and B[2 * ir].x == Blocks[ib].x){
+				if( 2 * ir < B.size() and B[2 * ir].x == Blocks[ib].x){
 					++ib;
 				} else if(2 * ir < B.size() and B[2 * ir].x < Blocks[ib].x){
 					++ir;
@@ -129,7 +133,7 @@ namespace complete {
 					for(int itb2 = itb1 + 1; itb2 < TB.size() and TB[itb2].x <= xcap; ++itb2){
 						if(TB[itb1].x == TB[itb2].x or TB[itb2].x == lastx2) continue;
 						lastx2 = TB[itb2].x;
-						report_line_segment( (line_segment) { TB[itb1].x, TB[itb1].y, TB[itb2].x, TB[itb2].y }, S );
+						report_line_segment( complete::line_segment { TB[itb1].x, TB[itb1].y, TB[itb2].x, TB[itb2].y }, S );
 					}
 					++itb1;
 				}
@@ -144,7 +148,7 @@ namespace complete {
 					B3.push_back( B2[ib] );
 					++ib;
 				} else {
-					B3.push_back( (hpoint) { T[2*it].x, T[2*it+1].x } );
+					B3.push_back( struct complete::hpoint { T[2*it].x, T[2*it+1].x } );
 					++it;
 				}
 			}
@@ -210,7 +214,7 @@ namespace complete {
 					for(int ilr2 = ilr1 + 1; ilr2 < LR.size() and LR[ilr2].y <= ycap; ++ilr2){
 						if(LR[ilr1].y == LR[ilr2].y or LR[ilr2].y == lasty2) continue;
 						lasty2 = LR[ilr2].y;
-						report_line_segment( (line_segment) { LR[ilr1].x, LR[ilr1].y, LR[ilr2].x, LR[ilr2].y }, S );
+						report_line_segment( complete::line_segment { LR[ilr1].x, LR[ilr1].y, LR[ilr2].x, LR[ilr2].y }, S );
 					}
 					++ilr1;
 				}
@@ -225,7 +229,7 @@ namespace complete {
 					B3.push_back( B2[ib] );
 					++ib;
 				} else {
-					B3.push_back( (vpoint) { L[2*il].y, L[2*il+1].y } );
+					B3.push_back( struct complete::vpoint { L[2*il].y, L[2*il+1].y } );
 					++il;
 				}
 			}
@@ -242,10 +246,10 @@ namespace complete {
 		
 		std::vector<struct vpoint> LSet, RSet;
 		for(auto b : B){
-			LSet.push_back( (struct vpoint) { b.x1, b.y1 } );
-			LSet.push_back( (struct vpoint) { b.x1, b.y2 } );
-			RSet.push_back( (struct vpoint) { b.x2, b.y1 } );
-			RSet.push_back( (struct vpoint) { b.x2, b.y2 } );
+			LSet.push_back( struct complete::vpoint { b.x1, b.y1 } );
+			LSet.push_back( struct complete::vpoint { b.x1, b.y2 } );
+			RSet.push_back( struct complete::vpoint { b.x2, b.y1 } );
+			RSet.push_back( struct complete::vpoint { b.x2, b.y2 } );
 		}
 		std::sort(LSet.begin(), LSet.end());
 		std::sort(RSet.begin(), RSet.end());
@@ -276,10 +280,10 @@ namespace complete {
 		
 		std::vector<struct hpoint> TSet, BSet;
 		for(auto b : B){
-			TSet.push_back( (struct hpoint) { b.x1, b.y1 } );
-			TSet.push_back( (struct hpoint) { b.x2, b.y1 } );
-			BSet.push_back( (struct hpoint) { b.x1, b.y2 } );
-			BSet.push_back( (struct hpoint) { b.x2, b.y2 } );
+			TSet.push_back( struct complete::hpoint { b.x1, b.y1 } );
+			TSet.push_back( struct complete::hpoint { b.x2, b.y1 } );
+			BSet.push_back( struct complete::hpoint { b.x1, b.y2 } );
+			BSet.push_back( struct complete::hpoint { b.x2, b.y2 } );
 		}
 		std::sort(TSet.begin(), TSet.end());
 		std::sort(BSet.begin(), BSet.end());
@@ -316,14 +320,14 @@ namespace complete {
 		// Compute the total set of points
 		// O(n log n), since we're indirectly sorting the points
 		for(auto b : B){
-			points.insert( (point) { b.x1, b.y1 } );
-			points.insert( (point) { b.x1, b.y2 } );
-			points.insert( (point) { b.x2, b.y1 } );
-			points.insert( (point) { b.x2, b.y2 } );
-			intmap[ (point) { b.x1, b.y1 } ] = 0.0;
-			intmap[ (point) { b.x1, b.y2 } ] = 0.0;
-			intmap[ (point) { b.x2, b.y1 } ] = 0.0;
-			intmap[ (point) { b.x2, b.y2 } ] = 0.0;
+			points.insert( struct complete::point { b.x1, b.y1 } );
+			points.insert( struct complete::point { b.x1, b.y2 } );
+			points.insert( struct complete::point { b.x2, b.y1 } );
+			points.insert( struct complete::point { b.x2, b.y2 } );
+			intmap[ struct complete::point { b.x1, b.y1 } ] = 0.0;
+			intmap[ struct complete::point { b.x1, b.y2 } ] = 0.0;
+			intmap[ struct complete::point { b.x2, b.y1 } ] = 0.0;
+			intmap[ struct complete::point { b.x2, b.y2 } ] = 0.0;
 		}
 		
 		// Compute the juice integral
@@ -364,17 +368,17 @@ namespace complete {
 		tmp.x2 = inputProblem[i2].x2;
 		tmp.y2 = inputProblem[i2].y2;
 		
-		line_segment top = (line_segment) { tmp.x1, tmp.y1, tmp.x2, tmp.y1 };
-		line_segment bot = (line_segment) { tmp.x1, tmp.y2, tmp.x2, tmp.y2 };
-		line_segment lft = (line_segment) { tmp.x1, tmp.y1, tmp.x1, tmp.y2 };
-		line_segment rgt = (line_segment) { tmp.x2, tmp.y1, tmp.x2, tmp.y2 };
+		line_segment top = complete::line_segment { tmp.x1, tmp.y1, tmp.x2, tmp.y1 };
+		line_segment bot = complete::line_segment { tmp.x1, tmp.y2, tmp.x2, tmp.y2 };
+		line_segment lft = complete::line_segment { tmp.x1, tmp.y1, tmp.x1, tmp.y2 };
+		line_segment rgt = complete::line_segment { tmp.x2, tmp.y1, tmp.x2, tmp.y2 };
 		
 		if( segset.find(top) == segset.end() ) return false;
 		if( segset.find(bot) == segset.end() ) return false;
 		if( segset.find(lft) == segset.end() ) return false;
 		if( segset.find(rgt) == segset.end() ) return false;
 		
-		double juice = intmap[ (point) {tmp.x2, tmp.y2} ] - intmap[ (point) {tmp.x1, tmp.y2} ] - intmap[ (point) {tmp.x2, tmp.y1} ] + intmap[ (point) {tmp.x1, tmp.y1} ];
+		double juice = intmap[ point {tmp.x2, tmp.y2} ] - intmap[ point {tmp.x1, tmp.y2} ] - intmap[ point {tmp.x2, tmp.y1} ] + intmap[ point {tmp.x1, tmp.y1} ];
 		tmp.p = juice / area(tmp);
 		
 		allBoxes.push_back(tmp);

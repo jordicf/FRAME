@@ -10,7 +10,8 @@ from argparse import ArgumentParser
 import tools.rect.pseudobool as pseudobool
 import tools.rect.satmanager as satmanager
 import typing
-from tools.rect.rect_io import get_ifile, getfile, selectbox
+from tools.rect.rect_io import get_ifile, selectbox
+from tools.rect.greedymanager import GreedyManager
 
 from frame.utils.utils import write_yaml
 from tools.rect.canvas import Canvas, colmix
@@ -35,6 +36,7 @@ class Carrier:
         self.xcoords: list[float] = []
         self.ycoords: list[float] = []
         self.theoreticalBestArea: float = 0.0
+        self.gm: GreedyManager = GreedyManager()
 
 
 def parse_options(prog: str | None = None, args: list[str] | None = None) -> dict[str, typing.Any]:
@@ -328,6 +330,7 @@ def findbestgreedy(carrier: Carrier, ifile, f: float) -> str:
     :param f: The f hyperparameter
     :return: The quality of the solution
     """
+    """
     file = open("tofind.txt", "w")
     file.write(getfile(carrier.input_problem, ifile, f))
     file.close()
@@ -340,6 +343,13 @@ def findbestgreedy(carrier: Carrier, ifile, f: float) -> str:
     print(x1, y1, x2, y2, p)
     carrier.inibox = inibox
     return p
+    """
+    w = ifile['Width']
+    h = ifile['Height']
+    nb = len(carrier.input_problem)
+    carrier.inibox = carrier.gm.find_best_box(w, h, nb, f, carrier.input_problem)
+    print(carrier.inibox)
+    return str(carrier.inibox[4])
 
 
 def drawinput(canvas: Canvas, input_problem: InputProblem) -> None:

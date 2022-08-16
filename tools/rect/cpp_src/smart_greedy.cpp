@@ -1,7 +1,8 @@
 #include <iostream>
 #include <fstream>
 #include <vector>
-#include "boxfinder_slicing.cpp"
+#include "boxfinder_complete.cpp"
+#define boxfinder complete
 
 #define MIN_AREA 0
 #define MIN_ERROR 1
@@ -12,8 +13,8 @@ unsigned char METHOD = MIN_ERROR;
 
 int nboxes;
 double w, h, proportion;
-std::vector<slicing::box> inputProblem;
-std::vector<slicing::box> allBoxes;
+std::vector<boxfinder::box> inputProblem;
+std::vector<boxfinder::box> allBoxes;
 
 
 void readFile(const char * filename){
@@ -26,7 +27,7 @@ void readFile(const char * filename){
 	
 	indata >> w >> h >> nboxes >> proportion;
 	if(proportion < 1) METHOD == MIN_AREA;
-	inputProblem = std::vector<slicing::box>( nboxes, (slicing::box) { 0.0, 0.0, 0.0, 0.0, 0.0 } );
+	inputProblem = std::vector<boxfinder::box>( nboxes, (boxfinder::box) { 0.0, 0.0, 0.0, 0.0, 0.0 } );
 	for(int i = 0; i < nboxes; ++i){
 		indata >> inputProblem[i].x1 >> inputProblem[i].y1 >> inputProblem[i].x2 >> inputProblem[i].y2 >> inputProblem[i].p;
 	}
@@ -46,8 +47,8 @@ int main(int argc, char * argv[]){
 		usage(argv[0]);
 	}
 	readFile(argv[1]);
-	allBoxes = std::vector<slicing::box>(0);
-	slicing::all_rectangles(inputProblem, allBoxes);
+	allBoxes = std::vector<boxfinder::box>(0);
+	boxfinder::all_rectangles(inputProblem, allBoxes);
 	
 	double totalArea;
 	if( METHOD == MIN_AREA ){
