@@ -218,9 +218,9 @@ def optimize_allocation(netlist: Netlist, allocation: Allocation, dispersions: d
             m1 = module2m[e.modules[1]]
             g.Minimize(alpha * e.weight * ((g.x[m0] - g.x[m1])**2 + (g.y[m0] - g.y[m1])**2) / 2)
         else:
-            ex = g.Var()
+            ex = g.Var(lb=0)
             g.Equation(g.sum([g.x[module2m[module]] for module in e.modules]) / len(e.modules) == ex)
-            ey = g.Var()
+            ey = g.Var(lb=0)
             g.Equation(g.sum([g.y[module2m[module]] for module in e.modules]) / len(e.modules) == ey)
             for module in e.modules:
                 m = module2m[module]
