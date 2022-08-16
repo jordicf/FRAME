@@ -141,8 +141,9 @@ def optimize_allocation(netlist: Netlist, allocation: Allocation, alpha: float, 
     for m, module in enumerate(netlist.modules):
         const_module = True
         for c in range(n_cells):
-            if allocs[c].depth != max_refinement_depth:
-                g.a[m][c] = get_value(g.a[m][c])
+            a_mc_value = get_value(g.a[m][c])
+            if allocs[c].depth != max_refinement_depth or a_mc_value < 0.001:
+                g.a[m][c] = a_mc_value
             elif const_module:
                 const_module = False
         if const_module:
