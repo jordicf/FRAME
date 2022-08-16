@@ -33,7 +33,6 @@ INSTALL_REQUIRES = [
     "matplotlib",
     "distinctipy",
     "Pillow",
-    "types-Pillow",
     "python-sat"
 ]
 
