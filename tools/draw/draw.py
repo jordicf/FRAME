@@ -208,7 +208,7 @@ def draw(options: dict[str, Any]) -> int:
     check_modules(netlist.modules)
 
     # Assignment of a color to each block
-    colors = distinctipy.get_colors(netlist.num_modules)
+    colors = distinctipy.get_colors(netlist.num_modules, rng=0)
     colors = [(round(r * 255), round(g * 255), round(b * 255), 128) for (r, g, b) in colors]
     module2color = {b: colors[i] for i, b in enumerate(netlist.modules)}
 
