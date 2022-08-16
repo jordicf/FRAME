@@ -10,7 +10,7 @@ frame draw --die 2x3 initial.yml
 ---
 
 ```
-frame glbfloor -d 2x3 -g 4x4 -a 0.3 -i 6 --out-netlist 4x4-0.3-netlist.yml --out-allocation 4x4-0.3-alloc.yml -p 4x4-0.3 --verbose initial.yml
+frame glbfloor -d 2x3 -g 4x4 -a 0.3 -i 5 --out-netlist 4x4-0.3-netlist.yml --out-allocation 4x4-0.3-alloc.yml -p 4x4-0.3 --verbose initial.yml
 ```
 
 ![glbfloor-4x4-0.3-0](4x4-0.3-0.png)
@@ -19,7 +19,6 @@ frame glbfloor -d 2x3 -g 4x4 -a 0.3 -i 6 --out-netlist 4x4-0.3-netlist.yml --out
 ![glbfloor-4x4-0.3-3](4x4-0.3-3.png)
 ![glbfloor-4x4-0.3-4](4x4-0.3-4.png)
 ![glbfloor-4x4-0.3-5](4x4-0.3-5.png)
-![glbfloor-4x4-0.3-6](4x4-0.3-6.png)
 
 ```
 frame draw --die 2x3 --alloc 4x4-0.3-alloc.yml 4x4-0.3-netlist.yml -o final.gif
