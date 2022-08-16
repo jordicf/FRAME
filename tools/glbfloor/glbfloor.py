@@ -19,8 +19,7 @@ def parse_options(prog: str | None = None, args: list[str] | None = None) -> dic
     :param args: command-line arguments
     :return: a dictionary with the arguments
     """
-    parser = argparse.ArgumentParser(prog=prog,
-                                     description="...")  # TODO: write description
+    parser = argparse.ArgumentParser(prog=prog)  # TODO: write description
     parser.add_argument("netlist",
                         help="input file (netlist)")
     parser.add_argument("-v", "--verbose", action="store_true",
