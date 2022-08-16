@@ -116,7 +116,7 @@ def calculate_dispersions(netlist: Netlist, allocation: Allocation) -> dict[str,
 
 
 def optimize_allocation(netlist: Netlist, allocation: Allocation, dispersions: dict[str, tuple[float, float]],
-                        alpha: float, verbose: bool = False) \
+                        threshold: float, alpha: float, verbose: bool = False) \
         -> tuple[Netlist, Allocation, dict[str, tuple[float, float]]]:
     """
     Optimizes the given allocation to minimize the dispersion and the wire length of the floor plan
@@ -124,6 +124,7 @@ def optimize_allocation(netlist: Netlist, allocation: Allocation, dispersions: d
     :param allocation: allocation to optimize
     :param dispersions: a dictionary from module name to float pair which indicates the dispersion of each module in the
     given netlist and allocation
+    :param threshold: hyperparameter between 0 and 1 to decide if allocations can be fixed
     :param alpha: hyperparameter between 0 and 1 to control the balance between dispersion and wire length.
     Smaller values will reduce the dispersion and increase the wire length, and greater ones the other way around
     :param verbose: if True, the GEKKO optimization log is displayed
@@ -163,13 +164,12 @@ def optimize_allocation(netlist: Netlist, allocation: Allocation, dispersions: d
             g.a[m][c].value = allocation.allocation_module(module.name)[c].area
 
     # Make not refined or almost zero cells and fixed or completed modules constant
-    max_refinement_depth = allocation.max_refinement_depth()
     for m, module in enumerate(netlist.modules):
         const_module = True
         if not module.fixed:
             for c in range(n_cells):
                 a_mc_value = get_value(g.a[m][c])
-                if allocs[c].depth != max_refinement_depth or a_mc_value < 0.001:
+                if a_mc_value < 1 - threshold or a_mc_value > threshold:
                     g.a[m][c] = a_mc_value
                 elif const_module:
                     const_module = False
@@ -295,7 +295,8 @@ def glbfloor(netlist: Netlist, n_rows: int, n_cols: int, cell_shape: Shape,
             else:
                 break
 
-        netlist, allocation, dispersions = optimize_allocation(netlist, allocation, dispersions, alpha, verbose)
+        netlist, allocation, dispersions = optimize_allocation(netlist, allocation, dispersions, threshold, alpha,
+                                                               verbose)
 
         if plot_name is not None:
             plot_grid(netlist, allocation, dispersions, alpha,
