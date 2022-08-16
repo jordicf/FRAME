@@ -24,8 +24,8 @@ class Scaling:
                 round(self.grid_height - p.y * self.scale_factor + self.y_offset))
 
 
-def plot_grid(netlist: Netlist, allocation: Allocation, dispersions: dict[str, tuple[float, float]],
-              suptitle: str | None = None, filename: str | None = None,
+def plot_grid(netlist: Netlist, allocation: Allocation, dispersions: dict[str, tuple[float, float]], alpha: float,
+              suptitle: str = "", filename: str | None = None,
               simple_plot: bool = False, colormap_name: str = "Blues") -> None:
     """
     Plot a floorplan given the netlist and allocation of each module in each cell, and additional information to
@@ -89,12 +89,13 @@ def plot_grid(netlist: Netlist, allocation: Allocation, dispersions: dict[str, t
         s.x_offset += grid_width + margin
 
     if not simple_plot:
-        if suptitle is None:
-            suptitle = ""
-        else:
+        if len(suptitle) > 0:
             suptitle += " | "
-        suptitle += f"Wire length = {netlist.wire_length:.2f} | " \
-                    f"Total dispersion = {sum(sum(d) for d in dispersions.values()):.2f}"
+        total_wire_length = netlist.wire_length
+        total_dispersion = sum(sum(d) for d in dispersions.values())
+        suptitle += f"alpha = {alpha:.2f} | " \
+                    f"Wire length = {total_wire_length:.2f} | Total dispersion = {total_dispersion:.2f} | " \
+                    f"Result = {(alpha * total_wire_length + (1 - alpha) * total_dispersion):.2f}"
         draw.text((img.width / 2, 0), suptitle, anchor="ma", font=large_font, fill="Black")
 
     if filename is None:

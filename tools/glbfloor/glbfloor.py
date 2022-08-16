@@ -282,8 +282,8 @@ def glbfloor(netlist: Netlist, n_rows: int, n_cols: int, cell_shape: Shape,
             dispersions = calculate_dispersions(netlist, allocation)
 
             if plot_name is not None:
-                plot_grid(netlist, allocation, dispersions,
-                          suptitle=f"alpha = {alpha}", filename=f"{plot_name}-{n_iter}.png", simple_plot=simple_plot)
+                plot_grid(netlist, allocation, dispersions, alpha,
+                          filename=f"{plot_name}-{n_iter}.png", simple_plot=simple_plot)
 
             n_iter += 1
         else:  # n_iter > 0
@@ -298,8 +298,8 @@ def glbfloor(netlist: Netlist, n_rows: int, n_cols: int, cell_shape: Shape,
         netlist, allocation, dispersions = optimize_allocation(netlist, allocation, dispersions, alpha, verbose)
 
         if plot_name is not None:
-            plot_grid(netlist, allocation, dispersions,
-                      suptitle=f"alpha = {alpha}", filename=f"{plot_name}-{n_iter}.png", simple_plot=simple_plot)
+            plot_grid(netlist, allocation, dispersions, alpha,
+                      filename=f"{plot_name}-{n_iter}.png", simple_plot=simple_plot)
 
         if verbose:
             print(f"Iteration {n_iter} finished\n")
