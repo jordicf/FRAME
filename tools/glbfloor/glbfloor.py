@@ -276,10 +276,16 @@ def glbfloor(netlist: Netlist, n_rows: int, n_cols: int, cell_shape: Shape,
     n_iter = 0
     allocation = None
     dispersions = None
-    while max_iter is None or n_iter < max_iter:
+    while max_iter is None or n_iter <= max_iter:
         if n_iter == 0:
             allocation = create_initial_allocation(netlist, n_rows, n_cols, cell_shape)
             dispersions = calculate_dispersions(netlist, allocation)
+
+            if plot_name is not None:
+                plot_grid(netlist, allocation, dispersions,
+                          suptitle=f"alpha = {alpha}", filename=f"{plot_name}-{n_iter}.png", simple_plot=simple_plot)
+
+            n_iter += 1
         else:  # n_iter > 0
             # Assertion to suppress Mypy errors (should never happen)
             assert allocation is not None and dispersions is not None
