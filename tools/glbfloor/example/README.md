@@ -1,17 +1,16 @@
 # `glbfloor` example 
 
 ```
-frame netgen --type grid --size 2 3 -o 1.yml
-frame spectral --die 2x3 -o 2.yml 1.yml
-frame draw --die 2x3 2.yml
+frame netgen --type grid --size 3 2 -o initial.yml --die 2x3 --add-centers
+frame draw --die 2x3 initial.yml
 ```
 
-<img src="2.gif" alt="spectral" style="width: 200px;"/>
+<img src="initial.gif" alt="initial" style="width: 200px;"/>
 
 ---
 
 ```
-frame glbfloor -d 2x3 -g 4x4 -a 0.3 -i 6 --out-netlist 3-4x4-0.3-netlist.yml --out-allocation 3-4x4-0.3-alloc.yml -p 3-4x4-0.3 2.yml
+frame glbfloor -d 2x3 -g 4x4 -a 0.3 -i 6 --out-netlist 4x4-0.3-netlist.yml --out-allocation 4x4-0.3-alloc.yml -p 4x4-0.3 --verbose initial.yml
 ```
 
 ![glbfloor-4x4-0.3-0](3-4x4-0.3-0.png)
@@ -22,45 +21,7 @@ frame glbfloor -d 2x3 -g 4x4 -a 0.3 -i 6 --out-netlist 3-4x4-0.3-netlist.yml --o
 ![glbfloor-4x4-0.3-5](3-4x4-0.3-5.png)
 
 ```
-frame draw --die 2x3 --alloc 3-4x4-0.3-alloc.yml 3-4x4-0.3-netlist.yml -o 3.gif
+frame draw --die 2x3 --alloc 4x4-0.3-alloc.yml 4x4-0.3-netlist.yml -o final.gif
 ```
 
-<img src="3.gif" alt="spectral" style="width: 200px;"/>
-
----
-
-Simple plot (no annotation nor borders):
-
-```
-frame glbfloor -d 2x3 -g 4x4 -a 0.3 -i 6 --out-netlist 3-4x4-0.3-netlist.yml --out-allocation 3-4x4-0.3-alloc.yml -p 3-4x4-0.3-simple --simple-plot 2.yml
-```
-
-![glbfloor-4x4-0.3-simple-0](3-4x4-0.3-simple-0.png)
-![glbfloor-4x4-0.3-simple-1](3-4x4-0.3-simple-1.png)
-![glbfloor-4x4-0.3-simple-2](3-4x4-0.3-simple-2.png)
-![glbfloor-4x4-0.3-simple-3](3-4x4-0.3-simple-3.png)
-![glbfloor-4x4-0.3-simple-4](3-4x4-0.3-simple-4.png)
-![glbfloor-4x4-0.3-simple-5](3-4x4-0.3-simple-5.png)
-
----
-
-The following results are not refined and serve to show how the initial grid and the value of alpha affect the initial allocation.
-
-```
-frame glbfloor -d 2x3 -g 4x4 -a 0.5 -p 3-4x4-0.5 -i 1 2.yml
-```
-
-![glbfloor-4x4-0.5-0](3-4x4-0.5-0.png)
-
-
-```
-frame glbfloor -d 2x3 -g 8x8 -a 0.3 -p 3-8x8-0.3 -i 1 2.yml
-```
-
-![glbfloor-8x8-0.3-0](3-8x8-0.3-0.png)
-
-```
-frame glbfloor -d 2x3 -g 8x8 -a 0.5 -p 3-8x8-0.5 -i 1 2.yml
-```
-
-![glbfloor-8x8-0.5-0](3-8x8-0.5-0.png)
+<img src="final.gif" alt="spectral" style="width: 200px;"/>
