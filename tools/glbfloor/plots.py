@@ -13,6 +13,7 @@ from frame.allocation.allocation import Allocation
 
 @dataclass()
 class Scaling:
+    """Auxiliary class to scale points to image coordinates"""
     scale_factor: float
     x_offset: int
     y_offset: int
@@ -20,6 +21,7 @@ class Scaling:
     grid_height: int
 
     def scale(self, p: Point) -> tuple[int, int]:
+        """Scale a point to an image coordinate"""
         return (round(p.x * self.scale_factor + self.x_offset),
                 round(self.grid_height - p.y * self.scale_factor + self.y_offset))
 
@@ -63,10 +65,12 @@ def plot_grid(netlist: Netlist, allocation: Allocation, dispersions: dict[str, t
             ratio = module_alloc.area
             color = tuple((np.array(color_map(round(ratio * 255))) * 255).astype(np.uint8))
 
+            # Draw cells
             draw.rectangle((bbox_min, bbox_max),
                            fill=color,  # type: ignore
                            outline=None if simple_plot else "Black")
 
+            # Draw cell annotations
             if not simple_plot:
                 cell_width, cell_height = bbox_max[0] - bbox_min[0], bbox_min[1] - bbox_max[1]
                 assert cell_width > 0 and cell_height > 0
@@ -77,10 +81,12 @@ def plot_grid(netlist: Netlist, allocation: Allocation, dispersions: dict[str, t
                     text_color = (round(get_text_color((color[0] / 255, color[1] / 255, color[2] / 255))[0] * 255),) * 3
                     draw.text(s.scale(rect.center), cell_text, anchor="mm", font=cell_font, fill=text_color)
 
+        # Draw centroids
         centroid = netlist.get_module(module.name).center
         assert centroid is not None
         draw.text(s.scale(centroid), "X", anchor="mm", font=medium_font)
 
+        # Draw module subtitles
         if not simple_plot:
             draw.text((s.x_offset, s.y_offset + grid_height + margin / 2),
                       f"{module.name}| A = {module.area():.2f} | D = {sum(dispersions[module.name]):.2f}",
@@ -88,6 +94,7 @@ def plot_grid(netlist: Netlist, allocation: Allocation, dispersions: dict[str, t
 
         s.x_offset += grid_width + margin
 
+    # Draw main title
     if not simple_plot:
         if len(suptitle) > 0:
             suptitle += " | "
