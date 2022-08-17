@@ -94,3 +94,7 @@ build/temp.win-amd64-3.10/Release/tools/rect/cpp_src/greedy_lib.obj
 build/lib.win-amd64-3.10/rect_greedy.cp310-win_amd64.pyd
 build/temp.win-amd64-3.10/Release/tools/rect/cpp_src/rect_greedy.cp310-win_amd64.exp
 build/temp.win-amd64-3.10/Release/tools/rect/cpp_src/rect_greedy.cp310-win_amd64.lib
+build/temp.win-amd64-3.10/Release/tools/rect/cpp_src/rect_greedy.lib
+build/temp.win-amd64-3.10/Release/tools/rect/cpp_src/rect_greedy.exp
+build/lib.win-amd64-3.10/tools/rect/greedy_lib.py
+build/lib.win-amd64-3.10/rect_greedy.pyd

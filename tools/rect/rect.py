@@ -4,14 +4,13 @@ modules in a non-uniform rectangular grid into
 adjacent rectangles.
 """
 
-import subprocess
 from argparse import ArgumentParser
 
 import tools.rect.pseudobool as pseudobool
 import tools.rect.satmanager as satmanager
 import typing
 from tools.rect.rect_io import get_ifile, selectbox
-from tools.rect.greedymanager import GreedyManager
+from tools.rect.greedy_lib import GreedyManager
 
 from frame.utils.utils import write_yaml
 from tools.rect.canvas import Canvas, colmix
