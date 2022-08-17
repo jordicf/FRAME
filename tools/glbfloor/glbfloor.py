@@ -195,7 +195,9 @@ def optimize_allocation(netlist: Netlist, allocation: Allocation, dispersions: d
     for c in range(n_cells):
         neigh_cells[c] = get_neighbouring_cells(allocation, c)
 
-    # Make not refined or almost zero cells and fixed or completed modules constant
+    # Fix (make constant) cells that have an allocation close to one (or zero) and are completely surrounded by cells
+    # that are also close to one (or zero). Modules with all the cells fixed, or with the fixed attribute set to True
+    # are also fixed in the model.
     for m, module in enumerate(netlist.modules):
         const_module = True
         if not module.fixed:
