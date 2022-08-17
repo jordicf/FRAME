@@ -16,9 +16,9 @@ positional arguments:
 
 options:
   -h, --help            show this help message and exit
-  -d <width>x<height> or filename, --die <width>x<height> or filename
+  -d <WIDTH>x<HEIGHT> or FILENAME, --die <WIDTH>x<HEIGHT> or FILENAME
                         size of the die (width x height) or name of the file
-  --alloc filename      Allocation of modules to rectangles
+  --alloc FILENAME      allocation file of modules to rectangles
   -o OUTFILE, --outfile OUTFILE
                         output file (gif)
   --width WIDTH         width of the picture (in pixels)

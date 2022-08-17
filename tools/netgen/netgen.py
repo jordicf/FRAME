@@ -30,7 +30,7 @@ def parse_options(prog: str | None = None, args: list[str] | None = None) -> dic
     parser.add_argument("--seed", type=int,
                         help="(used only if --add-noise is present) "
                              "integer number used as a seed for the random number generator")
-    parser.add_argument("-d", "--die", metavar="<width>x<height> or filename",
+    parser.add_argument("-d", "--die", metavar="<WIDTH>x<HEIGHT> or FILENAME",
                         help="(used only if --add-centers is present) "
                              "size of the die (width x height) or name of the file")
     return vars(parser.parse_args(args))
