@@ -11,14 +11,16 @@ options:
   -h, --help            show this help message and exit
   -o OUTFILE, --outfile OUTFILE
                         output file (netlist)
-  --type {grid,chain,ring,star}
-                        type of netlist (grid, chain, ring, star)
+  --type {grid,chain,ring,star,ring-star,one-net,htree}
+                        type of netlist (grid, chain, ring, star, ring-star, one-net, htree)
   --size SIZE [SIZE ...]
                         size of the netlist
-  --add-centers, --no-add-centers
-                        add module centers (only supported for grid type, and requires to specify the die) (default: False)
+  --add-centers         add module centers (only supported for grid type, and requires to specify the die)
+  --add-noise [STANDARD DEVIATION]
+                        (used only if --add-centers is present) adds random gaussian noise to the centers
+  --seed SEED           (used only if --add-noise is present) integer number used as a seed for the random number generator
   -d <width>x<height> or filename, --die <width>x<height> or filename
-                        size of the die (width x height) or name of the file(used only if --add-centers is present)
+                        (used only if --add-centers is present) size of the die (width x height) or name of the file
 ```
 The figure below depicts the netlists generated when selecting one the acceptable types.
 The option `size` can be followed by one or two positive integers, indicating the number of
