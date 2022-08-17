@@ -152,7 +152,7 @@ class Allocation:
             new_alloc.append((r, alloc, a.depth))
         return Allocation(new_alloc)
 
-    def refine(self, threshold: float, levels: int = 2) -> 'Allocation':
+    def refine(self, threshold: float, levels: int = 1) -> 'Allocation':
         """
         Refines an allocation into a set of smaller rectangles. A rectangle in the allocation
         is refined if no module has an occupancy greater than a threshold. In case a rectangle
