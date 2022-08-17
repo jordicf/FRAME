@@ -48,7 +48,7 @@ def string_is_number(s: str) -> bool:
 def read_yaml(stream: TextIO_String) -> YAML_tree:
     """
     Reads a YAML contents from a file or a string. The distinction between a YAML contents and a file name is
-    done by checking that ':' exists in the string. The input can also be a YAML tree
+    done by checking that ': ' exists in the string. The input can also be a YAML tree
     :param stream: the input. It can be either a file handler, a file name or a YAML contents (in text or tree)
     :return: the YAML tree
     """
@@ -57,7 +57,7 @@ def read_yaml(stream: TextIO_String) -> YAML_tree:
         return stream
 
     if isinstance(stream, str):
-        if ':' in stream:
+        if stream.find(": ") >= 0:
             txt = stream
         else:
             with open(stream) as f:
