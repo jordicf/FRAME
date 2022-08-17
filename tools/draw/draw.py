@@ -302,10 +302,10 @@ def parse_options(prog: str | None = None, args: list[str] | None = None) -> dic
     """
     parser = ArgumentParser(prog=prog, description="A floorplan drawing tool.", usage='%(prog)s [options]')
     parser.add_argument("netlist", help="input file (netlist)")
-    parser.add_argument("-d", "--die", help="size of the die (width x height) or name of the file",
-                        metavar="<width>x<height> or filename")
-    parser.add_argument("--alloc", help="Allocation of modules to rectangles",
-                        metavar="filename")
+    parser.add_argument("-d", "--die", metavar="<WIDTH>x<HEIGHT> or FILENAME",
+                        help="size of the die (width x height) or name of the file")
+    parser.add_argument("--alloc", metavar="FILENAME",
+                        help="allocation file of modules to rectangles",)
     parser.add_argument("-o", "--outfile", help="output file (gif)")
     parser.add_argument("--width", type=int, default=0, help="width of the picture (in pixels)")
     parser.add_argument("--height", type=int, default=0, help="height of the picture (in pixels)")

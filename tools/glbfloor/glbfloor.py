@@ -26,7 +26,7 @@ def parse_options(prog: str | None = None, args: list[str] | None = None) -> dic
                         help="input file (netlist)")
     parser.add_argument("-v", "--verbose", action="store_true",
                         help="print the optimization logs and additional information")
-    parser.add_argument("-d", "--die", metavar="<width>x<height> or filename", default="1x1",
+    parser.add_argument("-d", "--die", metavar="<WIDTH>x<HEIGHT> or FILENAME", default="1x1",
                         help="size of the die (width x height) or name of the file")
     parser.add_argument("-g", "--grid", metavar="<rows>x<cols>", required=True,
                         help="size of the initial grid (rows x columns)", )

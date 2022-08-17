@@ -19,7 +19,7 @@ options:
   --add-noise [STANDARD DEVIATION]
                         (used only if --add-centers is present) adds random gaussian noise to the centers
   --seed SEED           (used only if --add-noise is present) integer number used as a seed for the random number generator
-  -d <width>x<height> or filename, --die <width>x<height> or filename
+  -d <WIDTH>x<HEIGHT> or FILENAME, --die <WIDTH>x<HEIGHT> or FILENAME
                         (used only if --add-centers is present) size of the die (width x height) or name of the file
 ```
 The figure below depicts the netlists generated when selecting one the acceptable types.

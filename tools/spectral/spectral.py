@@ -112,10 +112,10 @@ def parse_options(prog: str | None = None, args: list[str] | None = None) -> dic
                                                  "combination of spectral and force-directed methods.")
     parser.add_argument("netlist", help="input file (netlist)")
     parser.add_argument("-v", "--verbose", action='store_true')
-    parser.add_argument("-d", "--die", help="size of the die (width x height) or name of the file",
-                        metavar="<width>x<height> or filename")
+    parser.add_argument("-d", "--die", metavar="<WIDTH>x<HEIGHT> or FILENAME",
+                        help="size of the die (width x height) or name of the file")
     parser.add_argument("--bestof", type=int, default=5,
-                        help="Number of floorplans generated to select the best. Default: 5")
+                        help="number of floorplans generated to select the best. Default: 5")
     parser.add_argument("-o", "--outfile", required=True, help="output file (netlist)")
     return vars(parser.parse_args(args))
 
