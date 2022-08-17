@@ -24,7 +24,7 @@ class Scaling:
     xscale: float  # x scaling factor
     yscale: float  # y scaling factor
     width: int  # width of the picture (in pixels), without frame
-    height: int  # height of the picture (in pixles), without frame
+    height: int  # height of the picture (in pixels), without frame
     frame: int  # thickness of the frame around canvas (in pixels)
 
 
