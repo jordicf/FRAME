@@ -1,6 +1,7 @@
 """A netlist generator."""
 
 import argparse
+import random
 from typing import Any
 from ruamel.yaml import YAML
 
@@ -24,9 +25,14 @@ def parse_options(prog: str | None = None, args: list[str] | None = None) -> dic
     parser.add_argument("--size", type=int, nargs='+', required=True, help="size of the netlist")
     parser.add_argument("--add-centers", action="store_true",
                         help="add module centers (only supported for grid type, and requires to specify the die)")
-    parser.add_argument("-d", "--die", metavar="<width>x<height> or filename",
-                        help="size of the die (width x height) or name of the file"
-                             "(used only if --add-centers is present)")
+    parser.add_argument("--add-noise", metavar="STANDARD DEVIATION", type=float, nargs="?", const=0.1, default=0,
+                        help="(used only if --add-centers is present) adds random gaussian noise to the centers")
+    parser.add_argument("--seed", type=int,
+                        help="(used only if --add-noise is present) "
+                             "integer number used as a seed for the random number generator")
+    parser.add_argument("-d", "--die", metavar="<WIDTH>x<HEIGHT> or FILENAME",
+                        help="(used only if --add-centers is present) "
+                             "size of the die (width x height) or name of the file")
     return vars(parser.parse_args(args))
 
 
@@ -44,14 +50,18 @@ def main(prog: str | None = None, args: list[str] | None = None) -> int:
 
     add_centers = options["add_centers"]
     die_shape = None
+    sd = 0
     if add_centers:
         assert net_type == 'grid', "--add-center is only supported for the grid type"
         assert options['die'] is not None, "The die must be specified (with --die) when using --add-center"
-        die = Die(options["die"])
+        sd = options['add_noise']
+        assert sd >= 0, f"The standard deviation cannot be negative: {sd}"
+        random.seed(options['seed'])
+        die = Die(options['die'])
         die_shape = Shape(die.width, die.height)
 
     if net_type == 'grid':
-        data = gen_grid(size[0], size[1], 1, add_centers, die_shape)
+        data = gen_grid(size[0], size[1], 1, add_centers, sd, die_shape)
     elif net_type == 'chain':
         data = gen_chain(size[0], 1)
     elif net_type == 'ring':
@@ -86,14 +96,16 @@ def module_name(i: int, j: int = -1) -> str:
     return "M%d_%d" % (i, j)
 
 
-def gen_modules(area: float, rows: int, columns: int = 0, add_centers: bool = False, die_shape: Shape | None = None) \
+def gen_modules(area: float, rows: int, columns: int = 0,
+                add_centers: bool = False, sd: float = 0, die_shape: Shape | None = None) \
         -> dict[str, Any]:
     """
     Creates a chain or a grid of modules. If columns is zero, only a chain is created
     :param area: area of each module
     :param rows: number of rows of the grid
     :param columns: number of columns of the grid (a chain if zero)
-    :param add_centers: if True, centers are added to the modules
+    :param add_centers: if True, centers are added to the modules (only supported for grids)
+    :param sd: the standard deviation of the gaussian distribution used to add noise to the coordinates of the centers
     :param die_shape: the shape of the die used to calculate the centers when add_centers is True (else ignored)
     :return: the dictionary of modules
     """
@@ -109,22 +121,26 @@ def gen_modules(area: float, rows: int, columns: int = 0, add_centers: bool = Fa
         y_offset = die_shape.h / rows
         for r in range(rows):
             for c in range(columns):
-                modules[module_name(r, c)][KW_CENTER] = [(0.5 + c) * x_offset, (0.5 + r) * y_offset]
+                modules[module_name(r, c)][KW_CENTER] = [(0.5 + c) * x_offset + random.gauss(0, sd),
+                                                         (0.5 + r) * y_offset + random.gauss(0, sd)]
 
     return modules
 
 
-def gen_grid(rows: int, columns: int, area: float, add_centers: bool, die_shape: Shape | None = None) -> dict[str, Any]:
+def gen_grid(rows: int, columns: int, area: float,
+             add_centers: bool = False, sd: float = 0, die_shape: Shape | None = None) \
+        -> dict[str, Any]:
     """
     Generates the netlist of a grid
     :param rows: number of rows
     :param columns: number of columns
     :param area: area of each module
     :param add_centers: if True, centers are added to the modules
+    :param sd: the standard deviation of the gaussian distribution used to add noise to the coordinates of the centers
     :param die_shape: the shape of the die used to calculate the centers when add_centers is True (else ignored)
     :return: a dictionary of the modules and the edges
     """
-    modules = gen_modules(area, rows, columns, add_centers, die_shape)
+    modules = gen_modules(area, rows, columns, add_centers, sd, die_shape)
     horiz_edges = [[module_name(r, c), module_name(r, c + 1)] for r in range(rows) for c in range(columns - 1)]
     vert_edges = [[module_name(r, c), module_name(r + 1, c)] for r in range(rows - 1) for c in range(columns)]
     return {KW_MODULES: modules, KW_NETS: [*horiz_edges, *vert_edges]}

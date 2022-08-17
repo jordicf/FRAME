@@ -153,6 +153,8 @@ class SATManager:
             c: list[int] = list(map(
                 lambda x: - self.ttable[x.v] if x.s == self.isflipped(x.v) else self.ttable[x.v], clause))
             self.solver.add_clause(c)
+
+        # Solve
         if self.solver.solve():
             arr = [0] * self.tcount
             mod = self.solver.get_model()

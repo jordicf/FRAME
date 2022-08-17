@@ -1,6 +1,6 @@
 from ctypes import *
-from ctypes import Array
 from typing import Type
+from sys import modules
 
 
 class BOX(Structure):
@@ -14,8 +14,11 @@ class BOX(Structure):
 class GreedyManager:
 
     def __init__(self):
-        # TODO: Find path automatically
-        libfile = r"..\..\build\lib.win-amd64-3.10\rect_greedy.cp310-win_amd64.pyd"
+        # TODO: HOW DO I GET RID OF THAT "lib.win-amd64-3.10" !??!?!??!!
+        # Perhaps I shoud assume we're running this from the build folder instead
+        # That would make this so much easier
+        # I must inquiry about this issue on a meeting
+        libfile = r"..\..\build\lib.win-amd64-3.10\rect_greedy.pyd"
         self.mylib = CDLL(libfile)
         self.mylib.find_best_box.restype = BOX
         self.mylib.find_best_box.argtypes = [POINTER(BOX), c_double, c_double, c_long, c_double]

@@ -70,5 +70,6 @@ setup(name=NAME,
               "rect_greedy",
               ["tools/rect/cpp_src/greedy_lib.cpp"]
           )
-      ]
+      ],
+      cmdclass={'build_ext': build_ext}
       )

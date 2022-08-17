@@ -15,8 +15,10 @@ positional arguments:
 
 options:
   -h, --help            show this help message and exit
-  -d <width>x<height> or filename, --die <width>x<height> or filename
+  -v, --verbose
+  -d <WIDTH>x<HEIGHT> or FILENAME, --die <WIDTH>x<HEIGHT> or FILENAME
                         size of the die (width x height) or name of the file
+  --bestof BESTOF       number of floorplans generated to select the best. Default: 5
   -o OUTFILE, --outfile OUTFILE
                         output file (netlist)
 ```
