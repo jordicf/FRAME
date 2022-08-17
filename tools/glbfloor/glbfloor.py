@@ -1,3 +1,5 @@
+"""glbfloor tool. See README.md for more information"""
+
 import argparse
 from time import time
 from typing import Any
@@ -115,6 +117,31 @@ def calculate_dispersions(netlist: Netlist, allocation: Allocation) -> dict[str,
     return dispersions
 
 
+def touch(r1: Rectangle, r2: Rectangle, epsilon: float = 0.001) -> bool:
+    """Checks whether two rectangles touch. Overlapping rectangles are considered to be touching too"""
+    r1min, r1max = r1.bounding_box
+    r2min, r2max = r2.bounding_box
+    return r2min.x - r1max.x < epsilon and r1min.x - r2max.x < epsilon \
+        and r2min.y - r1max.y < epsilon and r1min.y - r2max.y < epsilon
+
+
+def get_neighbouring_cells(allocation: Allocation, cell_index: int) -> list[int]:
+    """
+    Given an allocation and a cell index, returns a list of the indices of the cells neighbouring the specified cell
+    :param allocation: the allocation
+    :param cell_index: the index of the cell
+    :return: the list of indices of the neighbouring cells
+    """
+    n_cells = allocation.num_rectangles
+    allocs = allocation.allocations
+    cell_rect = allocs[cell_index].rect
+    neighbouring_cells = []
+    for c in range(n_cells):
+        if c != cell_index and touch(cell_rect, allocs[c].rect):
+            neighbouring_cells.append(c)
+    return neighbouring_cells
+
+
 def optimize_allocation(netlist: Netlist, allocation: Allocation, dispersions: dict[str, tuple[float, float]],
                         threshold: float, alpha: float, verbose: bool = False) \
         -> tuple[Netlist, Allocation, dict[str, tuple[float, float]]]:
@@ -163,14 +190,20 @@ def optimize_allocation(netlist: Netlist, allocation: Allocation, dispersions: d
         for c in range(n_cells):
             g.a[m][c].value = allocation.allocation_module(module.name)[c].area
 
+    # Get neighbouring cells of all the cells
+    neigh_cells: list[list[int]] = [[]] * n_cells
+    for c in range(n_cells):
+        neigh_cells[c] = get_neighbouring_cells(allocation, c)
+
     # Make not refined or almost zero cells and fixed or completed modules constant
     for m, module in enumerate(netlist.modules):
         const_module = True
         if not module.fixed:
             for c in range(n_cells):
-                a_mc_value = get_value(g.a[m][c])
-                if a_mc_value < 1 - threshold or a_mc_value > threshold:
-                    g.a[m][c] = a_mc_value
+                a_mc_val = get_value(g.a[m][c])
+                if a_mc_val > threshold and all(get_value(g.a[m][i]) > threshold for i in neigh_cells[c]) or \
+                        a_mc_val < 1 - threshold and all(get_value(g.a[m][i]) < 1 - threshold for i in neigh_cells[c]):
+                    g.a[m][c] = a_mc_val
                 elif const_module:
                     const_module = False
         if const_module:
