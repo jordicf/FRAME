@@ -4,18 +4,20 @@
 
 [![Lint & Test](https://github.com/jordicf/FRAME/actions/workflows/python-app.yml/badge.svg?branch=master)](https://github.com/jordicf/FRAME/actions/workflows/python-app.yml)
 
-Chip planning is the topmost task in physical design in which the location
-and shapes of large modules are defined, pins are assigned, and the power
-delivery network is laid out.
+Chip planning is the first task in the physical design of integrated circuits.
+During chip planning, the location and shapes of large modules are defined, pins are assigned, 
+and the power delivery network is laid out. The quality of the chip, 
+in terms of area, wirelength and timing, highly depends on the top-level
+early decisions taken during chip planning.
 
 `FRAME` is a framework for floorplanning, which is the chip planning stage
 that positions and shapes the modules on the die. Modules can range from 
-fixed-size blocks to free-form IP cores with several million gates and
-embedded memories.
+hard fixed-size blocks to soft free-form IP cores with several million gates
+and embedded memories.
 
 Modern floorplanning frameworks must provide features that should enable:
 * A high-degree of automation with a human-in-the-loop approach.
-* A friendly interaction with the designer to specify preferences and
+* A friendly interaction with chip architects to specify preferences and
 physical constraints.
 * A diversity of non-rectangular shapes.
 
@@ -32,7 +34,7 @@ figure below.
 <img src="doc/pict/FPprocess.png" alt="Evolutive floorplanning" style="height: 180px;"/>
 
 Modern floorplans require shapes beyond the conventional rectangles, e.g., L-shapes,
-T-shapes, U-shapes Z-shapes, etc. Moreover, a close interaction with the designer is often
+T-shapes, U-shapes, Z-shapes, etc. Moreover, a close interaction with the chip architect is often
 required, e.g., by fixing blocks or by defining non-rectangular dies. Using a simple trick,
 non-rectangular dies can be represented by including _fake_ blocks that determine the
 blockages inside the rectangular die, as shown in the following figure.
@@ -50,4 +52,26 @@ where these resources are located on the die.
 
 ## The `FRAME` pipeline
 
-TBD
+Floorplanning is a multi-objective problem that cannot be solved using simple algorithmic techniques.
+`FRAME` advocates for a multi-step approach moving from coarse abstractions of the modules (e.g., points)
+to detailed representations (e.g., rectilinear shapes). At each level, a suitable algorithmic strategy is
+used that combines the accuracy of the representation with the optimality of the solution.
+`FRAME` exploits mathematical and algorithmic methods to progressively refine the floorplanning infomation.
+
+A possible pipeline of techniques for the floorplanning flow is next described.
+At the beginning, modules can be treated as points or circles. Spectral methods, based on the computation 
+of eigenvectors and eigenvalues from the netlist graph, can be used to find good relative positions 
+of the modules. Next, force-directed methods can be used to find a good spreading across the die, possibly 
+using the eigenvectors as initial solutions. Modules can then be represented as clouds that can adopt 
+different shapes to accomodate the required area. Gradient-based non-linear optimization techniques can be 
+used to reshape the modules using non-rectilinear free forms. The non-optimality of local minima can be
+mitigated by providing a good initial approximation obtained from the previous stage.
+Combinatorial optimization techniques (e.g., SAT or pseudo-Boolean optimization) can next be used to find 
+rectilinear approximations of the modules on a virtual grid.
+A final step may use again non-linear optimization to enforce legal locations and shapes such that
+module overlaps are eliminated.
+
+`FRAME` is designed in a modular way such that new stages can be inserted in the pipeline. These new
+stages can help smoothing the jumps between different levels of abstractions and enabling the
+interaction with the architect through the definition of physical constraints on the final floorplan.
+
