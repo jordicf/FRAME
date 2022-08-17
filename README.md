@@ -56,3 +56,22 @@ Floorplanning is a multi-objective problem that cannot be solved using simple al
 `FRAME` advocates for a multi-step approach moving from coarse abstractions of the modules (e.g., points)
 to detailed representations (e.g., rectilinear shapes). At each level, a suitable algorithmic strategy is
 used that combines the accuracy of the representation with the optimality of the solution.
+`FRAME` exploits mathematical and algorithmic methods to progressively refine the floorplanning infomation.
+
+A possible pipeline of techniques for the floorplanning flow is next described.
+At the beginning, modules can be treated as points or circles. Spectral methods, based on the computation 
+of eigenvectors and eigenvalues from the netlist graph, can be used to find good relative positions 
+of the modules. Next, force-directed methods can be used to find a good spreading across the die, possibly 
+using the eigenvectors as initial solutions. Modules can then be represented as clouds that can adopt 
+different shapes to accomodate the required area. Gradient-based non-linear optimization techniques can be 
+used to reshape the modules using non-rectilinear free forms. The non-optimality of local minima can be
+mitigated by providing a good initial approximation obtained from the previous stage.
+Combinatorial optimization techniques (e.g., SAT or pseudo-Boolean optimization) can next be used to find 
+rectilinear approximations of the modules on a virtual grid.
+A final step may use again non-linear optimization to enforce legal locations and shapes such that
+module overlaps are eliminated.
+
+`FRAME` is designed in a modular way such that new stages can be inserted in the pipeline. These new
+stages can help smoothing the jumps between different levels of abstractions and enabling the
+interaction with the architect through the definition of physical constraints on the final floorplan.
+
