@@ -74,7 +74,7 @@ namespace complete {
 	
 	void horizontal_iteration(std::vector<hpoint> & Blocks, const std::vector<hpoint> & T, const std::vector<hpoint> & B, segments & S){
 		// Computes every horizontal line segment at a particular y coordinate
-		// Time complexity: Either O(n²) or O(n² log n)
+		// Time complexity: Either O(n2) or O(n2 log n)
 		// (Amortized: Either O(n) or O(n log n) per vertex)
 		
 		std::vector<hpoint> B2(0);
@@ -126,7 +126,7 @@ namespace complete {
 					}
 					lastx1 = TB[itb1].x;
 					lastx2 = 1e200;
-					for(int itb2 = itb1 + 1; itb2 < TB.size() && TB[itb2].x <= xcap; ++itb2){
+					for(unsigned long int itb2 = itb1 + 1; itb2 < TB.size() && TB[itb2].x <= xcap; ++itb2){
 						if(TB[itb1].x == TB[itb2].x || TB[itb2].x == lastx2) continue;
 						lastx2 = TB[itb2].x;
 						report_line_segment( complete::line_segment { TB[itb1].x, TB[itb1].y, TB[itb2].x, TB[itb2].y }, S );
@@ -144,7 +144,7 @@ namespace complete {
 					B3.push_back( B2[ib] );
 					++ib;
 				} else {
-					B3.push_back( struct complete::hpoint { T[2*it].x, T[2*it+1].x } );
+					B3.push_back( complete::hpoint { T[2*it].x, T[2*it+1].x } );
 					++it;
 				}
 			}
@@ -156,7 +156,7 @@ namespace complete {
 	
 	void vertical_iteration(std::vector<vpoint> & Blocks, const std::vector<vpoint> & L, const std::vector<vpoint> & R, segments & S){
 		// Computes every vertical line segment at a particular x coordinate
-		// Time complexity: Either O(n²) or O(n² log n)
+		// Time complexity: Either O(n2) or O(n2 log n)
 		// (Amortized: Either O(n) or O(n log n) per vertex)
 		
 		std::vector<vpoint> B2(0);
@@ -207,7 +207,7 @@ namespace complete {
 					}
 					lasty1 = LR[ilr1].y;
 					lasty2 = 1e200;
-					for(int ilr2 = ilr1 + 1; ilr2 < LR.size() && LR[ilr2].y <= ycap; ++ilr2){
+					for(unsigned long int ilr2 = ilr1 + 1; ilr2 < LR.size() && LR[ilr2].y <= ycap; ++ilr2){
 						if(LR[ilr1].y == LR[ilr2].y || LR[ilr2].y == lasty2) continue;
 						lasty2 = LR[ilr2].y;
 						report_line_segment( complete::line_segment { LR[ilr1].x, LR[ilr1].y, LR[ilr2].x, LR[ilr2].y }, S );
@@ -225,7 +225,7 @@ namespace complete {
 					B3.push_back( B2[ib] );
 					++ib;
 				} else {
-					B3.push_back( struct complete::vpoint { L[2*il].y, L[2*il+1].y } );
+					B3.push_back( complete::vpoint { L[2*il].y, L[2*il+1].y } );
 					++il;
 				}
 			}
@@ -238,14 +238,14 @@ namespace complete {
 	
 	void every_vertical_line_segment(const std::vector<struct box> & B, segments & S){
 		// Computes every vertical line segment that begins and ends at a vertex
-		// Time complexity: Either O(n²) or O(n² log n) (Amortized)
+		// Time complexity: Either O(n2) or O(n2 log n) (Amortized)
 		
 		std::vector<struct vpoint> LSet, RSet;
 		for(auto b : B){
-			LSet.push_back( struct complete::vpoint { b.x1, b.y1 } );
-			LSet.push_back( struct complete::vpoint { b.x1, b.y2 } );
-			RSet.push_back( struct complete::vpoint { b.x2, b.y1 } );
-			RSet.push_back( struct complete::vpoint { b.x2, b.y2 } );
+			LSet.push_back( complete::vpoint { b.x1, b.y1 } );
+			LSet.push_back( complete::vpoint { b.x1, b.y2 } );
+			RSet.push_back( complete::vpoint { b.x2, b.y1 } );
+			RSet.push_back( complete::vpoint { b.x2, b.y2 } );
 		}
 		std::sort(LSet.begin(), LSet.end());
 		std::sort(RSet.begin(), RSet.end());
@@ -272,14 +272,14 @@ namespace complete {
 	
 	void every_horizontal_line_segment(const std::vector<struct box> & B, segments & S){
 		// Computes every horizontal line segment that begins and ends at a vertex
-		// Time complexity: Either O(n²) or O(n² log n) (Amortized)
+		// Time complexity: Either O(n2) or O(n2 log n) (Amortized)
 		
 		std::vector<struct hpoint> TSet, BSet;
 		for(auto b : B){
-			TSet.push_back( struct complete::hpoint { b.x1, b.y1 } );
-			TSet.push_back( struct complete::hpoint { b.x2, b.y1 } );
-			BSet.push_back( struct complete::hpoint { b.x1, b.y2 } );
-			BSet.push_back( struct complete::hpoint { b.x2, b.y2 } );
+			TSet.push_back( complete::hpoint { b.x1, b.y1 } );
+			TSet.push_back( complete::hpoint { b.x2, b.y1 } );
+			BSet.push_back( complete::hpoint { b.x1, b.y2 } );
+			BSet.push_back( complete::hpoint { b.x2, b.y2 } );
 		}
 		std::sort(TSet.begin(), TSet.end());
 		std::sort(BSet.begin(), BSet.end());
@@ -309,25 +309,25 @@ namespace complete {
 		// "Juice" is just proportion times area
 		// And the "integral"  part means that a point contains as much
 		// "juce" as every block in the upper left of it
-		// Time complexity: Either O(n²) or O(n² log n)
+		// Time complexity: Either O(n2) or O(n2 log n)
 		
 		pset points;
 		
 		// Compute the total set of points
 		// O(n log n), since we're indirectly sorting the points
 		for(auto b : B){
-			points.insert( struct complete::point { b.x1, b.y1 } );
-			points.insert( struct complete::point { b.x1, b.y2 } );
-			points.insert( struct complete::point { b.x2, b.y1 } );
-			points.insert( struct complete::point { b.x2, b.y2 } );
-			intmap[ struct complete::point { b.x1, b.y1 } ] = 0.0;
-			intmap[ struct complete::point { b.x1, b.y2 } ] = 0.0;
-			intmap[ struct complete::point { b.x2, b.y1 } ] = 0.0;
-			intmap[ struct complete::point { b.x2, b.y2 } ] = 0.0;
+			points.insert( complete::point { b.x1, b.y1 } );
+			points.insert( complete::point { b.x1, b.y2 } );
+			points.insert( complete::point { b.x2, b.y1 } );
+			points.insert( complete::point { b.x2, b.y2 } );
+			intmap[ complete::point { b.x1, b.y1 } ] = 0.0;
+			intmap[ complete::point { b.x1, b.y2 } ] = 0.0;
+			intmap[ complete::point { b.x2, b.y1 } ] = 0.0;
+			intmap[ complete::point { b.x2, b.y2 } ] = 0.0;
 		}
 		
 		// Compute the juice integral
-		// Either O(n²) or O(n² log n)
+		// Either O(n2) or O(n2 log n)
 		for(auto b : B){
 			double juice = b.p * area(b);
 			pset::iterator i = points.begin();
@@ -341,8 +341,8 @@ namespace complete {
 	}
 	
 	
-	bool isBox(const int i1, 
-	           const int i2, 
+	bool isBox(const unsigned long int i1, 
+	           const unsigned long int i2, 
 	           const std::vector<struct box> & inputProblem, 
 	           std::vector<struct box> & allBoxes,
 	           const segments & segset,
@@ -384,15 +384,15 @@ namespace complete {
 	
 	void all_rectangles(std::vector<box> & B, std::vector<box> & output){
 		// Computes every rectangle and returns it in the output vector
-		// Time complexity: Either O(n²) or O(n² log n)
+		// Time complexity: Either O(n2) or O(n2 log n)
 		
 		segments segset;
 		integral intmap;
 		every_vertical_line_segment(B, segset);
 		every_horizontal_line_segment(B, segset);
 		compute_integral_blocks(B, intmap);
-		for(int i = 0; i < B.size(); ++i){
-			for(int j = 0; j < B.size(); ++j) isBox(i, j, B, output, segset, intmap);
+		for(unsigned long int i = 0; i < B.size(); ++i){
+			for(unsigned long int j = 0; j < B.size(); ++j) isBox(i, j, B, output, segset, intmap);
 		}
 	}
 }
