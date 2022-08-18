@@ -9,6 +9,22 @@
 
 #define print_box(b) b.x1 << " " << b.y1 << " " << b.x2 << " " << b.y2 << " " << b.p << std::endl
 
+#if defined(_MSC_VER)
+    //  Microsoft 
+    #define EXPORT __declspec(dllexport)
+    #define IMPORT __declspec(dllimport)
+#elif defined(__GNUC__)
+    //  GCC
+    #define EXPORT __attribute__((visibility("default")))
+    #define IMPORT
+#else
+    //  do nothing and hope for the best?
+    #define EXPORT
+    #define IMPORT
+    #pragma warning Unknown dynamic link import/export semantics.
+#endif
+
+
 unsigned char METHOD = MIN_ERROR;
 
 long nboxes;
@@ -22,7 +38,7 @@ std::vector<boxfinder::box> allBoxes;
 void PyInit_rect_greedy(void){ }
 
 extern "C" {
-	__declspec(dllexport) boxfinder::box find_best_box(boxfinder::box * inboxes, double ww, double hh, long nb, double pr){
+	EXPORT boxfinder::box find_best_box(boxfinder::box * inboxes, double ww, double hh, long nb, double pr){
 		w = ww;
 		h = hh;
 		nboxes = nb;
