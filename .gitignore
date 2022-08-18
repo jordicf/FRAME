@@ -5,6 +5,8 @@ __pycache__
 venv
 frame.egg-info
 
+tools/glbfloor/ignore
+
 tools/rect/bestbox.txt
 tools/rect/tofind.txt
 tools/rect/greedy.exe
