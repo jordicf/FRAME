@@ -5,13 +5,14 @@ from time import time
 from typing import Any
 
 from gekko import GEKKO
+from PIL import Image
 
 from frame.geometry.geometry import Shape, Point, Rectangle
 from frame.die.die import Die
 from frame.netlist.netlist import Netlist
 from frame.allocation.allocation import AllocDescriptor, Alloc, Allocation
 
-from tools.glbfloor.plots import plot_grid
+from tools.glbfloor.plots import get_grid_image, plot_grid
 
 
 def parse_options(prog: str | None = None, args: list[str] | None = None) -> dict[str, Any]:
@@ -24,8 +25,6 @@ def parse_options(prog: str | None = None, args: list[str] | None = None) -> dic
     parser = argparse.ArgumentParser(prog=prog)  # TODO: write description
     parser.add_argument("netlist",
                         help="input file (netlist)")
-    parser.add_argument("-v", "--verbose", action="store_true",
-                        help="print the optimization logs and additional information")
     parser.add_argument("-d", "--die", metavar="<WIDTH>x<HEIGHT> or FILENAME", default="1x1",
                         help="size of the die (width x height) or name of the file")
     parser.add_argument("-g", "--grid", metavar="<rows>x<cols>", required=True,
@@ -40,8 +39,10 @@ def parse_options(prog: str | None = None, args: list[str] | None = None) -> dic
                              "be performed)")
     parser.add_argument("-p", "--plot",
                         help="plot name (if not present, no plots are produced)")
-    parser.add_argument("--simple-plot", action="store_true",
-                        help="simplify the plots by not including borders nor text annotations")
+    parser.add_argument("-v", "--verbose", action="store_true",
+                        help="print the optimization logs and additional information")
+    parser.add_argument("--visualize", action="store_true",
+                        help="produce animations to visualize the optimizations (might take a long time to execute)")
     parser.add_argument("--out-netlist",
                         help="output netlist file (if not present, no file is produced)")
     parser.add_argument("--out-allocation",
@@ -142,9 +143,80 @@ def get_neighbouring_cells(allocation: Allocation, cell_index: int) -> list[int]
     return neighbouring_cells
 
 
-def optimize_allocation(netlist: Netlist, allocation: Allocation, dispersions: dict[str, tuple[float, float]],
-                        threshold: float, alpha: float, verbose: bool = False) \
+def extract_solution(g: GEKKO, netlist: Netlist, allocation: Allocation) \
         -> tuple[Netlist, Allocation, dict[str, tuple[float, float]]]:
+    """
+    Extracts the solution from the GEKKO model
+    :param g: GEKKO model
+    :param netlist: netlist containing the modules with centroids initialized
+    :param allocation: allocation to optimize
+    :return:
+    - netlist - netlist with the centroids of the modules updated
+    - allocation - optimized allocation
+    - dispersions - a dictionary from module name to float pair which indicates the dispersion of each module
+    """
+    n_cells = allocation.num_rectangles
+    allocs = allocation.allocations
+
+    allocation_list: list[AllocDescriptor | None] = [None] * n_cells
+    for c in range(n_cells):
+        c_alloc = Alloc()
+        for m, module in enumerate(netlist.modules):
+            c_alloc[module.name] = get_value(g.a[m][c])
+        allocation_list[c] = (allocs[c].rect.vector_spec, c_alloc, 0)
+    allocation = Allocation(allocation_list)
+
+    dispersions = {}
+    for m, module in enumerate(netlist.modules):
+        module.center = Point(get_value(g.x[m]), get_value(g.y[m]))
+        dispersions[module.name] = get_value(g.dx[m]), get_value(g.dy[m])
+
+    return netlist, allocation, dispersions
+
+
+def solve(g: GEKKO, netlist: Netlist, allocation: Allocation, max_iter: int = 100, verbose: bool = False,
+          visualize: bool = False) -> tuple[GEKKO, list[Image.Image]]:
+    """
+    Solves the optimization problem in the given GEKKO model
+    :param g: GEKKO model
+    :param netlist: netlist containing the modules with centroids initialized
+    :param allocation: allocation to optimize
+    :param max_iter: maximum number of iterations for GEKKO
+    :param verbose: if True, the GEKKO optimization log is displayed (not supported if visualize is True)
+    :param visualize: if True, a list of PIL images is returned visualizing the optimization
+    :return:
+    - g - the solved GEKKO model
+    - vis_imgs - if visualize is True, a list of images visualizing the optimization, otherwise, an empty list
+    """
+    vis_imgs = []
+    if not visualize:
+        g.options.MAX_ITER = max_iter
+        g.solve(disp=verbose)
+    else:
+        # See https://stackoverflow.com/a/73196238/10152624 for the method used here
+        i = 0
+        while i < max_iter:
+            g.options.MAX_ITER = i
+            g.options.COLDSTART = 1
+            g.solve(disp=False, debug=0)
+
+            netlist, allocation, _ = extract_solution(g, netlist, allocation)
+            vis_imgs.append(get_grid_image(netlist, allocation, draw_text=False))
+            print(i, end=" ", flush=True)
+
+            if g.options.APPSTATUS == 1:
+                print("\nThe solution was found.")
+                break
+            else:
+                i += 1
+        else:
+            print(f"Maximum number of iterations ({max_iter}) reached! The solution was not found.")
+    return g, vis_imgs
+
+
+def optimize_allocation(netlist: Netlist, allocation: Allocation, dispersions: dict[str, tuple[float, float]],
+                        threshold: float, alpha: float, verbose: bool = False, visualize: bool = False) \
+        -> tuple[Netlist, Allocation, dict[str, tuple[float, float]], list[Image.Image]]:
     """
     Optimizes the given allocation to minimize the dispersion and the wire length of the floor plan
     :param netlist: netlist containing the modules with centroids initialized
@@ -155,10 +227,12 @@ def optimize_allocation(netlist: Netlist, allocation: Allocation, dispersions: d
     :param alpha: hyperparameter between 0 and 1 to control the balance between dispersion and wire length.
     Smaller values will reduce the dispersion and increase the wire length, and greater ones the other way around
     :param verbose: if True, the GEKKO optimization log is displayed
+    :param visualize: if True, a list of PIL images is returned visualizing the optimization
     :return: the optimal solution found:
     - netlist - netlist with the centroids of the modules updated
     - allocation - optimized allocation
     - dispersions - a dictionary from module name to float pair which indicates the dispersion of each module
+    - vis_imgs - if visualize is True, a list of images visualizing the optimization, otherwise, an empty list
     """
     n_modules = netlist.num_modules
     n_cells = allocation.num_rectangles
@@ -264,29 +338,16 @@ def optimize_allocation(netlist: Netlist, allocation: Allocation, dispersions: d
     # Total dispersion
     g.Minimize((1 - alpha) * g.sum([g.dx[m] + g.dy[m] for m in range(netlist.num_modules)]))
 
-    g.solve(disp=verbose)
+    g, vis_imgs = solve(g, netlist, allocation, verbose=verbose, visualize=visualize)
 
-    # Extract solution
-    allocation_list: list[AllocDescriptor | None] = [None] * n_cells
-    for c in range(n_cells):
-        c_alloc = Alloc()
-        for m, module in enumerate(netlist.modules):
-            c_alloc[module.name] = get_value(g.a[m][c])
-        allocation_list[c] = (allocs[c].rect.vector_spec, c_alloc, 0)
-    allocation = Allocation(allocation_list)
+    netlist, allocation, dispersions = extract_solution(g, netlist, allocation)
 
-    dispersions = {}
-    for m, module in enumerate(netlist.modules):
-        module.center = Point(get_value(g.x[m]), get_value(g.y[m]))
-        dispersions[module.name] = get_value(g.dx[m]), get_value(g.dy[m])
-
-    return netlist, allocation, dispersions
+    return netlist, allocation, dispersions, vis_imgs
 
 
-def glbfloor(netlist: Netlist, n_rows: int, n_cols: int, cell_shape: Shape,
-             threshold: float, alpha: float, max_iter: int | None = None,
-             verbose: bool = False, plot_name: str | None = None, simple_plot: bool = False) \
-        -> tuple[Netlist, Allocation]:
+def glbfloor(netlist: Netlist, n_rows: int, n_cols: int, cell_shape: Shape, threshold: float, alpha: float,
+             max_iter: int | None = None, plot_name: str | None = None,
+             verbose: bool = False, visualize: bool = False) -> tuple[Netlist, Allocation]:
     """
     Calculates the initial allocation and optimizes it to minimize the dispersion and the wire length of the floor plan.
     Afterwards, the allocation is repeatedly refined and optimized until it cannot be further refined or the maximum
@@ -300,17 +361,21 @@ def glbfloor(netlist: Netlist, n_rows: int, n_cols: int, cell_shape: Shape,
     Smaller values will reduce the dispersion and increase the wire length, and greater ones the other way around
     :param max_iter: maximum number of optimization iterations performed, or None to stop when no more refinements
     can be performed
-    :param verbose: If True, the GEKKO optimization log and iteration numbers are displayed
     :param plot_name: name of the plot to be produced in each iteration. The iteration number and the PNG extension
     are added automatically. If None, no plots are produced
-    :param simple_plot: If True, the plots are simpler by not including borders nor text annotations
+    :param verbose: If True, the GEKKO optimization log and iteration numbers are displayed
+    :param visualize: If True, produce a GIF to visualize the complete optimization process
     :return: the optimal solution found:
     - netlist - Netlist with the centroids of the modules updated.
     - allocation - Refined allocation with the ratio of each module in each cell of the grid.
     """
-    n_iter = 0
+    all_vis_imgs = []
+    durations = []
+
     allocation = None
     dispersions = None
+
+    n_iter = 0
     while max_iter is None or n_iter <= max_iter:
         if n_iter == 0:
             allocation = create_initial_allocation(netlist, n_rows, n_cols, cell_shape)
@@ -318,7 +383,7 @@ def glbfloor(netlist: Netlist, n_rows: int, n_cols: int, cell_shape: Shape,
 
             if plot_name is not None:
                 plot_grid(netlist, allocation, dispersions, alpha,
-                          filename=f"{plot_name}-{n_iter}.png", simple_plot=simple_plot)
+                          filename=f"{plot_name}-{n_iter}.png")
 
             n_iter += 1
         else:  # n_iter > 0
@@ -330,17 +395,22 @@ def glbfloor(netlist: Netlist, n_rows: int, n_cols: int, cell_shape: Shape,
             else:
                 break
 
-        netlist, allocation, dispersions = optimize_allocation(netlist, allocation, dispersions, threshold, alpha,
-                                                               verbose)
+        netlist, allocation, dispersions, vis_imgs = optimize_allocation(netlist, allocation, dispersions,
+                                                                         threshold, alpha, verbose, visualize)
+        if visualize:
+            all_vis_imgs.extend(vis_imgs)
+            durations.extend([100] * (len(vis_imgs) - 1) + [1000])
 
         if plot_name is not None:
-            plot_grid(netlist, allocation, dispersions, alpha,
-                      filename=f"{plot_name}-{n_iter}.png", simple_plot=simple_plot)
+            plot_grid(netlist, allocation, dispersions, alpha, filename=f"{plot_name}-{n_iter}.png")
 
         if verbose:
             print(f"Iteration {n_iter} finished\n")
 
         n_iter += 1
+
+    if visualize:
+        all_vis_imgs[0].save(f"{plot_name}.gif", save_all=True, append_images=all_vis_imgs[1:], duration=durations)
 
     assert allocation is not None  # Assertion to suppress Mypy error (should never happen)
     return netlist, allocation
@@ -373,15 +443,15 @@ def main(prog: str | None = None, args: list[str] | None = None):
     assert max_iter > 0, "The maximum number of iterations must be positive"
 
     verbose: bool = options["verbose"]
+    visualize: bool = options["visualize"]
     plot_name: str = options["plot"]
-    simple_plot: bool = options["simple_plot"]
 
     start_time = 0.0
     if verbose:
         start_time = time()
 
     netlist, allocation = glbfloor(netlist, n_rows, n_cols, cell_shape, threshold, alpha, max_iter,
-                                   verbose, plot_name, simple_plot)
+                                   plot_name, verbose, visualize)
 
     if verbose:
         print(f"Elapsed time: {time() - start_time:.3f} s")
