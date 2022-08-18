@@ -307,13 +307,13 @@ class Allocation:
         if rect[2] >= rect[3]:
             # Split width
             w2, w4 = rect[2] / 2, rect[2] / 4
-            rect1 = (rect[0] - w4, rect[1], w2, rect[3])
-            rect2 = (rect[0] + w4, rect[1], w2, rect[3])
+            rect1 = (rect[0] - w4, rect[1], w2, rect[3], rect[4])
+            rect2 = (rect[0] + w4, rect[1], w2, rect[3], rect[4])
         else:
             # Split height
             h2, h4 = rect[3] / 2, rect[3] / 4
-            rect1 = (rect[0], rect[1] - h4, rect[2], h2)
-            rect2 = (rect[0], rect[1] + h4, rect[2], h2)
+            rect1 = (rect[0], rect[1] - h4, rect[2], h2, rect[4])
+            rect2 = (rect[0], rect[1] + h4, rect[2], h2, rect[4])
 
         return Allocation._split_allocation(rect1, alloc, depth + 1, levels - 1) + \
             Allocation._split_allocation(rect2, alloc, depth + 1, levels - 1)

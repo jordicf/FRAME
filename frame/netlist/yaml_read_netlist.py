@@ -77,7 +77,7 @@ def parse_yaml_module(name: str, info: dict) -> Module:
     m = Module(name, **params)
 
     if KW_RECTANGLES in info:
-        rectangles = parse_yaml_rectangles(info[KW_RECTANGLES], cast(bool, params[KW_FIXED]), name)
+        rectangles = parse_yaml_rectangles(info[KW_RECTANGLES], cast(bool, params[KW_FIXED]))
         for r in rectangles:
             m.add_rectangle(r)
         m.name_rectangles()
@@ -126,22 +126,21 @@ def parse_yaml_fixed(fixed: bool, name: str) -> bool:
     return fixed
 
 
-def parse_yaml_rectangles(rectangles: list, fixed: bool, name: str) -> list[Rectangle]:
+def parse_yaml_rectangles(rectangles: list, fixed: bool = False) -> list[Rectangle]:
     """Parses the rectangles of a module
-    :param rectangles: sequence of rectangles
+    :param rectangles: list of rectangles
     :param fixed: are the rectangles fixed
-    :param name: name of the module
     :return: a list of rectangles (empty if no rectangles are specified)
     """
 
     rlist = rectangles
-    assert isinstance(rlist, list) and len(rlist) > 0, f"Incorrect specification of rectangles in module {name}"
+    assert isinstance(rlist, list) and len(rlist) > 0, f"Incorrect specification of rectangles"
     if is_number(rlist[0]):
         rlist = [rlist]  # List with only one rectangle
 
     rect_list = []
     for r in rlist:
-        rect_list.append(parse_yaml_rectangle(r, fixed, name))
+        rect_list.append(parse_yaml_rectangle(r, fixed))
     return rect_list
 
 

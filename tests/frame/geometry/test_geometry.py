@@ -1,6 +1,7 @@
 import unittest
 
 from frame.geometry.geometry import Point, Shape, Rectangle
+from frame.utils.keywords import KW_CENTER, KW_SHAPE
 
 
 class TestPoint(unittest.TestCase):
@@ -133,6 +134,18 @@ class TestRectangle(unittest.TestCase):
         self.assertEqual(r2.area_overlap(r3), 2)
         self.assertEqual(r2.area_overlap(r4), 0)
         self.assertEqual(r3.area_overlap(r4), 2)
+
+        # Checkihng __mul__
+        self.assertIsNone(r1*r2)
+        self.assertIsNone(r1*r3)
+        self.assertIsNone(r1*r4)
+        self.assertIsNone(r2*r4)
+        r5 = r2*r3
+        r6 = r3*r4
+        r5_inter = Rectangle(**{KW_CENTER: Point(6.5, 5.0), KW_SHAPE: Shape(1, 2)})
+        r6_inter = Rectangle(**{KW_CENTER: Point(7, 2.5), KW_SHAPE: Shape(2, 1)})
+        self.assertTrue(r5 == r5_inter)
+        self.assertTrue(r6 == r6_inter)
 
 
 if __name__ == '__main__':

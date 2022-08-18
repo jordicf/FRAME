@@ -2,13 +2,13 @@
 Module to represent points, shapes and rectangles
 """
 
-from typing import Any, Union, Sequence
+from typing import Any, Union, Sequence, Optional
 from dataclasses import dataclass
 
 from frame.utils.keywords import KW_FIXED, KW_CENTER, KW_SHAPE, KW_REGION, KW_NAME, KW_GROUND
 from frame.utils.utils import valid_identifier
 
-RectDescriptor = tuple[float, float, float, float]  # (x,y,w,h)
+RectDescriptor = tuple[float, float, float, float, str]  # (x,y,w,h, region)
 
 
 class Point:
@@ -100,7 +100,7 @@ class Point:
 
     def __pow__(self, exponent: float) -> 'Point':
         """Return self**exponent using component-wise exponentiation."""
-        return Point(self.x**exponent, self.y**exponent)
+        return Point(self.x ** exponent, self.y ** exponent)
 
     def __truediv__(self, other: Union['Point', tuple[float, float], float]) -> 'Point':
         """Return self / other using component-wise true division. other can either be a number or another point."""
@@ -207,8 +207,8 @@ class Rectangle:
 
     @property
     def vector_spec(self) -> RectDescriptor:
-        """Returns a vector specification of the rectangle [x, y, w, h]"""
-        return self.center.x, self.center.y, self.shape.w, self.shape.h
+        """Returns a vector specification of the rectangle [x, y, w, h, region]"""
+        return self.center.x, self.center.y, self.shape.w, self.shape.h, self.region
 
     @property
     def area(self) -> float:
@@ -269,6 +269,40 @@ class Rectangle:
             return 0.0
         return (maxx - minx) * (maxy - miny)
 
+    def __mul__(self, other: 'Rectangle') -> Optional['Rectangle']:
+        """
+        Calculates the intersection of two rectangles and returns another rectangle (or None if no intersection).
+        If the rectangles belong to different regions, None is returned
+        :param other: The other rectangle
+        :return: a rectangle representing the intersection (or None if no intersection)
+        """
+        if self.region != other.region:
+            return None
+        ll1, ur1 = self.bounding_box
+        ll2, ur2 = other.bounding_box
+        minx = max(ll1.x, ll2.x)
+        maxx = min(ur1.x, ur2.x)
+        width = maxx - minx
+        if width <= 0:
+            return None
+        miny = max(ll1.y, ll2.y)
+        maxy = min(ur1.y, ur2.y)
+        height = maxy - miny
+        if height <= 0:
+            return None
+        center = Point(minx + width / 2, miny + height / 2)
+        return Rectangle(**{KW_CENTER: center, KW_SHAPE: Shape(width, height), KW_REGION: self.region})
+
+    def __eq__(self, other: Any) -> bool:
+        """
+        Checks whether two rectangles are the same (same center, same shape)
+        :param other: the other rectangle (potentially another type of object)
+        :return: True if equal, and False otherwise
+        """
+        if not isinstance(other, Rectangle):
+            return False
+        return self.center == other.center and self.shape == other.shape and self.region == other.region
+
     def __str__(self) -> str:
         """
         :return: string representation of the rectangle
@@ -282,20 +316,19 @@ class Rectangle:
     __repr__ = __str__
 
 
-def parse_yaml_rectangle(r: Sequence[float | int | str], fixed: bool = False, name: str = "") -> Rectangle:
+def parse_yaml_rectangle(r: Sequence[float | int | str], fixed: bool = False) -> Rectangle:
     """Parses a rectangle
     :param r: a YAML description of the rectangle (a tuple or list with 4 numeric values (x, y, w, h)).
     Optionally, it may contain a fifth parameter (string) specifying a region
     :param fixed: Indicates whether the rectangle should be fixed
-    :param name: name of the module
     :return: a rectangle
     """
     if isinstance(r, list):
         r = tuple(r)
-    assert isinstance(r, tuple) and 4 <= len(r) <= 5, f"Incorrect format for rectangle in module {name}"
+    assert isinstance(r, tuple) and 4 <= len(r) <= 5, f"Incorrect format for rectangle"
     for i in range(4):
         x = r[i]
-        assert isinstance(x, (int, float)) and x >= 0, f"Incorrect value for rectangle in module {name}"
+        assert isinstance(x, (int, float)) and x >= 0, f"Incorrect value for rectangle"
     if len(r) == 5:
         assert isinstance(r[4], str) and valid_identifier(r[4])
 
