@@ -53,7 +53,7 @@ where these resources are located on the die.
 ## The `FRAME` pipeline
 
 Floorplanning is a multi-objective problem that cannot be solved using simple algorithmic techniques.
-`FRAME` advocates for a multi-step approach moving from coarse abstractions of the modules (e.g., points)
+`FRAME` advocates for a multistep approach moving from coarse abstractions of the modules (e.g., points)
 to detailed representations (e.g., rectilinear shapes). At each level, a suitable algorithmic strategy is
 used that combines the accuracy of the representation with the optimality of the solution.
 `FRAME` exploits mathematical and algorithmic methods to progressively refine the floorplanning infomation.
