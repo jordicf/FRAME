@@ -1,10 +1,6 @@
 #ifndef COMPLETE_CPP
 #define COMPLETE_CPP
 
-// For better compatibility
-#define and &&
-#define or ||
-
 #include <algorithm>
 #include <vector>
 #include <set> 
@@ -83,11 +79,11 @@ namespace complete {
 		
 		std::vector<hpoint> B2(0);
 		{
-			int ib = 0, ir = 0;
+			unsigned long int ib = 0, ir = 0;
 			while(ib < Blocks.size()){
-				if( 2 * ir < B.size() and B[2 * ir].x == Blocks[ib].x){
+				if( 2 * ir < B.size() && B[2 * ir].x == Blocks[ib].x){
 					++ib;
-				} else if(2 * ir < B.size() and B[2 * ir].x < Blocks[ib].x){
+				} else if(2 * ir < B.size() && B[2 * ir].x < Blocks[ib].x){
 					++ir;
 				} else {
 					B2.push_back( Blocks[ib] );
@@ -99,9 +95,9 @@ namespace complete {
 		
 		std::vector<hpoint> TB(0);
 		{
-			int it = 0, ib = 0;
-			while(it < T.size() or ib < B.size()){
-				if(it < T.size() and (ib >= B.size() or T[it].x < B[ib].x)){
+			unsigned long int it = 0, ib = 0;
+			while(it < T.size() || ib < B.size()){
+				if(it < T.size() && (ib >= B.size() || T[it].x < B[ib].x)){
 					TB.push_back( T[it] );
 					++it;
 				} else {
@@ -112,26 +108,26 @@ namespace complete {
 		}
 		
 		{
-			int ib = 0, itb1 = 0;
+			unsigned long int ib = 0, itb1 = 0;
 			while(itb1 < TB.size()){
-				while(itb1 < TB.size() and ib < B2.size() and B2[ib].x <= TB[itb1].x){
+				while(itb1 < TB.size() && ib < B2.size() && B2[ib].x <= TB[itb1].x){
 					if(B2[ib].y <= TB[itb1].x) ++ib;
-					else while(itb1 < TB.size() and B2[ib].y > TB[itb1].x) ++itb1;
+					else while(itb1 < TB.size() && B2[ib].y > TB[itb1].x) ++itb1;
 				}
 				double xcap = 1e200, lastx1 = 1e200, lastx2 = 1e200;
 				if(ib < B2.size()){
 					xcap = B2[ib].x;
 				}
 				
-				while(itb1 < TB.size() and TB[itb1].x <= xcap){
+				while(itb1 < TB.size() && TB[itb1].x <= xcap){
 					if(TB[itb1].x == lastx1) {
 						++itb1;
 						continue;
 					}
 					lastx1 = TB[itb1].x;
 					lastx2 = 1e200;
-					for(int itb2 = itb1 + 1; itb2 < TB.size() and TB[itb2].x <= xcap; ++itb2){
-						if(TB[itb1].x == TB[itb2].x or TB[itb2].x == lastx2) continue;
+					for(int itb2 = itb1 + 1; itb2 < TB.size() && TB[itb2].x <= xcap; ++itb2){
+						if(TB[itb1].x == TB[itb2].x || TB[itb2].x == lastx2) continue;
 						lastx2 = TB[itb2].x;
 						report_line_segment( complete::line_segment { TB[itb1].x, TB[itb1].y, TB[itb2].x, TB[itb2].y }, S );
 					}
@@ -142,9 +138,9 @@ namespace complete {
 		
 		std::vector<hpoint> B3(0);
 		{
-			int ib = 0, it = 0;
-			while(ib < B2.size() or 2 * it < T.size()){
-				if(ib < B2.size() and (2 * it >= T.size() or B2[ib].x < T[2*it].x)){
+			unsigned long int ib = 0, it = 0;
+			while(ib < B2.size() || 2 * it < T.size()){
+				if(ib < B2.size() && (2 * it >= T.size() || B2[ib].x < T[2*it].x)){
 					B3.push_back( B2[ib] );
 					++ib;
 				} else {
@@ -165,11 +161,11 @@ namespace complete {
 		
 		std::vector<vpoint> B2(0);
 		{
-			int ib = 0, ir = 0;
+			unsigned long int ib = 0, ir = 0;
 			while(ib < Blocks.size()){
-				if(2 * ir < R.size() and R[2 * ir].y == Blocks[ib].x){
+				if(2 * ir < R.size() && R[2 * ir].y == Blocks[ib].x){
 					++ib;
-				} else if(2 * ir < R.size() and R[2 * ir].y < Blocks[ib].x){
+				} else if(2 * ir < R.size() && R[2 * ir].y < Blocks[ib].x){
 					++ir;
 				} else {
 					B2.push_back( Blocks[ib] );
@@ -180,9 +176,9 @@ namespace complete {
 		
 		std::vector<vpoint> LR(0);
 		{
-			int il = 0, ir = 0;
-			while(il < L.size() or ir < R.size()){
-				if(il < L.size() and (ir >= R.size() or L[il].y < R[ir].y)){
+			unsigned long int il = 0, ir = 0;
+			while(il < L.size() || ir < R.size()){
+				if(il < L.size() && (ir >= R.size() || L[il].y < R[ir].y)){
 					LR.push_back( L[il] );
 					++il;
 				} else {
@@ -193,26 +189,26 @@ namespace complete {
 		}
 		
 		{
-			int ib = 0, ilr1 = 0;
+			unsigned long int ib = 0, ilr1 = 0;
 			while(ilr1 < LR.size()){
-				while(ilr1 < LR.size() and ib < B2.size() and B2[ib].x <= LR[ilr1].y){
+				while(ilr1 < LR.size() && ib < B2.size() && B2[ib].x <= LR[ilr1].y){
 					if(B2[ib].y <= LR[ilr1].y) ++ib;
-					else while(ilr1 < LR.size() and B2[ib].y > LR[ilr1].y) ++ilr1;
+					else while(ilr1 < LR.size() && B2[ib].y > LR[ilr1].y) ++ilr1;
 				}
 				double ycap = 1e200, lasty1 = 1e200, lasty2 = 1e200;
 				if(ib < B2.size()){
 					ycap = B2[ib].x;
 				}
 				
-				while(ilr1 < LR.size() and LR[ilr1].y <= ycap){
+				while(ilr1 < LR.size() && LR[ilr1].y <= ycap){
 					if(LR[ilr1].y == lasty1) {
 						++ilr1;
 						continue;
 					}
 					lasty1 = LR[ilr1].y;
 					lasty2 = 1e200;
-					for(int ilr2 = ilr1 + 1; ilr2 < LR.size() and LR[ilr2].y <= ycap; ++ilr2){
-						if(LR[ilr1].y == LR[ilr2].y or LR[ilr2].y == lasty2) continue;
+					for(int ilr2 = ilr1 + 1; ilr2 < LR.size() && LR[ilr2].y <= ycap; ++ilr2){
+						if(LR[ilr1].y == LR[ilr2].y || LR[ilr2].y == lasty2) continue;
 						lasty2 = LR[ilr2].y;
 						report_line_segment( complete::line_segment { LR[ilr1].x, LR[ilr1].y, LR[ilr2].x, LR[ilr2].y }, S );
 					}
@@ -223,9 +219,9 @@ namespace complete {
 		
 		std::vector<vpoint> B3(0);
 		{
-			int ib = 0, il = 0;
-			while(ib < B2.size() or 2 * il < L.size()){
-				if(ib < B2.size() and (2 * il >= L.size() or B2[ib].x < L[2*il].y)){
+			unsigned long int ib = 0, il = 0;
+			while(ib < B2.size() || 2 * il < L.size()){
+				if(ib < B2.size() && (2 * il >= L.size() || B2[ib].x < L[2*il].y)){
 					B3.push_back( B2[ib] );
 					++ib;
 				} else {
@@ -255,17 +251,17 @@ namespace complete {
 		std::sort(RSet.begin(), RSet.end());
 		
 		std::vector<struct vpoint> Blocks(0);
-		int Lit = 0, Rit = 0;
-		while(Lit < LSet.size() or Rit < RSet.size()){
+		unsigned long int Lit = 0, Rit = 0;
+		while(Lit < LSet.size() || Rit < RSet.size()){
 			std::vector<struct vpoint> L(0), R(0);
 			double min = 1e200;
 			if(Lit < LSet.size()) min = LSet[Lit].x;
-			if(Rit < RSet.size() and RSet[Rit].x < min) min = RSet[Rit].x;
-			while(Lit < LSet.size() and LSet[Lit].x == min){
+			if(Rit < RSet.size() && RSet[Rit].x < min) min = RSet[Rit].x;
+			while(Lit < LSet.size() && LSet[Lit].x == min){
 				L.push_back(LSet[Lit]);
 				++Lit;
 			}
-			while(Rit < RSet.size() and RSet[Rit].x == min){
+			while(Rit < RSet.size() && RSet[Rit].x == min){
 				R.push_back(RSet[Rit]);
 				++Rit;
 			}
@@ -289,17 +285,17 @@ namespace complete {
 		std::sort(BSet.begin(), BSet.end());
 		
 		std::vector<struct hpoint> Blocks(0);
-		int Tit = 0, Bit = 0;
-		while(Tit < TSet.size() or Bit < BSet.size()){
+		unsigned long int Tit = 0, Bit = 0;
+		while(Tit < TSet.size() || Bit < BSet.size()){
 			std::vector<struct hpoint> T(0), B(0);
 			double min = 1e200;
 			if(Tit < TSet.size()) min = TSet[Tit].y;
-			if(Bit < BSet.size() and BSet[Bit].y < min) min = BSet[Bit].y;
-			while(Tit < TSet.size() and TSet[Tit].y == min){
+			if(Bit < BSet.size() && BSet[Bit].y < min) min = BSet[Bit].y;
+			while(Tit < TSet.size() && TSet[Tit].y == min){
 				T.push_back(TSet[Tit]);
 				++Tit;
 			}
-			while(Bit < BSet.size() and BSet[Bit].y == min){
+			while(Bit < BSet.size() && BSet[Bit].y == min){
 				B.push_back(BSet[Bit]);
 				++Bit;
 			}
@@ -336,7 +332,7 @@ namespace complete {
 			double juice = b.p * area(b);
 			pset::iterator i = points.begin();
 			while(i != points.end()){
-				if( i->x > b.x1 and i->y > b.y1 ){
+				if( i->x > b.x1 && i->y > b.y1 ){
 					intmap[ *i ] += juice;
 				}
 				++i;

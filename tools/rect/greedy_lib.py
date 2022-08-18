@@ -1,6 +1,5 @@
 from ctypes import *
 from typing import Type
-from sys import modules
 
 
 class BOX(Structure):
