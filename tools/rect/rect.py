@@ -462,7 +462,8 @@ def main(prog: str | None = None, args: list[str] | None = None) -> int:
                     dif = last
                     last, tmpb, q1 = solve(carrier, ifile, f, dif, nboxes)
             else:
-                quality = (f * area(carrier, carrier.inibox, True) - area(carrier, carrier.inibox, False)) / (float(f - 1) * carrier.theoreticalBestArea)
+                quality = (f * area(carrier, carrier.inibox, True) - area(carrier, carrier.inibox, False)) /\
+                          (float(f - 1) * carrier.theoreticalBestArea)
                 print("Quality:          " + str(quality))
             if improvement:
                 print(boxes)

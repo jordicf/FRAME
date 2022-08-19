@@ -4,13 +4,13 @@ import math
 from dataclasses import dataclass
 
 from frame.netlist.netlist import Netlist
-from frame.geometry.geometry import Point, Shape, Rectangle, RectDescriptor, parse_yaml_rectangle
+from frame.geometry.geometry import Point, Shape, Rectangle, parse_yaml_rectangle
 from frame.utils.keywords import KW_CENTER, KW_SHAPE
 from frame.utils.utils import TextIO_String, read_yaml, write_yaml, YAML_tree, is_number, valid_identifier
 
 Alloc = dict[str, float]  # Allocation in a rectangle (area ratio for each module)
 
-AllocDescriptor = tuple[RectDescriptor, Alloc, int]  # ((x,y,w,h), alloc, depth)
+AllocDescriptor = tuple[Rectangle, Alloc, int]  # ((x,y,w,h), alloc, depth)
 
 
 @dataclass()
@@ -143,13 +143,12 @@ class Allocation:
         # Creating the new allocation
         new_alloc: list[AllocDescriptor] = []
         for a in self.allocations:
-            r = a.rect.vector_spec
             alloc: Alloc = {}
             for m in netlist.modules:
                 area = sum(a.rect.area_overlap(r_mod) for r_mod in m.rectangles)
                 if include_area_zero or area > 0:
                     alloc[m.name] = area
-            new_alloc.append((r, alloc, a.depth))
+            new_alloc.append((a.rect, alloc, a.depth))
         return Allocation(new_alloc)
 
     def refine(self, threshold: float, levels: int = 1) -> 'Allocation':
@@ -167,7 +166,7 @@ class Allocation:
         for a in self.allocations:
             # Check the allocations and see if the rectangle must be split
             split = len(a.alloc) > 0 and all(x <= threshold for x in a.alloc.values())
-            new_alloc.extend(self._split_allocation(a.rect.vector_spec, a.alloc, a.depth, levels if split else 0))
+            new_alloc.extend(self._split_allocation(a.rect, a.alloc, a.depth, levels if split else 0))
         return Allocation(new_alloc)
 
     def must_be_refined(self, threshold: float) -> bool:
@@ -198,7 +197,7 @@ class Allocation:
 
         new_alloc: list[AllocDescriptor] = []
         for a in self.allocations:
-            new_alloc.extend(self._split_allocation(a.rect.vector_spec, a.alloc, a.depth, max_depth - a.depth))
+            new_alloc.extend(self._split_allocation(a.rect, a.alloc, a.depth, max_depth - a.depth))
         return Allocation(new_alloc)
 
     def write_yaml(self, filename: str = None) -> None | str:
@@ -247,8 +246,8 @@ class Allocation:
             depth = 0 if len(alloc) == 2 else alloc[2]
             assert isinstance(depth, int) and depth >= 0, f'Incorrect depth for rectangle {alloc}'
 
-            # Create the rectangle
-            rect = parse_yaml_rectangle(r)
+            # Create the rectangle (if it is ot already a rectangle)
+            rect = r if isinstance(r, Rectangle) else parse_yaml_rectangle(r)
 
             # Create the dictionary of allocations
             assert isinstance(d, dict), f'Incorrect allocation for rectangle {r}'
@@ -290,7 +289,7 @@ class Allocation:
             self._centers[module] = center / total_area
 
     @staticmethod
-    def _split_allocation(rect: RectDescriptor, alloc: Alloc, depth: int, levels: int = 0) \
+    def _split_allocation(rect: Rectangle, alloc: Alloc, depth: int, levels: int = 0) \
             -> list[AllocDescriptor]:
         """
         Splits a rectangle into 2^levels rectangles and returns a list of rectangle allocations
@@ -304,16 +303,10 @@ class Allocation:
             return [(rect, {m: r for m, r in alloc.items()}, depth)]
 
         # Split the largest dimension
-        if rect[2] >= rect[3]:
-            # Split width
-            w2, w4 = rect[2] / 2, rect[2] / 4
-            rect1 = (rect[0] - w4, rect[1], w2, rect[3], rect[4])
-            rect2 = (rect[0] + w4, rect[1], w2, rect[3], rect[4])
+        if rect.shape.w > rect.shape.h:
+            rect1, rect2 = rect.split_horizontal()
         else:
-            # Split height
-            h2, h4 = rect[3] / 2, rect[3] / 4
-            rect1 = (rect[0], rect[1] - h4, rect[2], h2, rect[4])
-            rect2 = (rect[0], rect[1] + h4, rect[2], h2, rect[4])
+            rect1, rect2 = rect.split_vertical()
 
         return Allocation._split_allocation(rect1, alloc, depth + 1, levels - 1) + \
             Allocation._split_allocation(rect2, alloc, depth + 1, levels - 1)

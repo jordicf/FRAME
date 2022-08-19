@@ -275,6 +275,13 @@ class Rectangle:
             return 0.0
         return (maxx - minx) * (maxy - miny)
 
+    def duplicate(self) -> 'Rectangle':
+        """
+        Creates a duplication of the rectangle
+        :return: the rectangle
+        """
+        return Rectangle(**{KW_CENTER: self.center, KW_SHAPE: self.shape, KW_FIXED: self.fixed, KW_REGION: self.region})
+
     def split_horizontal(self, x: float = -1) -> tuple['Rectangle', 'Rectangle']:
         """
         Splits the rectangle horizontally cutting by x. If x is negative, the rectangle is split into two halves
@@ -365,6 +372,7 @@ def parse_yaml_rectangle(r: Sequence[float | int | str], fixed: bool = False) ->
     :param fixed: Indicates whether the rectangle should be fixed
     :return: a rectangle
     """
+
     if isinstance(r, list):
         r = tuple(r)
     assert isinstance(r, tuple) and 4 <= len(r) <= 5, f"Incorrect format for rectangle"

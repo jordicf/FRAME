@@ -70,7 +70,7 @@ def create_initial_allocation(netlist: Netlist, n_rows: int, n_cols: int, cell_s
             # Initialize to 1 for all modules so the center can be computed (0 raises ZeroDivisionError)
             # This value will be ignored when calling the initial_allocation method.
             c_alloc[module.name] = 1.0
-        allocation_list[c] = (cells[c].vector_spec, c_alloc, 0)
+        allocation_list[c] = (cells[c], c_alloc, 0)
 
     return Allocation(allocation_list).initial_allocation(netlist, include_area_zero=True)
 
@@ -140,7 +140,7 @@ def extract_solution(model: Model, netlist: Netlist, allocation: Allocation) \
         c_alloc = Alloc()
         for m, module in enumerate(netlist.modules):
             c_alloc[module.name] = get_value(model.a[m][c])
-        allocation_list[c] = (allocs[c].rect.vector_spec, c_alloc, 0)
+        allocation_list[c] = (allocs[c].rect, c_alloc, 0)
     allocation = Allocation(allocation_list)
 
     dispersions = {}
