@@ -76,6 +76,8 @@ def parse_options(prog: str | None = None, args: list[str] | None = None) -> dic
                         help="The output file path (yaml)")
     parser.add_argument("--module", type=str, dest='module', default=None,
                         help="The module to optimize. If none is introduced, it optimizes all of them")
+    parser.add_argument("--threshold", type=float, dest='threshold', default=0.80,
+                        help="The quality threshold. The algorithm will cease to refine once this quality is ensured.")
 
     return vars(parser.parse_args(args))
 
@@ -157,7 +159,7 @@ def solve(carrier: Carrier,
           ifile,
           ratio: float,
           dif: tuple[int, int],
-          nboxes: int) -> tuple[tuple[int, int], list[SimpleBox]]:
+          nboxes: int) -> tuple[tuple[int, int], list[SimpleBox], float]:
     """
     Generates the SAT problem, calls the solver and returns the solution
     :param carrier: The blocks, input_problem, factor and theoretical_best_area carrier
@@ -189,7 +191,7 @@ def solve(carrier: Carrier,
     realarea = pseudobool.Expr()
     for b in blocks:
         realarea = realarea + sm.newvar("b_" + str(b), "") * int(area(carrier, b, False))
-    obj = ratio * selarea - realarea
+    obj: pseudobool.Expr = ratio * selarea - realarea
 
     # Have at least one block, please
     sm.pseudoboolencoding(allblocks >= 1)
@@ -206,16 +208,21 @@ def solve(carrier: Carrier,
         enforce_bb(carrier, ifile, sm, "b" + str(i) + "_", "b" + str(0) + "_")
     if not sm.solve():
         print("Insat")
-        return (0, 1), []
+        return (0, 1), [], 0
 
     sa = sm.evalexpr(selarea)
     ra = sm.evalexpr(realarea)
 
     if isinstance(sa, int) and isinstance(ra, int):
+        objective = sm.evalexpr(obj)
+        quality: float = 0
+        if isinstance(objective, float) or isinstance(objective, int):
+            quality = float(objective) / (float(ratio - 1) * theoretical_best_area)
         print("Selected area:    " + str(float(sa) / float(factor)))
         print("Real area:        " + str(float(ra) / float(factor)))
         print("Theoretical area: " + str(theoretical_best_area / float(factor)))
-        print("Error objective:  " + str(sm.evalexpr(obj)))
+        print("Error objective:  " + str(objective))
+        print("Quality:          " + str(quality))
 
         rects = [(float('inf'), float('inf'), -float('inf'), -float('inf'))] * nboxes
         for i in range(0, nboxes):
@@ -235,12 +242,12 @@ def solve(carrier: Carrier,
 
         # Min area approach
         if ratio < 1:
-            return (int(sa + 1), int(ra)), rects
+            return (int(sa + 1), int(ra)), rects, 0.0
         # Min error approach
         else:
             o = sm.evalexpr(obj)
             if isinstance(o, int):
-                return (int(o + 1), 1), rects
+                return (int(o + 1), 1), rects, quality
             else:
                 raise Exception("No solution!!!")
     else:
@@ -439,20 +446,28 @@ def main(prog: str | None = None, args: list[str] | None = None) -> int:
         print(dif)
         boxes = [(carrier.inibox[0], carrier.inibox[1], carrier.inibox[2], carrier.inibox[3])]
         improvement = True
+        quality: float = 0.0
         for nboxes in [1, 2, 3]:
             print("\n\nnboxes: " + str(nboxes))
-            last, tmpb = solve(carrier, ifile, f, dif, nboxes)
-            while last[0] > 0:
-                boxes = tmpb
-                improvement = True
-                print("dif = " + str(dif))
-                dif = last
-                last, tmpb = solve(carrier, ifile, f, dif, nboxes)
+            if nboxes != 1:
+                last, tmpb, q1 = solve(carrier, ifile, f, dif, nboxes)
+                while last[0] > 0:
+                    quality = q1
+                    boxes = tmpb
+                    improvement = True
+                    print("dif = " + str(dif))
+                    dif = last
+                    last, tmpb, q1 = solve(carrier, ifile, f, dif, nboxes)
+            else:
+                quality = (f * area(carrier, carrier.inibox, True) - area(carrier, carrier.inibox, False)) / (float(f - 1) * carrier.theoreticalBestArea)
+                print("Quality:          " + str(quality))
             if improvement:
                 print(boxes)
                 if options['plot']:
                     drawoutput(canvas, carrier, boxes)
                 improvement = False
+            if quality > options['threshold']:
+                break
         for i in range(0, len(boxes)):
             (x1, y1, x2, y2) = boxes[i]
             boxes[i] = ((x1 + x2) / 2, (y1 + y2) / 2, x2 - x1, y2 - y1)
