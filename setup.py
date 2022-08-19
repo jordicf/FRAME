@@ -9,7 +9,7 @@ from setuptools import setup, Extension
 from distutils.command.build_ext import build_ext as build_ext_orig
 
 
-class build_ext(build_ext_orig):
+class BuildExt(build_ext_orig):
     def build_extension(self, ext):
         self._ctypes = isinstance(ext, Extension)
         return super().build_extension(ext)
@@ -71,5 +71,5 @@ setup(name=NAME,
               ["tools/rect/cpp_src/greedy_lib.cpp"]
           )
       ],
-      cmdclass={'build_ext': build_ext}
+      cmdclass={'build_ext': BuildExt}
       )

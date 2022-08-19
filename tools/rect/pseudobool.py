@@ -5,6 +5,9 @@ AddTerm = str | int | float | object
 
 
 class Literal:
+    """
+    A literal is defined as either a variable (x) or its negation (not x)
+    """
     def __init__(self, var: str, sign: bool = True) -> None:
         self.v = str(var)
         self.s = sign
@@ -48,6 +51,9 @@ class Literal:
 
 
 class Term:
+    """
+    A term is a literal times a constant.
+    """
     def __init__(self, lit: Literal, const: int = 1) -> None:
         self.L = Literal(lit.v, lit.s)
         self.c = int(const)
@@ -89,6 +95,10 @@ class Term:
 
 
 class Expr:
+    """
+    A linear expression is an affine combination of literals, aka. a sum of terms plus a constant.
+    No term has negative constants. Instead, -a * l is turned into -a * (1 - not l) = -a + a * not l
+    """
     def __init__(self, c: int = 0, t: dict = None) -> None:
         if t is None:
             t = {}
@@ -194,6 +204,11 @@ class Expr:
 
 
 def maxsum(lst: list[Term]):
+    """
+    Returns the maximum value an expression (or, rather, a list of terms) can have
+    Assumes no term has negative constants
+    :param lst: The expression
+    """
     s = 0
     for term in lst:
         s += term.c
@@ -201,6 +216,10 @@ def maxsum(lst: list[Term]):
 
 
 def largebit(n: int):
+    """
+    Given a number n, returns the largest 2**k such that 2**k < n.
+    :param n: The number.
+    """
     i = 1
     while 2 * i <= n:
         i = i * 2
@@ -208,6 +227,11 @@ def largebit(n: int):
 
 
 def insert(lst: list[Term], trm: Term):
+    """
+    Inserts the term into the list, and guarantees sorting by constant term
+    :param lst: List of terms
+    :param trm: New term to add
+    """
     if trm.c == 0:
         return lst
     lst = lst + [trm]
@@ -222,6 +246,9 @@ BaseType = tuple[list[Term], int]
 
 
 class Ineq:
+    """
+    A linear inequality is something of the form A >= B, where A and B are linear expressions.
+    """
     def __init__(self, lhs: Expr = Expr(), rhs: Expr = Expr(), op: str = ">=") -> None:
         if op != ">=" and op != "<=" and op != ">" and op != "<" and op != "=" and op != "==":
             raise Exception("Invalid operator")
@@ -240,6 +267,10 @@ class Ineq:
         self.clause: None | list[Literal] = None
 
     def isclause(self) -> bool:
+        """
+        Returns true if the inequality can be expressed as l1 v l2 v ...,
+        where l1, l2... are literals.
+        """
         if self.op != ">=" and self.op != ">":
             return False
         if self.rhs <= 0:
@@ -264,6 +295,9 @@ class Ineq:
         return True
 
     def tostr(self) -> str:
+        """
+        Turns the constraint into a human-readable string.
+        """
         if self.clause is not None:
             res = ""
             f = True
@@ -276,6 +310,12 @@ class Ineq:
         return self.lhs.tostr() + " " + self.op + " " + str(self.rhs)
 
     def getrobdd(self, coefficientdecomposition: bool = False) -> int:
+        """
+        Turns the constraint into a ROBDD
+        :param coefficientdecomposition: This would guarantee the size of the ROBDD to be polynomial (n^2), but I'd
+        argue against it most of the time, since tends to produce larger graphs most of the time, and also it does
+        not guarantee arc consistency by unit propagation, which is bad
+        """
         lst = []
         for v in self.lhs.t:
             lst.append(self.lhs.t[v])
@@ -339,6 +379,11 @@ class Ineq:
             raise Exception("Not implemented yet.")
 
 
+"""
+memory: Every ROBDD generated so far.
+mmap:   Given a decision variable and the two branches, tells you whether this ROBDD already exists or not, and returns
+        the given ROBDD if it exists. Important to guarantee canonicity.
+"""
 memory: list[int | tuple[(str | int), int, int]] = [0, 1]
 mmap: dict[int | tuple[(str | int), int, int], int] = {}
 
@@ -349,6 +394,17 @@ def constructrobdd(data: typing.Any, bccond: typing.Callable[[T], bool], bcconst
                    dvar: typing.Callable[[T], str | int], ifprop: typing.Callable[[T], T],
                    elprop: typing.Callable[[T], T], serdat: typing.Callable[[T], str],
                    memo: dict[str, int] = None) -> int:
+    """
+    Generates the ROBDD that represents the given binary function
+    :param data: The data yet to be converted into an ROBDD
+    :param bccond: Short for "Base Case Condition". Returns true if the data meets the condition for the base case
+    :param bcconstr: Short for "Base Case Construction". Returns 0 or 1, depending on the base case to be applied
+    :param dvar: Short for "Decision Variable". Returns the top decision variable of the ROBDD to construct
+    :param ifprop: Short for "if propagation". Transforms the data for the if branch of the ROBDD
+    :param elprop: Short for "else propagation". Transforms the data for the else branch of the ROBDD
+    :param serdat: Short for "serialize data". Turns the arbitrary input type into a string - Important for efficiency
+    :param memo: Short for "memoization". Remembers previous results for greater efficiency
+    """
     if memo is None:
         memo = {}
     if serdat(data) in memo:
@@ -364,9 +420,9 @@ def constructrobdd(data: typing.Any, bccond: typing.Callable[[T], bool], bcconst
     if ifnode == elnode:
         return ifnode
     dv = dvar(data)
-    if (dv, ifnode, elnode) not in mmap:
-        obj = (dv, ifnode, elnode)
+    obj = (dv, ifnode, elnode)
+    if obj not in mmap:
         memory.append(obj)
         mmap[obj] = len(memory) - 1
-    memo[serdat(data)] = mmap[(dv, ifnode, elnode)]
-    return mmap[(dv, ifnode, elnode)]
+    memo[serdat(data)] = mmap[obj]
+    return mmap[obj]
