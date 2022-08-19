@@ -22,6 +22,21 @@ InputProblem = list[InputBox]
 
 
 class Carrier:
+    """
+    Class that contains many of the variables that define the problem to be solved.
+    input_problem: A list of boxes, with their respective occupations of the module to solve.
+    selbox: The name of the module currently being optimized.
+    factor: The "d" constant in the formulation of the --sf option (see documentation)
+    inibox: The solution found by the greedy algorithm
+    blocks: A list of the identifiers for each rectangle
+    prev_x: For every x, returns the largest x smaller than it
+    prev_y: For every y, returns the largest y smaller than it
+    next_x: For every x, returns the smallest x larger than it
+    next_y: For every y, returns the smallest y larger than it
+    xcoords: A sorted list of x coordinates
+    ycoords: A sorted list of y coordinates
+    gm: The object that calls the greedy algorithm
+    """
     def __init__(self):
         self.input_problem: InputProblem = []
         self.selbox: str = ""
