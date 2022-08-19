@@ -5,7 +5,7 @@ Module to represent points, shapes and rectangles
 from typing import Any, Union, Sequence, Optional
 from dataclasses import dataclass
 
-from frame.utils.keywords import KW_FIXED, KW_CENTER, KW_SHAPE, KW_REGION, KW_NAME, KW_GROUND
+from frame.utils.keywords import KW_FIXED, KW_CENTER, KW_SHAPE, KW_REGION, KW_NAME, KW_GROUND, KW_BLOCKAGE
 from frame.utils.utils import valid_identifier
 
 RectDescriptor = tuple[float, float, float, float, str]  # (x,y,w,h, region)
@@ -151,7 +151,6 @@ class Rectangle:
         self._shape: Shape = Shape(-1, -1)  # Shape: width and height
         self._fixed: bool = False  # Is the rectangle fixed?
         self._region: str = KW_GROUND  # Region of the layout to which the rectangle belongs to
-        self._name: str = ""  # Name of the rectangle
 
         # Reading parameters and type checking
         for key, value in kwargs.items():
@@ -168,7 +167,7 @@ class Rectangle:
                 assert isinstance(value, bool), "Incorrect value for fixed (should be a boolean)"
                 self._fixed = value
             elif key == KW_REGION:
-                assert valid_identifier(value), \
+                assert valid_identifier(value) or value == KW_BLOCKAGE, \
                     "Incorrect value for region (should be a valid string)"
                 self._region = value
             elif key == KW_NAME:
@@ -196,6 +195,22 @@ class Rectangle:
         self._shape = shape
 
     @property
+    def fixed(self) -> bool:
+        return self._fixed
+
+    @fixed.setter
+    def fixed(self, value: bool) -> None:
+        self._fixed = value
+
+    @property
+    def region(self) -> str:
+        return self._region
+
+    @region.setter
+    def region(self, region: str) -> None:
+        self._region = region
+
+    @property
     def bounding_box(self) -> tuple[Point, Point]:
         """
         :return: a tuple ((xmin, ymin), (xmax, ymax))
@@ -214,27 +229,7 @@ class Rectangle:
     def area(self) -> float:
         return self._shape.w * self._shape.h
 
-    @property
-    def fixed(self) -> bool:
-        return self._fixed
-
-    @property
-    def region(self) -> str:
-        return self._region
-
-    @region.setter
-    def region(self, region: str) -> None:
-        self._region = region
-
-    @property
-    def name(self) -> str:
-        return self._name
-
-    @name.setter
-    def name(self, name) -> None:
-        self._name = name
-
-    def inside(self, p: Point) -> bool:
+    def point_inside(self, p: Point) -> bool:
         """
         Checks whether a point is inside the rectangle
         :param p: the point
@@ -242,6 +237,17 @@ class Rectangle:
         """
         bb = self.bounding_box
         return bb[0].x <= p.x <= bb[1].x and bb[0].y <= p.y <= bb[1].y
+
+    def is_inside(self, r: 'Rectangle') -> bool:
+        """
+        Checks whether the rectangle is inside another rectangle
+        :param r: the other rectangle
+        :return: True if inside, False otherwise
+        """
+        bb = self.bounding_box
+        # It is a rectangle
+        bbr = r.bounding_box
+        return bb[0].x >= bbr[0].x and bb[0].y >= bbr[0].y and bb[1].x <= bbr[1].x and bb[1].y <= bbr[1].y
 
     def overlap(self, r: 'Rectangle') -> bool:
         """
@@ -268,6 +274,42 @@ class Rectangle:
         if miny >= maxy:
             return 0.0
         return (maxx - minx) * (maxy - miny)
+
+    def split_horizontal(self, x: float = -1) -> tuple['Rectangle', 'Rectangle']:
+        """
+        Splits the rectangle horizontally cutting by x. If x is negative, the rectangle is split into two halves
+        :param x: the x-cut
+        :return: two rectangles
+        """
+        if x < 0:
+            x = self.center.x
+        bb = self.bounding_box
+        assert bb[0].x < x < bb[1].x
+        c1 = Point((bb[0].x + x) / 2, self.center.y)
+        sh1 = Shape(x - bb[0].x, self.shape.h)
+        c2 = Point((bb[1].x + x) / 2, self.center.y)
+        sh2 = Shape(self.shape.w - sh1.w, self.shape.h)
+        r1 = Rectangle(**{KW_CENTER: c1, KW_SHAPE: sh1, KW_REGION: self.region, KW_FIXED: self.fixed})
+        r2 = Rectangle(**{KW_CENTER: c2, KW_SHAPE: sh2, KW_REGION: self.region, KW_FIXED: self.fixed})
+        return r1, r2
+
+    def split_vertical(self, y: float = -1) -> tuple['Rectangle', 'Rectangle']:
+        """
+        Splits the rectangle vertically cutting by y. If y is negative, the rectangle is split into two halves
+        :param y: the y-cut
+        :return: two rectangles
+        """
+        if y < 0:
+            y = self.center.y
+        bb = self.bounding_box
+        assert bb[0].y < y < bb[1].y
+        c1 = Point(self.center.x, (bb[0].y + y) / 2)
+        sh1 = Shape(self.shape.w, y - bb[0].y)
+        c2 = Point(self.center.x, (bb[1].y + y) / 2)
+        sh2 = Shape(self.shape.w, self.shape.h - sh1.h)
+        r1 = Rectangle(**{KW_CENTER: c1, KW_SHAPE: sh1, KW_REGION: self.region, KW_FIXED: self.fixed})
+        r2 = Rectangle(**{KW_CENTER: c2, KW_SHAPE: sh2, KW_REGION: self.region, KW_FIXED: self.fixed})
+        return r1, r2
 
     def __mul__(self, other: 'Rectangle') -> Optional['Rectangle']:
         """

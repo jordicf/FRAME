@@ -80,7 +80,6 @@ def parse_yaml_module(name: str, info: dict) -> Module:
         rectangles = parse_yaml_rectangles(info[KW_RECTANGLES], cast(bool, params[KW_FIXED]))
         for r in rectangles:
             m.add_rectangle(r)
-        m.name_rectangles()
     return m
 
 

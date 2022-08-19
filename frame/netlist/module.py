@@ -1,7 +1,7 @@
 import math
 
 from frame.geometry.geometry import Point, Shape, Rectangle
-from frame.utils.keywords import KW_CENTER, KW_SHAPE, KW_MIN_SHAPE, KW_AREA, KW_FIXED, KW_FAKE, KW_GROUND
+from frame.utils.keywords import KW_CENTER, KW_SHAPE, KW_MIN_SHAPE, KW_AREA, KW_FIXED, KW_GROUND
 from frame.utils.utils import valid_identifier, is_number
 
 
@@ -13,7 +13,6 @@ class Module:
     _center: Point | None  # Center of the module (if defined)
     _min_shape: Shape | None  # min width and height
     _fixed: bool  # Must be fixed in the layout
-    _fake: bool  # Used for fake nodes (centers of hyperedges)
     # A module can be assigned to different layout areas (LUT, DSP, BRAM).
     # The following attribute indicate the area assigned to each region.
     # If no region specified, the default is assigned (Ground).
@@ -24,6 +23,7 @@ class Module:
     # A module can be implemented with different rectangles. Here is the list of rectangles
     _rectangles: list[Rectangle]  # Rectangles of the module (if defined)
     _area_rectangles: float  # Total area of the rectangles (negative if not calculated).
+
     # Allocation of regions. This dictionary receives the name of a rectangle (from the die)
     # as key and stores the ratio of occupation of the rectangle by the module (a value in [0,1]).
 
@@ -36,7 +36,6 @@ class Module:
         self._center = None
         self._min_shape = None
         self._fixed = False
-        self._fake = False
         self._area_regions = {}
         self._total_area = -1
         self._rectangles = []
@@ -46,7 +45,7 @@ class Module:
 
         # Reading parameters and type checking
         for key, value in kwargs.items():
-            assert key in [KW_CENTER, KW_MIN_SHAPE, KW_AREA, KW_FIXED, KW_FAKE], "Unknown module attribute"
+            assert key in [KW_CENTER, KW_MIN_SHAPE, KW_AREA, KW_FIXED], "Unknown module attribute"
             if key == KW_CENTER:
                 assert isinstance(value, Point), "Incorrect point associated to the center of the module"
                 self._center = value
@@ -60,9 +59,6 @@ class Module:
             elif key == KW_FIXED:
                 assert isinstance(value, bool), "Incorrect value for fixed (should be a boolean)"
                 self._fixed = value
-            elif key == KW_FAKE:
-                assert isinstance(value, bool), "Incorrect value for fake (should be a boolean)"
-                self._fake = value
             else:
                 assert False  # Should never happen
 
@@ -99,10 +95,6 @@ class Module:
     @property
     def fixed(self) -> bool:
         return self._fixed
-
-    @property
-    def fake(self) -> bool:
-        return self._fake
 
     # Getters for area
     def area(self, region: str | None = None) -> float:
@@ -149,17 +141,6 @@ class Module:
         """
         self.rectangles.append(r)
         self._area_rectangles = -1
-
-    def name_rectangles(self) -> None:
-        """
-        Defines the names of the rectangles (module[idx] or simply module)
-        """
-        if self.num_rectangles == 1:
-            self.rectangles[0].name = self.name
-            return
-
-        for idx, r in enumerate(self.rectangles):
-            r.name = self.name + f'[{idx}]'
 
     @staticmethod
     def _read_region_area(area: float | dict[str, float]) -> dict[str, float]:

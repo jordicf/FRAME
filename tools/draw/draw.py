@@ -163,10 +163,10 @@ def draw_circle(im: Image.Image, m: Module, color, scaling: Scaling, fontsize: i
     draw_geometry(im, ll, ur, color, scaling, m.name, fontsize, True)
 
 
-def draw_rectangle(im: Image.Image, r: Rectangle, color, scaling: Scaling, fontsize: int = 0) -> None:
+def draw_rectangle(im: Image.Image, r: Rectangle, name: str, color, scaling: Scaling, fontsize: int = 0) -> None:
     """Draws the rectangle r"""
     ll, ur = r.bounding_box
-    draw_geometry(im, ll, ur, color, scaling, r.name, fontsize, False)
+    draw_geometry(im, ll, ur, color, scaling, name, fontsize, False)
 
 
 def draw_geometry(im: Image.Image, ll: Point, ur: Point, color, scaling: Scaling,
@@ -270,8 +270,10 @@ def draw(options: dict[str, Any]) -> int:
             if m.num_rectangles == 0:
                 draw_circle(im, m, color, scaling, fontsize)
             else:
-                for r in m.rectangles:
-                    draw_rectangle(im, r, color, scaling, fontsize)
+                name = m.name
+                for i, r in enumerate(m.rectangles):
+                    rname = name if m.num_rectangles == 1 else name+"["+str(i)+"]"
+                    draw_rectangle(im, r, rname, color, scaling, fontsize)
 
     # Draw edges
     for e in netlist.edges:

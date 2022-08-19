@@ -106,9 +106,9 @@ class TestRectangle(unittest.TestCase):
     def test_area_rectangles(self):
         r = Rectangle(center=Point(5, 3), shape=Shape(4, 2))
         self.assertEqual(r.area, 8)
-        self.assertTrue(r.inside(Point(3.1, 2.5)))
-        self.assertFalse(r.inside(Point(2.9, 2.1)))
-        self.assertFalse(r.inside(Point(3.1, 1.9)))
+        self.assertTrue(r.point_inside(Point(3.1, 2.5)))
+        self.assertFalse(r.point_inside(Point(2.9, 2.1)))
+        self.assertFalse(r.point_inside(Point(3.1, 1.9)))
         self.assertEqual(r.bounding_box, (Point(3, 2), Point(7, 4)))
         r.shape = Shape(3, 1)
         self.assertEqual(r.area, 3)
@@ -146,6 +146,18 @@ class TestRectangle(unittest.TestCase):
         r6_inter = Rectangle(**{KW_CENTER: Point(7, 2.5), KW_SHAPE: Shape(2, 1)})
         self.assertTrue(r5 == r5_inter)
         self.assertTrue(r6 == r6_inter)
+
+    def test_inside_rectangles(self):
+        r1 = Rectangle(center=Point(2, 3), shape=Shape(4, 6))
+        r2 = Rectangle(center=Point(3, 5), shape=Shape(2, 2))
+        r3 = Rectangle(center=Point(4, 6), shape=Shape(2, 2))
+        self.assertTrue(r1.point_inside(Point(3, 4)))
+        self.assertTrue(r1.point_inside(Point(4, 6)))
+        self.assertTrue(r1.point_inside(Point(0, 0)))
+        self.assertFalse(r1.point_inside(Point(5, 3)))
+        self.assertFalse(r1.point_inside(Point(2, 7)))
+        self.assertTrue(r2.is_inside(r1))
+        self.assertFalse(r3.is_inside(r1))
 
 
 if __name__ == '__main__':

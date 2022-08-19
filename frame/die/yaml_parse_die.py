@@ -1,5 +1,6 @@
 from frame.geometry.geometry import Point, Shape, Rectangle
-from frame.utils.keywords import KW_WIDTH, KW_HEIGHT, KW_REGION, KW_RECTANGLES, KW_GROUND, KW_CENTER, KW_SHAPE
+from frame.utils.keywords import KW_WIDTH, KW_HEIGHT, KW_REGION, KW_REGIONS, KW_GROUND,\
+    KW_BLOCKAGE, KW_CENTER, KW_SHAPE
 from frame.utils.utils import is_number, string_is_number, valid_identifier, read_yaml, TextIO_String
 
 
@@ -35,16 +36,16 @@ def parse_yaml_die(stream: TextIO_String) -> tuple[Shape, list[Rectangle]]:
     assert isinstance(tree, dict), "The die is not a dictionary"
 
     for key in tree:
-        assert key in [KW_WIDTH, KW_HEIGHT, KW_RECTANGLES], f"Unknown keyword in die: {key}"
+        assert key in [KW_WIDTH, KW_HEIGHT, KW_REGIONS], f"Unknown keyword in die: {key}"
 
     assert KW_WIDTH in tree and KW_HEIGHT in tree, "Wrong format of the die: Missing width or height"
     shape = Shape(tree[KW_WIDTH], tree[KW_HEIGHT])
     assert is_number(shape.w) and shape.w > 0, "Wrong specification of the die width"
     assert is_number(shape.h) and shape.h > 0, "Wrong specification of the die height"
 
-    regions = []
-    if KW_RECTANGLES in tree:
-        rlist = tree[KW_RECTANGLES]
+    regions: list[Rectangle] = []
+    if KW_REGIONS in tree:
+        rlist = tree[KW_REGIONS]
         assert isinstance(rlist, list) and len(rlist) > 0, f"Incorrect specification of die rectangles"
         if is_number(rlist[0]):
             rlist = [rlist]  # List with only one rectangle
@@ -62,7 +63,8 @@ def parse_die_rectangle(r: list):
     assert isinstance(r, list) and len(r) == 5, "Incorrect format of die rectangle"
     for i in range(4):
         assert is_number(r[i]) and r[i] >= 0, "Incorrect value for die rectangle"
-    assert isinstance(r[4], str) and valid_identifier(r[4]), f"Invalid identifier for die region: {r[4]}"
+    assert isinstance(r[4], str) and (valid_identifier(r[4]) or r[4] == KW_GROUND or r[4] == KW_BLOCKAGE), \
+        f"Invalid identifier for die region: {r[4]}"
     assert r[4] != KW_GROUND, "Only non-ground regions can be specified in the die"
     kwargs = {KW_CENTER: Point(r[0], r[1]), KW_SHAPE: Shape(r[2], r[3]), KW_REGION: r[4]}
     return Rectangle(**kwargs)

@@ -5,7 +5,8 @@ from dataclasses import dataclass
 
 from .yaml_parse_die import parse_yaml_die
 from frame.geometry.geometry import Shape, Rectangle, Point
-from frame.utils.keywords import KW_CENTER, KW_SHAPE, KW_REGION, KW_GROUND
+from frame.netlist.netlist import Netlist
+from frame.utils.keywords import KW_CENTER, KW_SHAPE, KW_REGION, KW_GROUND, KW_BLOCKAGE
 from frame.utils.utils import TextIO_String
 
 
@@ -31,19 +32,32 @@ class Die:
     """
     _shape: Shape  # Shape of the die (width and height)
     _regions: list[Rectangle]  # List of non-ground regions
-    _ground_regions: list[Rectangle]  # List of ground regions
+    _ground_regions: list[Rectangle]  # List of ground regions (not covered by fixed rectangles)
+    _blockages: list[Rectangle]  # List of blockages
+    _fixed: list[Rectangle]  # List of fixed rectangles (obtained from a netlist)
     _epsilon: float  # Precision when dealing with coordinates
     _x: list[float]  # List of x coordinates of potential rectangles
     _y: list[float]  # List of y coordinates of potential rectangles
     _cells: list[list[bool]]  # Matrix of rectangles (True occupied, False available)
 
-    def __init__(self, stream: TextIO_String):
+    def __init__(self, stream: TextIO_String, netlist: Netlist | None = None):
         """
         Constructor of a die from a file or from a string of text
         :param stream: name of the YAML file (str) or handle to the file
+        :param netlist: the netlist associated to the die (necessary for fixed modules)
         """
-        self._shape, self._regions = parse_yaml_die(stream)
+        regions: list[Rectangle]
+        self._shape, regions = parse_yaml_die(stream)
         self._epsilon = min(self.width, self.height) * 10e-12
+
+        # Selectec blockages from the other regions
+        self._regions, self._blockages = [], []
+        for r in regions:
+            self._blockages.append(r) if r.region == KW_BLOCKAGE else self._regions.append(r)
+
+        # Obtained the fixed rectangles from the netlist
+        self._fixed = [] if netlist is None else netlist.fixed_rectangles()
+
         self._calculate_region_points()
         self._calculate_cell_matrix()
         self._calculate_ground_rectangles()
@@ -65,16 +79,34 @@ class Die:
         return self._regions
 
     @property
+    def blockages(self) -> list[Rectangle]:
+        """Returns the list of blockages."""
+        return self._blockages
+
+    @property
+    def fixed(self) -> list[Rectangle]:
+        """Returns the list of fixed rectangles."""
+        return self._fixed
+
+    @property
     def ground_regions(self) -> list[Rectangle]:
-        """Returns the list of ground regions."""
+        """Returns the list of ground regions not covered by fixed rectangles"""
         return self._ground_regions
+
+    def allocation_rectangles(self) -> tuple[list[Rectangle], list[Rectangle]]:
+        """
+        Returns the two lists of rectangles usable for module allocation. The first list contains
+        the rectangles that a refinable during allocation. The second list contains the rectangles
+        that correspond to fixed modules.
+        """
+        return self.regions + self.ground_regions, self.fixed
 
     def _calculate_region_points(self):
         """
         Calculates the list of points to be candidates for rectangle corners in the ground.
         """
         x, y = [0], [0]
-        for r in self._regions:
+        for r in self.regions + self.blockages + self.fixed:
             bb = r.bounding_box
             x.append(bb[0].x)
             x.append(bb[1].x)
@@ -94,18 +126,36 @@ class Die:
             if i == 0 or val > self._y[-1] + self._epsilon:
                 self._y.append(float(val))
 
+    def _cell_center(self, i: int, j: int) -> Point:
+        """
+        Returns the center of a cell
+        :param i: row of the cell
+        :param j: column of the cell
+        :return: the center of the cell
+        """
+        return Point((self._x[i] + self._x[i + 1]) / 2, (self._y[j] + self._y[j + 1]) / 2)
+
     def _calculate_cell_matrix(self):
         """
-        Calculates the matrix of cells. It indicates which cells are occupied by regions
+        Calculates the matrix of cells. It indicates which cells are occupied by regions, blockages or fixed rectangles
         """
         self._cells = [[False] * (len(self._x) - 1) for _ in range(len(self._y) - 1)]
         for i in range(len(self._x) - 1):
-            x = (self._x[i] + self._x[i + 1]) / 2
             for j in range(len(self._y) - 1):
-                p = Point(x, (self._y[j] + self._y[j + 1]) / 2)
-                for r in self._regions:
-                    if r.inside(p):
+                p = self._cell_center(i, j)
+                for r in self.regions + self.blockages + self.fixed:
+                    if r.point_inside(p):
                         self._cells[j][i] = True
+
+    def _cell_inside_rectangle(self, i: int, j: int, r: Rectangle) -> bool:
+        """
+        Determines whether cell[i,j] is inside a rectangle
+        :param i: row of the cell
+        :param j: column of the cell
+        :param r: rectantle
+        :return: True if it is inside the rectangle, and False otherwise
+        """
+        return r.point_inside(self._cell_center(i, j))
 
     def _calculate_ground_rectangles(self):
         self._ground_regions = []
@@ -205,13 +255,13 @@ class Die:
         Checks that the list of rectangles is correct, i.e., they do not overlap and the sum of the
         areas is equal to the area of the die. An assertion is raised of something is wrong.
         """
-        all_rectangles = self.regions + self.ground_regions
+        all_rectangles = self.regions + self.ground_regions + self.blockages + self.fixed
         die = Rectangle(center=Point(self.width / 2, self.height / 2), shape=Shape(self.width, self.height))
 
         # Check that all rectangles are inside
         for r in all_rectangles:
             ll, ur = r.bounding_box
-            assert die.inside(ll) and die.inside(ur), "Some rectangle is outside the die"
+            assert die.point_inside(ll) and die.point_inside(ur), "Some rectangle is outside the die"
 
         # Check that no rectangles overlap
         pairs = list(combinations(all_rectangles, 2))
