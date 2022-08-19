@@ -6,7 +6,7 @@ and specifies metadata and third party dependencies.
 """
 
 from setuptools import setup, Extension
-from setuptools.command.build_ext import build_ext as build_ext_orig
+from distutils.command.build_ext import build_ext as build_ext_orig
 
 
 class BuildExt(build_ext_orig):
