@@ -34,7 +34,7 @@ class TestModule(unittest.TestCase):
     def test_module_regions(self):
         b = Module("my_module", area=100)
         self.assertEqual(b.area(), 100)
-        self.assertEqual(b.area('Ground'), 100)
+        self.assertEqual(b.area('_'), 100)
         self.assertEqual(b.area('wrong_region'), 0)
         b = Module("my_module", area={'dsp': 10, 'lut': 6, 'bram': 20})
         self.assertEqual(b.area(), 36)

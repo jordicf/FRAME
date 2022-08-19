@@ -16,4 +16,4 @@ KW_NAME = "name"  # Name of an object
 # Name of the top (default) region for the die
 # Regions are used to define different slices in the die (e.g. LUT, DSP, BRAM, etc).
 # Regions are mostly used for FPGAs
-KW_GROUND = "Ground"
+KW_GROUND = "_"

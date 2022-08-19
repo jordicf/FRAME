@@ -76,5 +76,5 @@ rectangles: [[5,8,10,12,'BRAM'], [25,14,10,12,'DSP']]
 die6 = """
 width: 30
 height: 20
-rectangles: [[5,8,10,12,'BRAM'], [25,14,10,12,'Ground']]
+rectangles: [[5,8,10,12,'BRAM'], [25,14,10,12,'_']]
 """
