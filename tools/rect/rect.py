@@ -101,6 +101,7 @@ def enforce_bb(carrier: Carrier, ifile, sm: satmanager.SATManager, btag: str, cb
     prev_y: dict[float, float] = carrier.prev_y
     next_x: dict[float, float] = carrier.next_x
     next_y: dict[float, float] = carrier.next_y
+    allblocks: pseudobool.Expr = pseudobool.Expr()
     for x in xcoords:
         var_lilx[x] = sm.newvar(btag + "x_" + str(x), "")
         var_bigx[x] = sm.newvar(btag + "X_" + str(x), "")
@@ -120,11 +121,13 @@ def enforce_bb(carrier: Carrier, ifile, sm: satmanager.SATManager, btag: str, cb
         sm.imply([var_bigy[prev_y[ycoords[i]]]], var_bigy[ycoords[i]])
         sm.imply([var_lily[ycoords[i]]], var_lily[prev_y[ycoords[i]]])
     for b in blocks:
+        allblocks += var_b[b]
         sm.imply([var_lilx[next_x[input_problem[b][0]]],
                   var_bigx[prev_x[input_problem[b][2]]],
                   var_lily[next_y[input_problem[b][1]]],
                   var_bigy[prev_y[input_problem[b][3]]]], var_b[b])
 
+    sm.pseudoboolencoding(allblocks >= 1)
     # Enforce connection to the trunk rectangle
     if btag != cbtag:
         north = sm.newvar(btag + "north", "")
@@ -451,7 +454,7 @@ def main(prog: str | None = None, args: list[str] | None = None) -> int:
             print("\n\nnboxes: " + str(nboxes))
             if nboxes != 1:
                 last, tmpb, q1 = solve(carrier, ifile, f, dif, nboxes)
-                while last[0] > 0:
+                while last[0] > 0 and q1 > quality:
                     quality = q1
                     boxes = tmpb
                     improvement = True
