@@ -45,14 +45,10 @@ class TestDie(unittest.TestCase):
     def test_die_rectangles(self):
         n = Netlist(netlist_die7)
         d = Die(die7, n)
-        print("Regions:")
-        print(d.regions)
-        print("Blockages:")
-        print(d.blockages)
-        print("Fixed:")
-        print(d.fixed)
-        print("Ground:")
-        print(d.ground_regions)
+        self.assertEqual(len(d.regions), 2)
+        self.assertEqual(len(d.blockages), 1)
+        self.assertEqual(len(d.fixed), 2)
+        self.assertEqual(len(d.ground_regions), 13)
 
 if __name__ == '__main__':
     unittest.main()

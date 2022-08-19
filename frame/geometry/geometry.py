@@ -318,6 +318,13 @@ class Rectangle:
         r2 = Rectangle(**{KW_CENTER: c2, KW_SHAPE: sh2, KW_REGION: self.region, KW_FIXED: self.fixed})
         return r1, r2
 
+    def split(self) -> tuple['Rectangle', 'Rectangle']:
+        """
+        Splits the rectangle into two rectangles. The splitting reduces the largest dimension
+        :return: The two rectangles
+        """
+        return self.split_vertical() if self.shape.h > self.shape.w else self.split_horizontal()
+
     def __mul__(self, other: 'Rectangle') -> Optional['Rectangle']:
         """
         Calculates the intersection of two rectangles and returns another rectangle (or None if no intersection).

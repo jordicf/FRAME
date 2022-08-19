@@ -271,7 +271,7 @@ class Allocation:
     def _check_no_overlap(self) -> None:
         """Checks that rectangles do not overlap"""
         for r_allocs in itertools.combinations(self._allocations, 2):
-            assert not r_allocs[0].rect.overlap(r_allocs[1].rect), "Allocations rectangles overlap"
+            assert not r_allocs[0].rect.overlap(r_allocs[1].rect), "Allocation rectangles overlap"
 
     def _calculate_areas_and_centers(self) -> None:
         """Computes the area and the centers of all modules"""
@@ -303,10 +303,6 @@ class Allocation:
             return [(rect, {m: r for m, r in alloc.items()}, depth)]
 
         # Split the largest dimension
-        if rect.shape.w > rect.shape.h:
-            rect1, rect2 = rect.split_horizontal()
-        else:
-            rect1, rect2 = rect.split_vertical()
-
+        rect1, rect2 = rect.split()
         return Allocation._split_allocation(rect1, alloc, depth + 1, levels - 1) + \
             Allocation._split_allocation(rect2, alloc, depth + 1, levels - 1)

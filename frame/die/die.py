@@ -271,3 +271,31 @@ class Die:
         # Check that the total area of the rectangles is equal to the area of the die
         area_rect = sum(r.area for r in all_rectangles)
         assert abs(area_rect - die.area) < self._epsilon, "Incorrect total area of rectangles"
+
+
+def gather_boundaries(rectangles: list[Rectangle], epsilon: float = 1e-15) -> tuple[list[float], list[float]]:
+    """
+    Gathers the x and y coordinates of the sides of a list of rectangles
+    :param rectangles: list of rectangles
+    :param epsilon: minimum distance between two adjacent coordinates
+    :return: the list of x and y coordinates, sorted in ascending order
+    """
+    x, y = [], []
+    for r in rectangles:
+        bb = r.bounding_box
+        x.append(bb[0].x)
+        x.append(bb[1].x)
+        y.append(bb[0].y)
+        y.append(bb[1].y)
+    x.sort()
+    y.sort()
+    # Remove duplicates
+    uniq_x = []
+    for i, val in enumerate(x):
+        if i == 0 or val > uniq_x[-1] + epsilon:
+            uniq_x.append(float(val))
+    uniq_y = []
+    for i, val in enumerate(y):
+        if i == 0 or val > uniq_y[-1] + epsilon:
+            uniq_y.append(float(val))
+    return uniq_x, uniq_y
