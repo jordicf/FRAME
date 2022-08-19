@@ -38,7 +38,7 @@ class Allocation:
     _module2rect: dict[str, list[ModuleAlloc]]  # For each module, a list of rectangle allocations
     _areas: dict[str, float]  # Area of the modules
     _centers: dict[str, Point]  # Centers of the modules
-    _bounding_box: Rectangle
+    _bounding_box: Rectangle  # The bounding box of all rectangles
 
     def __init__(self, stream: TextIO_String):
         """
@@ -275,7 +275,7 @@ class Allocation:
             assert not r_allocs[0].rect.overlap(r_allocs[1].rect), "Allocations rectangles overlap"
 
     def _calculate_areas_and_centers(self) -> None:
-        """Computers the area and the centers of all modules"""
+        """Computes the area and the centers of all modules"""
         self._areas = {}
         self._centers = {}
         for module, alloc in self._module2rect.items():
