@@ -1,4 +1,8 @@
-"""glbfloor tool. See README.md for more information"""
+"""
+glbfloor tool. See README.md for more information
+
+This file contains the code to parse the command line arguments and the main function of the tool
+"""
 
 import argparse
 from time import time

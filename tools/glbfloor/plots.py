@@ -1,3 +1,5 @@
+"""This file contains the code for plotting the floor plans"""
+
 from dataclasses import astuple, dataclass
 from math import ceil
 

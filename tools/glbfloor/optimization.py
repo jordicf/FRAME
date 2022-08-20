@@ -1,3 +1,5 @@
+"""This file contains the code for optimizing the floor plans"""
+
 from typing import Any
 
 from PIL import Image
