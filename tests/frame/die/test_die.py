@@ -55,6 +55,17 @@ class TestDie(unittest.TestCase):
         self.assertEqual(len(d.fixed_regions), 2)
         self.assertEqual(len(d.ground_regions), 20)
 
+        d = Die(die1)
+        self.assertEqual(len(d.specialzed_regions), 0)
+        self.assertEqual(len(d.blockages), 0)
+        self.assertEqual(len(d.fixed_regions), 0)
+        self.assertEqual(len(d.ground_regions), 1)
+        d.split_refinable_regions(2, 8)
+        self.assertEqual(len(d.specialzed_regions), 0)
+        self.assertEqual(len(d.blockages), 0)
+        self.assertEqual(len(d.fixed_regions), 0)
+        self.assertEqual(len(d.ground_regions), 8)
+
 
 if __name__ == '__main__':
     unittest.main()
