@@ -31,9 +31,11 @@ def parse_options(prog: str | None = None, args: list[str] | None = None) -> dic
                         help="size of the initial grid (rows x columns)", )
     parser.add_argument("-a", "--alpha", type=float, required=True,
                         help="tradeoff hyperparameter between 0 and 1 to control the balance between dispersion and "
-                             "wire length")
+                             "wire length. Smaller values will reduce the dispersion and increase the wire length, and "
+                             "greater ones the other way around")
     parser.add_argument("-t", "--threshold", type=float, default=0.95,
-                        help="threshold hyperparameter between 0 and 1 to decide if allocations must be refined")
+                        help="threshold hyperparameter between 0 and 1 to decide if allocations must be refined. "
+                             "Allocations with a greater occupancy will not be further refined")
     parser.add_argument("-i", "--max-iter", type=int,
                         help="maximum number of optimizations performed (if not present, until no more refinements can "
                              "be performed)")
