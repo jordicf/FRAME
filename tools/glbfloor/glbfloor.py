@@ -81,7 +81,7 @@ def main(prog: str | None = None, args: list[str] | None = None):
     plot_name: str = options["plot"]
     verbose: bool = options["verbose"]
     visualize: bool = options["visualize"]
-    assert visualize and plot_name, "--plot_name is required when using --visualize"
+    assert not visualize or visualize and plot_name, "--plot_name is required when using --visualize"
 
     start_time = 0.0
     if verbose:
