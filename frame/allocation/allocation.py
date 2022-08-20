@@ -3,6 +3,7 @@ import math
 
 from dataclasses import dataclass
 
+from frame.die.die import Die
 from frame.netlist.netlist import Netlist
 from frame.geometry.geometry import Point, Shape, Rectangle, parse_yaml_rectangle
 from frame.utils.keywords import KW_CENTER, KW_SHAPE
@@ -340,3 +341,16 @@ class Allocation:
         rect1, rect2 = rect.split()
         return Allocation._split_allocation(rect1, alloc, depth + 1, levels - 1) + \
             Allocation._split_allocation(rect2, alloc, depth + 1, levels - 1)
+
+
+def create_initial_allocation(die: Die) -> Allocation:
+    """
+    Creates the initial allocation grid. The allocation ratios are assigned according to the intersection of the module
+    rectangles with the regions 9rectangles) of the die
+    :param die: the die
+    :return: the initial allocation
+    """
+    assert die.netlist is not None, "No netlist asosciated to the die"
+    refinable, fixed = die.floorplanning_rectangles()
+    allocation_list: list[AllocDescriptor] = [(rect, {}, 0) for rect in refinable + fixed]
+    return Allocation(allocation_list).initial_allocation(die.netlist, include_area_zero=True)

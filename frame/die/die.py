@@ -39,6 +39,7 @@ class Die:
     """
     Class to represent the die (ground and tagged rectangles)
     """
+    _netlist: Netlist | None  # Netlist associated to the die
     _die: Rectangle  # Bounding Box of the die
     _specialized_regions: list[Rectangle]  # List of non-ground regions
     _ground_regions: list[Rectangle]  # List of ground regions (not covered by fixed rectangles)
@@ -56,6 +57,7 @@ class Die:
         :param netlist: the netlist associated to the die (necessary for fixed modules)
         """
         regions: list[Rectangle]
+        self._netlist = netlist
         self._die, regions = parse_yaml_die(stream)
         self._epsilon = min(self.width, self.height) * 10e-12
 
@@ -72,6 +74,11 @@ class Die:
         self._calculate_cell_matrix()
         self._calculate_ground_rectangles()
         self._check_rectangles()
+
+    @property
+    def netlist(self) -> Netlist | None:
+        """Returns the netlist associated to the die"""
+        return self._netlist
 
     @property
     def bounding_box(self) -> Rectangle:
