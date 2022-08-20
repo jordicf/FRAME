@@ -11,7 +11,7 @@ class TestDie(unittest.TestCase):
         d = Die("5.5x2")
         self.assertEqual(d.width, 5.5)
         self.assertEqual(d.height, 2.0)
-        self.assertEqual(len(d.non_ground_regions), 0)
+        self.assertEqual(len(d.specialzed_regions), 0)
         self.assertEqual(len(d.ground_regions), 1)
         r = d.ground_regions[0]
         self.assertEqual(r.center, Point(2.75, 1))
@@ -20,7 +20,7 @@ class TestDie(unittest.TestCase):
         d = Die(die1)
         self.assertEqual(d.width, 30)
         self.assertEqual(d.height, 50)
-        self.assertEqual(len(d.non_ground_regions), 0)
+        self.assertEqual(len(d.specialzed_regions), 0)
         self.assertEqual(len(d.ground_regions), 1)
 
         # Die with illegal height (-20)
@@ -29,14 +29,14 @@ class TestDie(unittest.TestCase):
         d = Die(die3)
         self.assertEqual(d.width, 30)
         self.assertEqual(d.height, 20)
-        self.assertEqual(len(d.non_ground_regions), 1)
+        self.assertEqual(len(d.specialzed_regions), 1)
         self.assertEqual(len(d.ground_regions), 3)
 
         # One of the rectangles is outside the die
         self.assertRaises(AssertionError, Die, die4)
 
         d = Die(die5)
-        self.assertEqual(len(d.non_ground_regions), 2)
+        self.assertEqual(len(d.specialzed_regions), 2)
         self.assertEqual(len(d.ground_regions), 4)
 
         # Contains a ground region
@@ -45,14 +45,14 @@ class TestDie(unittest.TestCase):
     def test_die_rectangles(self):
         n = Netlist(netlist_die7)
         d = Die(die7, n)
-        self.assertEqual(len(d.non_ground_regions), 2)
+        self.assertEqual(len(d.specialzed_regions), 2)
         self.assertEqual(len(d.blockages), 1)
-        self.assertEqual(len(d.fixed), 2)
+        self.assertEqual(len(d.fixed_regions), 2)
         self.assertEqual(len(d.ground_regions), 13)
         d.split_refinable_regions(3, 23)
-        self.assertEqual(len(d.non_ground_regions), 3)
+        self.assertEqual(len(d.specialzed_regions), 3)
         self.assertEqual(len(d.blockages), 1)
-        self.assertEqual(len(d.fixed), 2)
+        self.assertEqual(len(d.fixed_regions), 2)
         self.assertEqual(len(d.ground_regions), 20)
 
 

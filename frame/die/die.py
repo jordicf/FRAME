@@ -40,7 +40,7 @@ class Die:
     Class to represent the die (ground and tagged rectangles)
     """
     _die: Rectangle  # Bounding Box of the die
-    _non_ground_regions: list[Rectangle]  # List of non-ground regions
+    _specialized_regions: list[Rectangle]  # List of non-ground regions
     _ground_regions: list[Rectangle]  # List of ground regions (not covered by fixed rectangles)
     _blockages: list[Rectangle]  # List of blockages
     _fixed: list[Rectangle]  # List of fixed rectangles (obtained from a netlist)
@@ -60,15 +60,15 @@ class Die:
         self._epsilon = min(self.width, self.height) * 10e-12
 
         # Selectec blockages from the other regions
-        self._non_ground_regions, self._blockages = [], []
+        self._specialized_regions, self._blockages = [], []
         for r in regions:
-            self._blockages.append(r) if r.region == KW_BLOCKAGE else self._non_ground_regions.append(r)
+            self._blockages.append(r) if r.region == KW_BLOCKAGE else self._specialized_regions.append(r)
 
         # Obtained the fixed rectangles from the netlist
         self._fixed = [] if netlist is None else netlist.fixed_rectangles()
 
-        self._x, self._y = gather_boundaries(self.non_ground_regions + self.blockages +
-                                             self.fixed + [self.bounding_box], self._epsilon)
+        self._x, self._y = gather_boundaries(self.specialzed_regions + self.blockages +
+                                             self.fixed_regions + [self.bounding_box], self._epsilon)
         self._calculate_cell_matrix()
         self._calculate_ground_rectangles()
         self._check_rectangles()
@@ -94,9 +94,9 @@ class Die:
         return self._ground_regions
 
     @property
-    def non_ground_regions(self) -> list[Rectangle]:
+    def specialzed_regions(self) -> list[Rectangle]:
         """Returns the list of non-ground regions."""
-        return self._non_ground_regions
+        return self._specialized_regions
 
     @property
     def blockages(self) -> list[Rectangle]:
@@ -104,7 +104,7 @@ class Die:
         return self._blockages
 
     @property
-    def fixed(self) -> list[Rectangle]:
+    def fixed_regions(self) -> list[Rectangle]:
         """Returns the list of fixed rectangles."""
         return self._fixed
 
@@ -118,21 +118,21 @@ class Die:
         :param n: number of refinable rectangles that are required
         """
         assert n > 0
-        rects = split_rectangles(self.non_ground_regions + self.ground_regions, aspect_ratio, n)
-        self._non_ground_regions, self._ground_regions = [], []
+        rects = split_rectangles(self.specialzed_regions + self.ground_regions, aspect_ratio, n)
+        self._specialized_regions, self._ground_regions = [], []
         for r in rects:
             if r.region == KW_GROUND:
                 self._ground_regions.append(r)
             else:
-                self._non_ground_regions.append(r)
+                self._specialized_regions.append(r)
 
-    def allocation_rectangles(self) -> tuple[list[Rectangle], list[Rectangle]]:
+    def floorplanning_rectangles(self) -> tuple[list[Rectangle], list[Rectangle]]:
         """
         Returns the two lists of rectangles usable for module allocation. The first list contains
         the rectangles that a refinable during allocation. The second list contains the rectangles
         that correspond to fixed modules.
         """
-        return self.non_ground_regions + self.ground_regions, self.fixed
+        return self.specialzed_regions + self.ground_regions, self.fixed_regions
 
     def _cell_center(self, i: int, j: int) -> Point:
         """
@@ -151,7 +151,7 @@ class Die:
         for i in range(len(self._x) - 1):
             for j in range(len(self._y) - 1):
                 p = self._cell_center(i, j)
-                for r in self.non_ground_regions + self.blockages + self.fixed:
+                for r in self.specialzed_regions + self.blockages + self.fixed_regions:
                     if r.point_inside(p):
                         self._cells[j][i] = True
 
@@ -277,7 +277,7 @@ class Die:
         Checks that the list of rectangles is correct, i.e., they do not overlap and the sum of the
         areas is equal to the area of the die. An assertion is raised of something is wrong.
         """
-        all_rectangles = self.non_ground_regions + self.ground_regions + self.blockages + self.fixed
+        all_rectangles = self.specialzed_regions + self.ground_regions + self.blockages + self.fixed_regions
         die = Rectangle(center=Point(self.width / 2, self.height / 2), shape=Shape(self.width, self.height))
 
         # Check that all rectangles are inside
