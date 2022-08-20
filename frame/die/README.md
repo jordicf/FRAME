@@ -6,7 +6,7 @@ Besides the obvious `width` and `height` attributes, a `Die` also specifies a se
 types of regions can be distinguished:
 * **Blockages**: these are regions that cannot be used during floorplanning.
 * **Ground regions**: these are regions for general purpose floorplanning.
-* **Specialzed regions**: these are regions with dedicated resources. They are mostly meant to be used for
+* **Specialized regions**: these are regions with dedicated resources. They are mostly meant to be used for
 FPGA-oriented floorplanning. For example, these are regions that can allocate BRAMs or DSPs. LUTs can be 
 floorplanned in the non-specialized (ground) regions.
 * **Fixed regions**: these regions are defined by netlists and correspond to hard modules placed in fixed
@@ -21,7 +21,7 @@ the die.
 
 ### Example
 
-A typically use of the `die` package is as follows:
+A typical use of the `die` package is as follows:
 
 ```python
 # Construction of the die. If netlist is None, no fixed regions are used.
