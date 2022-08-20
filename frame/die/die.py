@@ -347,7 +347,7 @@ def split_rectangles(rectangles: list[Rectangle], aspect_ratio: float, n: int) -
     if len(heap) >= n:
         return [prio_rect.rect for prio_rect in heap]
 
-    # If not, let us split the largest rectangles (heap prioritized by area, largest first)
+    # If not, let us split the largest rectangles (heap prioritized by area, the largest first)
     heapq.heapify(heap)
     while len(heap) < n:
         area_rect: PrioritizedRectangle = heapq.heappop(heap)
