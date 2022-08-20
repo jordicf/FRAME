@@ -8,8 +8,8 @@ from frame.geometry.geometry import Point, Shape, Rectangle, parse_yaml_rectangl
 from frame.utils.keywords import KW_CENTER, KW_SHAPE
 from frame.utils.utils import TextIO_String, read_yaml, write_yaml, YAML_tree, is_number, valid_identifier
 
+# Types
 Alloc = dict[str, float]  # Allocation in a rectangle (area ratio for each module)
-
 AllocDescriptor = tuple[Rectangle, Alloc, int]  # ((x,y,w,h), alloc, depth)
 
 
@@ -18,7 +18,7 @@ class RectAlloc:
     """Representation of the allocation in a rectangle."""
     rect: Rectangle  # Rectangle of the allocation
     alloc: Alloc  # Area ratio for each module (in [0,1])
-    depth: int  # Depth of refinements
+    depth: int  # Level of refinement
 
 
 @dataclass()
@@ -142,10 +142,19 @@ class Allocation:
         netlist.create_squares()  # Creates a square for each of the modules without rectangles
         # Creating the new allocation
         new_alloc: list[AllocDescriptor] = []
+        fixed_rects = self._detect_fixed_rectangles(netlist)  # identify the fixed rectangles
+
+        # Pre-allocate the fixed rectangles
+        for r, mod_name in fixed_rects:
+            new_alloc.append((r, {mod_name: 1.0}, 0))
+
+        # Now the remaining rectangles of the allocation
         for a in self.allocations:
+            if a.rect.fixed:  # Skip the fixed rectangles
+                continue
             alloc: Alloc = {}
             for m in netlist.modules:
-                area = sum(a.rect.area_overlap(r_mod) for r_mod in m.rectangles)
+                area = sum(a.rect.area_overlap(r_mod) / a.rect.area for r_mod in m.rectangles)
                 if include_area_zero or area > 0:
                     alloc[m.name] = area
             new_alloc.append((a.rect, alloc, a.depth))
@@ -210,6 +219,31 @@ class Allocation:
                         else [r.rect.vector_spec, r.alloc] for r in self.allocations]
         return write_yaml(list_modules, filename)
 
+    def _detect_fixed_rectangles(self, netlist: Netlist) -> list[tuple[Rectangle, str]]:
+        """
+        Detects which rectangles are occupied by fixed modules. The rectangles are tagged as fixed
+        :param netlist: The netlist
+        :return: a list of tuples (rectangle, module name) for all fixed rectangles
+        """
+        fixed_modules = [m for m in netlist.modules if m.fixed]
+        eps = 1e-6  # tolerance for comparisons with floats
+        num_rect = {m.name: 0 for m in fixed_modules}
+        fixed_rects: list[tuple[Rectangle, str]] = []
+
+        for a in self.allocations:
+            for m in fixed_modules:
+                area = sum(a.rect.area_overlap(r_mod) / a.rect.area for r_mod in m.rectangles)
+                assert area < eps or 1 - eps < area < 1 + eps, "Incorrect fixed rectangle"
+                if area > 1 - eps:
+                    a.rect.fixed = True
+                    fixed_rects.append((a.rect, m.name))
+                    num_rect[m.name] += 1
+
+        # Check that each module is assigned to the corresponding number of rectangles
+        for m in fixed_modules:
+            assert m.num_rectangles == num_rect[m.name], f"Incorrect number of fixed rectangles for module {m.name}"
+        return fixed_rects
+
     def _calculate_bounding_box(self) -> None:
         """
         Returns the bounding box of all rectangles
@@ -241,7 +275,7 @@ class Allocation:
             if isinstance(alloc, list):
                 alloc = tuple(alloc)
             assert isinstance(alloc, tuple) and 2 <= len(alloc) <= 3, f'Incorrect format for rectangle {alloc}'
-            r, d = alloc[0], alloc[1]  # Rectangle and dictionary of allocations
+            r, allocs = alloc[0], alloc[1]  # Rectangle and dictionary of allocations
 
             depth = 0 if len(alloc) == 2 else alloc[2]
             assert isinstance(depth, int) and depth >= 0, f'Incorrect depth for rectangle {alloc}'
@@ -250,10 +284,10 @@ class Allocation:
             rect = r if isinstance(r, Rectangle) else parse_yaml_rectangle(r)
 
             # Create the dictionary of allocations
-            assert isinstance(d, dict), f'Incorrect allocation for rectangle {r}'
+            assert isinstance(allocs, dict), f'Incorrect allocation for rectangle {r}'
             dict_alloc = {}
             total_occup = 0
-            for module, occup in d.items():
+            for module, occup in allocs.items():
                 assert valid_identifier(module), f'Invalid module identifier: {module}'
                 assert is_number(occup) and 0 <= occup <= 1, \
                     f'Invalid allocation for {module} in rectangle {r}: {occup}'
