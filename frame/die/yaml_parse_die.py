@@ -18,18 +18,19 @@ def string_die(die: str) -> Shape | None:
     return None
 
 
-def parse_yaml_die(stream: TextIO_String) -> tuple[Shape, list[Rectangle]]:
+def parse_yaml_die(stream: TextIO_String) -> tuple[Rectangle, list[Rectangle]]:
     """
     Parses a YAML die from a file or from a string of text
     :param stream: name of the YAML file or handle to the file
-    :return: the shape of the die and the list of non-ground rectangles
+    :return: the bounding box of the die and the list of non-ground rectangles
     """
 
     # First check for a string of the form <width>x<height>, e.g., 5.5x10
     if isinstance(stream, str):
         shape = string_die(stream)
         if shape is not None:
-            return shape, []
+            die = Rectangle(**{KW_CENTER: Point(shape.w/2, shape.h/2), KW_SHAPE: shape})
+            return die, []
 
     # Read a YAML contents
     tree = read_yaml(stream)
@@ -42,6 +43,7 @@ def parse_yaml_die(stream: TextIO_String) -> tuple[Shape, list[Rectangle]]:
     shape = Shape(tree[KW_WIDTH], tree[KW_HEIGHT])
     assert is_number(shape.w) and shape.w > 0, "Wrong specification of the die width"
     assert is_number(shape.h) and shape.h > 0, "Wrong specification of the die height"
+    die = Rectangle(**{KW_CENTER: Point(shape.w/2, shape.h/2), KW_SHAPE: shape})
 
     regions: list[Rectangle] = []
     if KW_REGIONS in tree:
@@ -51,7 +53,7 @@ def parse_yaml_die(stream: TextIO_String) -> tuple[Shape, list[Rectangle]]:
             rlist = [rlist]  # List with only one rectangle
         for r in rlist:
             regions.append(parse_die_rectangle(r))
-    return shape, regions
+    return die, regions
 
 
 def parse_die_rectangle(r: list):

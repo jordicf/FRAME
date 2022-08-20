@@ -1,7 +1,8 @@
+import heapq
 from collections import deque
 from itertools import combinations
 from typing import Set, Deque
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 
 from .yaml_parse_die import parse_yaml_die
 from frame.geometry.geometry import Shape, Rectangle, Point
@@ -10,14 +11,15 @@ from frame.utils.keywords import KW_CENTER, KW_SHAPE, KW_REGION, KW_GROUND, KW_B
 from frame.utils.utils import TextIO_String
 
 
-@dataclass()
+@dataclass
 class GroundRegion:
-    rmin: int
-    rmax: int
-    cmin: int
-    cmax: int
-    area: float
-    ratio: float
+    """Representation of a ground region in a cell matrix"""
+    rmin: int  # min row
+    rmax: int  # max row
+    cmin: int  # min column
+    cmax: int  # max column
+    area: float  # area of the cell
+    ratio: float  # aspect ratio
 
     def __str__(self) -> str:
         return f'<rows=({self.rmin}-{self.rmax}), cols=({self.cmin}-{self.cmax}), area={self.area}, ratio={self.ratio}>'
@@ -26,12 +28,19 @@ class GroundRegion:
         return hash(37 * self.rmin + 13 * self.rmax + 7 * self.cmin + 23 * self.cmax)
 
 
+@dataclass(order=True)
+class PrioritizedRectangle:
+    """To represent rectangles ordered by area"""
+    area: float  # area of the rectangle (negative area to sort by largest)
+    rect: Rectangle = field(compare=False)
+
+
 class Die:
     """
     Class to represent the die (ground and tagged rectangles)
     """
-    _shape: Shape  # Shape of the die (width and height)
-    _regions: list[Rectangle]  # List of non-ground regions
+    _die: Rectangle  # Bounding Box of the die
+    _non_ground_regions: list[Rectangle]  # List of non-ground regions
     _ground_regions: list[Rectangle]  # List of ground regions (not covered by fixed rectangles)
     _blockages: list[Rectangle]  # List of blockages
     _fixed: list[Rectangle]  # List of fixed rectangles (obtained from a netlist)
@@ -47,36 +56,47 @@ class Die:
         :param netlist: the netlist associated to the die (necessary for fixed modules)
         """
         regions: list[Rectangle]
-        self._shape, regions = parse_yaml_die(stream)
+        self._die, regions = parse_yaml_die(stream)
         self._epsilon = min(self.width, self.height) * 10e-12
 
         # Selectec blockages from the other regions
-        self._regions, self._blockages = [], []
+        self._non_ground_regions, self._blockages = [], []
         for r in regions:
-            self._blockages.append(r) if r.region == KW_BLOCKAGE else self._regions.append(r)
+            self._blockages.append(r) if r.region == KW_BLOCKAGE else self._non_ground_regions.append(r)
 
         # Obtained the fixed rectangles from the netlist
         self._fixed = [] if netlist is None else netlist.fixed_rectangles()
 
-        self._calculate_region_points()
+        self._x, self._y = gather_boundaries(self.non_ground_regions + self.blockages +
+                                             self.fixed + [self.bounding_box], self._epsilon)
         self._calculate_cell_matrix()
         self._calculate_ground_rectangles()
         self._check_rectangles()
 
     @property
+    def bounding_box(self) -> Rectangle:
+        """Returns the bounding box of the die"""
+        return self._die
+
+    @property
     def width(self) -> float:
         """Returns the width of the die."""
-        return self._shape.w
+        return self._die.shape.w
 
     @property
     def height(self) -> float:
         """Returns the height of the die."""
-        return self._shape.h
+        return self._die.shape.h
 
     @property
-    def regions(self) -> list[Rectangle]:
+    def ground_regions(self) -> list[Rectangle]:
+        """Returns the list of ground regions not covered by fixed rectangles"""
+        return self._ground_regions
+
+    @property
+    def non_ground_regions(self) -> list[Rectangle]:
         """Returns the list of non-ground regions."""
-        return self._regions
+        return self._non_ground_regions
 
     @property
     def blockages(self) -> list[Rectangle]:
@@ -88,10 +108,23 @@ class Die:
         """Returns the list of fixed rectangles."""
         return self._fixed
 
-    @property
-    def ground_regions(self) -> list[Rectangle]:
-        """Returns the list of ground regions not covered by fixed rectangles"""
-        return self._ground_regions
+    def split_refinable_regions(self, aspect_ratio: float, n: int = 1) -> None:
+        """
+        Splits the refinable rectangles such that all of them have an aspect_ratio smaller than or equal to
+        a certain value. After that, rectangles are split until n rectangles are obtained. The rectangles correspond
+        to the ground and non-ground rectangles. Fixed rectangles are neither modified nor counted. The aspect ratio
+        is always >= 1, i.e., max(width/height, height/width)
+        :param aspect_ratio: the maximum aspect ratio of the rectangles
+        :param n: number of refinable rectangles that are required
+        """
+        assert n > 0
+        rects = split_rectangles(self.non_ground_regions + self.ground_regions, aspect_ratio, n)
+        self._non_ground_regions, self._ground_regions = [], []
+        for r in rects:
+            if r.region == KW_GROUND:
+                self._ground_regions.append(r)
+            else:
+                self._non_ground_regions.append(r)
 
     def allocation_rectangles(self) -> tuple[list[Rectangle], list[Rectangle]]:
         """
@@ -99,32 +132,7 @@ class Die:
         the rectangles that a refinable during allocation. The second list contains the rectangles
         that correspond to fixed modules.
         """
-        return self.regions + self.ground_regions, self.fixed
-
-    def _calculate_region_points(self):
-        """
-        Calculates the list of points to be candidates for rectangle corners in the ground.
-        """
-        x, y = [0], [0]
-        for r in self.regions + self.blockages + self.fixed:
-            bb = r.bounding_box
-            x.append(bb[0].x)
-            x.append(bb[1].x)
-            y.append(bb[0].y)
-            y.append(bb[1].y)
-        x.append(self.width)
-        y.append(self.height)
-        x.sort()
-        y.sort()
-        # Remove duplicates
-        self._x = []
-        for i, val in enumerate(x):
-            if i == 0 or val > self._x[-1] + self._epsilon:
-                self._x.append(float(val))
-        self._y = []
-        for i, val in enumerate(y):
-            if i == 0 or val > self._y[-1] + self._epsilon:
-                self._y.append(float(val))
+        return self.non_ground_regions + self.ground_regions, self.fixed
 
     def _cell_center(self, i: int, j: int) -> Point:
         """
@@ -143,7 +151,7 @@ class Die:
         for i in range(len(self._x) - 1):
             for j in range(len(self._y) - 1):
                 p = self._cell_center(i, j)
-                for r in self.regions + self.blockages + self.fixed:
+                for r in self.non_ground_regions + self.blockages + self.fixed:
                     if r.point_inside(p):
                         self._cells[j][i] = True
 
@@ -159,15 +167,14 @@ class Die:
 
     def _calculate_ground_rectangles(self):
         self._ground_regions = []
-        g_rect = self._find_largest_ground_region()
-        while g_rect is not None:
-            self._ground_regions.append(g_rect)
-            g_rect = self._find_largest_ground_region()
+        all_rectangles: Set[GroundRegion] = self._find_all_ground_rectangles()
+        while len(all_rectangles) > 0:
+            self._ground_regions.append(self._find_best_rectangle(all_rectangles))
 
-    def _find_largest_ground_region(self) -> Rectangle | None:
+    def _find_all_ground_rectangles(self) -> Set[GroundRegion]:
         """
-        Calculates the largest non-occupied rectangular region of the die
-        :return: the largest region
+        Calculates all possible ground rectangles
+        :return: the set of ground rectangles
         """
         all_regions: Set[GroundRegion] = set()  # Set of all rectangular regions
         for r in range(len(self._cells)):
@@ -182,22 +189,37 @@ class Die:
                     reg: GroundRegion = GroundRegion(r, r, c, c, area, ratio)
                     more_regions = self._expand_rectangle(reg)
                     all_regions = all_regions | more_regions
+        return all_regions
 
-        if len(all_regions) == 0:
-            return None
+    def _find_best_rectangle(self, ground_rectangles: Set[GroundRegion]) -> Rectangle | None:
+        """
+        Calculates the largest non-occupied rectangular region of the die
+        :param ground_rectangles: set of possible ground rectangles
+        :return: the largest region
+        """
 
-        max_area = -1
+        assert len(ground_rectangles) > 0
+
+        # Here we select the best rectangle. The criterion may be changed in the future
+        max_value = -1.0
         best_reg: GroundRegion | None = None
-        for reg in all_regions:
-            if reg.area > max_area:
-                max_area = reg.area  # type: ignore
+        for reg in ground_rectangles:
+            value = reg.area
+            if reg.area > max_value:
+                max_value = value
                 best_reg = reg
 
         # Occupy the cells
         assert best_reg is not None
-        for row in range(best_reg.rmin, best_reg.rmax + 1):  # type: ignore
+        for row in range(best_reg.rmin, best_reg.rmax + 1):
             for col in range(best_reg.cmin, best_reg.cmax + 1):
                 self._cells[row][col] = True
+
+        # Remove the rectangles touching the occupied cells
+        for reg in list(ground_rectangles):
+            if any(self._cells[row][col] for row in range(reg.rmin, reg.rmax+1)
+                   for col in range(reg.cmin, reg.cmax+1)):
+                ground_rectangles.remove(reg)
 
         x_center = (self._x[best_reg.cmin] + self._x[best_reg.cmax + 1]) / 2
         y_center = (self._y[best_reg.rmin] + self._y[best_reg.rmax + 1]) / 2
@@ -255,7 +277,7 @@ class Die:
         Checks that the list of rectangles is correct, i.e., they do not overlap and the sum of the
         areas is equal to the area of the die. An assertion is raised of something is wrong.
         """
-        all_rectangles = self.regions + self.ground_regions + self.blockages + self.fixed
+        all_rectangles = self.non_ground_regions + self.ground_regions + self.blockages + self.fixed
         die = Rectangle(center=Point(self.width / 2, self.height / 2), shape=Shape(self.width, self.height))
 
         # Check that all rectangles are inside
@@ -290,12 +312,46 @@ def gather_boundaries(rectangles: list[Rectangle], epsilon: float = 1e-15) -> tu
     x.sort()
     y.sort()
     # Remove duplicates
-    uniq_x = []
+    uniq_x: list[float] = []
     for i, val in enumerate(x):
         if i == 0 or val > uniq_x[-1] + epsilon:
             uniq_x.append(float(val))
-    uniq_y = []
+    uniq_y: list[float] = []
     for i, val in enumerate(y):
         if i == 0 or val > uniq_y[-1] + epsilon:
             uniq_y.append(float(val))
     return uniq_x, uniq_y
+
+
+def split_rectangles(rectangles: list[Rectangle], aspect_ratio: float, n: int) -> list[Rectangle]:
+    """
+    Splits the rectangles until n rectangles are obtained. The splitting is done on the
+    largest rectangles of the list
+    :param rectangles: list of rectangles
+    :param aspect_ratio: maximum aspect ratio
+    :param n: number of required rectangles
+    :return: the final rectangles
+    """
+
+    # First split rectangles with large aspect ratio
+    q: deque[Rectangle] = deque(rectangles)
+    heap: list[PrioritizedRectangle] = []
+    while len(q) > 0:
+        r = q.pop()
+        if r.aspect_ratio > aspect_ratio:
+            q.extend(r.split())
+        else:
+            heap.append(PrioritizedRectangle(-r.area, r))
+
+    # Do we have sufficient rectangles?
+    if len(heap) >= n:
+        return [prio_rect.rect for prio_rect in heap]
+
+    # If not, let us split the largest rectangles (heap prioritized by area, largest first)
+    heapq.heapify(heap)
+    while len(heap) < n:
+        area_rect: PrioritizedRectangle = heapq.heappop(heap)
+        r1, r2 = area_rect.rect.split()
+        heapq.heappush(heap, PrioritizedRectangle(-r1.area, r1))
+        heapq.heappush(heap, PrioritizedRectangle(-r2.area, r2))
+    return [prio_rect.rect for prio_rect in heap]

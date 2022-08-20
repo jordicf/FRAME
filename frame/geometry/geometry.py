@@ -211,6 +211,14 @@ class Rectangle:
         self._region = region
 
     @property
+    def aspect_ratio(self) -> float:
+        assert self.shape.w > 0
+        ar = self.shape.h/self.shape.w
+        if ar < 1:
+            ar = 1.0/ar
+        return ar
+
+    @property
     def bounding_box(self) -> tuple[Point, Point]:
         """
         :return: a tuple ((xmin, ymin), (xmax, ymax))
@@ -363,7 +371,9 @@ class Rectangle:
         """
         :return: string representation of the rectangle
         """
-        s = f"({KW_CENTER}={self.center}, {KW_SHAPE}={self.shape}, {KW_REGION}={self.region}"
+        s = f"({KW_CENTER}={self.center}, {KW_SHAPE}={self.shape}"
+        if self.region != KW_GROUND:
+            s += f", {KW_REGION}={self.region}"
         if self.fixed:
             s += f", {KW_FIXED}"
         s += ")"
