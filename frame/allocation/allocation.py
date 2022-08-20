@@ -351,7 +351,7 @@ def create_initial_allocation(die: Die) -> Allocation:
     :param die: the die
     :return: the initial allocation
     """
-    assert die.netlist is not None, "No netlist asosciated to the die"
+    assert die.netlist is not None, "No netlist associated to the die"
     refinable, fixed = die.floorplanning_rectangles()
     allocation_list: list[AllocDescriptor] = [(rect, {}, 0) for rect in refinable + fixed]
     return Allocation(allocation_list).initial_allocation(die.netlist, include_area_zero=True)
