@@ -78,9 +78,10 @@ def main(prog: str | None = None, args: list[str] | None = None):
     max_iter: int = options["max_iter"]
     assert max_iter > 0, "The maximum number of iterations must be positive"
 
+    plot_name: str = options["plot"]
     verbose: bool = options["verbose"]
     visualize: bool = options["visualize"]
-    plot_name: str = options["plot"]
+    assert visualize and plot_name, "--plot_name is required when using --visualize"
 
     start_time = 0.0
     if verbose:
