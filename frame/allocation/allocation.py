@@ -346,8 +346,8 @@ class Allocation:
 
 def create_initial_allocation(die: Die) -> Allocation:
     """
-    Creates the initial allocation grid. The allocation ratios are assigned according to the intersection of the module
-    rectangles with the regions 9rectangles) of the die
+    Creates the initial allocation. The allocation ratios are assigned according to the intersection of the module
+    rectangles with the regions (rectangles) of the die
     :param die: the die
     :return: the initial allocation
     """
