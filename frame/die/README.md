@@ -51,7 +51,7 @@ width: 30
 height: 20
 ```
 In this case, a rectangular die with neither blockages nor specialized regions is described.
-The whole die is a *gound* region.
+The whole die is a *ground* region.
 
 The next example specifies some regions.
 ```yaml
