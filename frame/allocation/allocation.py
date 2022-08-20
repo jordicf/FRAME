@@ -305,7 +305,8 @@ class Allocation:
     def _check_no_overlap(self) -> None:
         """Checks that rectangles do not overlap"""
         for r_allocs in itertools.combinations(self._allocations, 2):
-            assert not r_allocs[0].rect.overlap(r_allocs[1].rect), "Allocation rectangles overlap"
+            assert not r_allocs[0].rect.overlap(r_allocs[1].rect), "Allocation rectangles overlap: " \
+                                                                   f"{r_allocs[0]}, {r_allocs[1]}"
 
     def _calculate_areas_and_centers(self) -> None:
         """Computes the area and the centers of all modules"""
