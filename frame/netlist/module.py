@@ -1,7 +1,7 @@
 import math
 
 from frame.geometry.geometry import Point, Shape, Rectangle
-from frame.utils.keywords import KW_CENTER, KW_SHAPE, KW_MIN_SHAPE, KW_AREA, KW_FIXED, KW_GROUND
+from frame.utils.keywords import KW_CENTER, KW_SHAPE, KW_MIN_SHAPE, KW_AREA, KW_FIXED, KW_GROUND, KW_RECTANGLES
 from frame.utils.utils import valid_identifier, is_number
 
 
@@ -193,7 +193,7 @@ class Module:
         s += f" {KW_MIN_SHAPE}={self.min_shape}"
         if self.num_rectangles == 0:
             return s
-        s += f" KW_RECTANGLES=["
+        s += f" {KW_RECTANGLES}=["
         for r in self.rectangles:
             s += f"({str(r)})"
         s += "]"
