@@ -2,4 +2,4 @@
 
 Execute `frame glbfloor --help` for help.
 
-See [here](example/README.md) for an example.
+See [here](example/README.md) for some examples.
