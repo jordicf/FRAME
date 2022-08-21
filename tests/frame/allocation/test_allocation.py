@@ -158,7 +158,6 @@ Modules: {
     fixed: false
   },
   M2: {
-    area: 20,
     rectangles: [[4,2.5,4,5]],
     fixed: true
   },
@@ -180,7 +179,6 @@ Modules: {
     fixed: false
   },
   M2: {
-    area: 20,
     rectangles: [[4,2.5,4,5]],
     fixed: true
   }

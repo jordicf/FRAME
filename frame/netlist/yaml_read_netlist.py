@@ -71,6 +71,8 @@ def parse_yaml_module(name: str, info: dict) -> Module:
         elif key == KW_FIXED:
             assert isinstance(value, bool), f"Incorrect value for the fixed attribute of module {name}"
             params[KW_FIXED] = value
+            if value:
+                params[KW_HARD] = True
         elif key == KW_HARD:
             assert isinstance(value, bool), f"Incorrect value for the hard attribute of module {name}"
             params[KW_HARD] = value
@@ -80,7 +82,7 @@ def parse_yaml_module(name: str, info: dict) -> Module:
             assert False, f"Unknown module attribute {key}"
 
     if KW_FIXED in info and KW_HARD in info:
-        assert not params[KW_FIXED] and not params[KW_HARD],\
+        assert not info[KW_FIXED] and not info[KW_HARD], \
             f"Contradictory values for fixed and hard in module {name}"
 
     m = Module(name, **params)
@@ -124,6 +126,7 @@ def parse_yaml_min_shape(min_shape: float | list[float], name: str) -> Shape:
 
     assert min_shape[0] >= 0 and min_shape[1] >= 0, f"Incorrect value for min shape of module {name}"
     return Shape(float(min_shape[0]), float(min_shape[1]))
+
 
 def parse_yaml_rectangles(rectangles: list, fixed: bool = False, hard: bool = False) -> list[Rectangle]:
     """Parses the rectangles of a module

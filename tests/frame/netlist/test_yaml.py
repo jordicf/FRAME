@@ -103,7 +103,6 @@ Modules: {
     fixed: false
   },
   B2: {
-    area: 20,
     rectangles: [[4,2.5,4,5]],
     fixed: true
   },
@@ -133,7 +132,6 @@ Modules: {
     center: [1,1]
   },
   B4: {
-    area: 2,
     rectangles: [[3,0.5,2,1]],
     fixed: True
   }

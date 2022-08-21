@@ -158,7 +158,8 @@ class Rectangle:
 
         # Reading parameters and type checking
         for key, value in kwargs.items():
-            assert key in [KW_CENTER, KW_SHAPE, KW_FIXED, KW_REGION, KW_NAME], "Unknown rectangle attribute"
+            assert key in [KW_CENTER, KW_SHAPE, KW_FIXED, KW_HARD, KW_REGION, KW_NAME],\
+                "Unknown rectangle attribute"
             if key == KW_CENTER:
                 assert isinstance(value, Point), "Incorrect point associated to the center of the rectangle"
                 self._center = value
@@ -409,12 +410,15 @@ def parse_yaml_rectangle(r: Sequence[float | int | str],
 
     if isinstance(r, list):
         r = tuple(r)
-    assert isinstance(r, tuple) and 4 <= len(r) <= 5, f"Incorrect format for rectangle"
+    assert isinstance(r, tuple) and 4 <= len(r) <= 5, "Incorrect format for rectangle"
     for i in range(4):
         x = r[i]
-        assert isinstance(x, (int, float)) and x >= 0, f"Incorrect value for rectangle"
+        assert isinstance(x, (int, float)) and x >= 0, "Incorrect value for rectangle"
     if len(r) == 5:
         assert isinstance(r[4], str) and valid_identifier(r[4])
+
+    # Hard or fixed rectangles must not be assigned to any region
+    assert len(r) == 4 or not (fixed or hard), "Hard rectangles cannot be assigned to any region"
 
     assert isinstance(r[0], (int, float)) and isinstance(r[1], (int, float)) and \
            isinstance(r[2], (int, float)) and isinstance(r[3], (int, float))

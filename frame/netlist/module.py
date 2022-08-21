@@ -1,4 +1,5 @@
 import math
+from itertools import combinations
 
 from frame.geometry.geometry import Point, Shape, Rectangle
 from frame.utils.keywords import KW_CENTER, KW_SHAPE, KW_MIN_SHAPE, KW_AREA, KW_FIXED, KW_HARD, KW_GROUND, KW_RECTANGLES
@@ -171,6 +172,38 @@ class Module:
             assert is_number(a) and a > 0, "Invalid value for area"
             dict_area[region] = float(a)
         return dict_area
+
+    def setup(self) -> None:
+        """
+        Checking the consistency of the module. No area must have been defined for hard/fixed modules.
+        For soft blocks, the area must have been defined. The rectangles for hard modules must not
+        overlap. The first rectangle of hard blocks must be the trunk
+        """
+
+        assert not (self.fixed and not self.hard),\
+            f"Inconsistent fixed module {self.name}. It should be also hard."
+
+        area_defined = len(self.area_regions) > 0
+        assert self.hard or area_defined, f"No area defined for a soft module {self.name}."
+
+        if self.hard:
+            # Check that neither area, nor center nor min_shape are defined.
+            # It also checks that at least has one rectangle
+            assert not area_defined, f"Inconsistent hard module {self.name}: cannot specify area."
+            assert self.center is None, f"Inconsistent hard module {self.name}: cannot specify center."
+            assert self.min_shape is None,\
+                f"Inconsistent hard module {self.name}: cannot specify min_shape."
+            assert self.num_rectangles > 0, \
+                f"Inconsistent hard module {self.name}: must have at least one rectangle."
+
+            # Check that the rectangles of hard modules do not overlap
+            # Calculate the area of hard modules
+
+            for r1, r2 in combinations(self.rectangles, 2):
+                assert not r1.overlap(r2), f"Inconsistent hard module {self.name}: overlapping rectangles."
+            area = sum(r.area for r in self.rectangles)
+            self._area_regions = {KW_GROUND: area}
+            self._total_area = area
 
     def create_square(self) -> None:
         """

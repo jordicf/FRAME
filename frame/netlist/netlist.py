@@ -118,7 +118,7 @@ class Netlist:
             m = self.get_module(module_name)
             m.clear_rectangles()
             for r in list_rect:
-                m.add_rectangle(parse_yaml_rectangle(r))
+                m.add_rectangle(parse_yaml_rectangle(r, m.fixed, m.hard))
         self._clean_rectangles()
 
     def fixed_rectangles(self) -> list[Rectangle]:
