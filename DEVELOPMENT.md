@@ -53,6 +53,14 @@ Code inspection can be executed in PyCharm going to Code | Inspect Code.... Crea
 including only the FRAME code can be helpful to speed up the inspection and not get errors about
 third-party code.
 
+```
+file[FRAME]:examples//*.py
+file[FRAME]:frame//*.py
+file[FRAME]:tests//*.py
+file[FRAME]:tools//*.py
+file:setup.py
+```
+
 ## Testing
 
 To run all the tests, execute the following command from the project folder:
