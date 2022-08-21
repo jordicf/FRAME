@@ -117,6 +117,7 @@ class Die:
         :param n: number of refinable rectangles that are required
         """
         assert n > 0
+        assert aspect_ratio > 1.415, "Aspect ratio cannot be smaller than sqrt(2) to guarantee convergence"
         rects = split_rectangles(self.specialized_regions + self.ground_regions, aspect_ratio, n)
         self._specialized_regions, self._ground_regions = [], []
         for r in rects:
