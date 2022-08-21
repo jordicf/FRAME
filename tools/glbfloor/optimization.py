@@ -334,8 +334,7 @@ def glbfloor(die: Die, threshold: float, alpha: float,
     n_iter = 0
 
     if plot_name is not None:
-        plot_grid(die, allocation, dispersions, alpha,
-                  filename=f"{plot_name}-{n_iter}.png")
+        plot_grid(die, allocation, dispersions, alpha, filename=f"{plot_name}-{n_iter}.png")
 
     n_iter += 1
     while max_iter is None or n_iter <= max_iter:
