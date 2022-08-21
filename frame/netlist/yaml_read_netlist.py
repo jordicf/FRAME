@@ -69,7 +69,11 @@ def parse_yaml_module(name: str, info: dict) -> Module:
         elif key == KW_MIN_SHAPE:
             params[KW_MIN_SHAPE] = parse_yaml_min_shape(value, name)
         elif key == KW_FIXED:
-            params[KW_FIXED] = parse_yaml_fixed(value, name)
+            assert isinstance(value, bool), f"Incorrect value for the fixed attribute of module {name}"
+            params[KW_FIXED] = value
+        elif key == KW_HARD:
+            assert isinstance(value, bool), f"Incorrect value for the hard attribute of module {name}"
+            params[KW_HARD] = value
         elif key == KW_RECTANGLES:
             pass
         else:
@@ -79,15 +83,15 @@ def parse_yaml_module(name: str, info: dict) -> Module:
         assert not params[KW_FIXED] and not params[KW_HARD],\
             f"Contradictory values for fixed and hard in module {name}"
 
-    if params[KW_FIXED]:
-        params[KW_HARD] = True
-
     m = Module(name, **params)
 
     if KW_RECTANGLES in info:
-        rectangles = parse_yaml_rectangles(info[KW_RECTANGLES], cast(bool, params[KW_FIXED]))
+        assert isinstance(params[KW_FIXED], bool) and isinstance(params[KW_HARD], bool)
+        rectangles = parse_yaml_rectangles(info[KW_RECTANGLES], params[KW_FIXED], params[KW_HARD])
         for r in rectangles:
             m.add_rectangle(r)
+
+    m.setup()
     return m
 
 
@@ -121,22 +125,11 @@ def parse_yaml_min_shape(min_shape: float | list[float], name: str) -> Shape:
     assert min_shape[0] >= 0 and min_shape[1] >= 0, f"Incorrect value for min shape of module {name}"
     return Shape(float(min_shape[0]), float(min_shape[1]))
 
-
-def parse_yaml_fixed(fixed: bool, name: str) -> bool:
-    """
-    Parses the fixed attribute
-    :param fixed: module attribute
-    :param name: name of the module
-    :return: the value of the attribute fixed (boolean)
-    """
-    assert isinstance(fixed, bool), f"Incorrect value for the fixed attribute of module {name}"
-    return fixed
-
-
-def parse_yaml_rectangles(rectangles: list, fixed: bool = False) -> list[Rectangle]:
+def parse_yaml_rectangles(rectangles: list, fixed: bool = False, hard: bool = False) -> list[Rectangle]:
     """Parses the rectangles of a module
     :param rectangles: list of rectangles
     :param fixed: are the rectangles fixed
+    :param hard: are the rectangles hard
     :return: a list of rectangles (empty if no rectangles are specified)
     """
 
@@ -147,7 +140,7 @@ def parse_yaml_rectangles(rectangles: list, fixed: bool = False) -> list[Rectang
 
     rect_list = []
     for r in rlist:
-        rect_list.append(parse_yaml_rectangle(r, fixed))
+        rect_list.append(parse_yaml_rectangle(r, fixed, hard))
     return rect_list
 
 

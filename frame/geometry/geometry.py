@@ -7,7 +7,8 @@ import heapq
 from typing import Any, Union, Sequence, Optional
 from dataclasses import dataclass, field
 
-from frame.utils.keywords import KW_FIXED, KW_CENTER, KW_SHAPE, KW_REGION, KW_NAME, KW_GROUND, KW_BLOCKAGE
+from frame.utils.keywords import KW_FIXED, KW_HARD, KW_CENTER, KW_SHAPE, KW_REGION, KW_NAME,\
+    KW_GROUND, KW_BLOCKAGE
 from frame.utils.utils import valid_identifier
 
 RectDescriptor = tuple[float, float, float, float, str]  # (x,y,w,h, region)
@@ -152,6 +153,7 @@ class Rectangle:
         self._center: Point = Point(-1, -1)  # Center of the rectangle
         self._shape: Shape = Shape(-1, -1)  # Shape: width and height
         self._fixed: bool = False  # Is the rectangle fixed?
+        self._hard: bool = False  # Is the rectangle hard?
         self._region: str = KW_GROUND  # Region of the layout to which the rectangle belongs to
 
         # Reading parameters and type checking
@@ -168,6 +170,9 @@ class Rectangle:
             elif key == KW_FIXED:
                 assert isinstance(value, bool), "Incorrect value for fixed (should be a boolean)"
                 self._fixed = value
+            elif key == KW_HARD:
+                assert isinstance(value, bool), "Incorrect value for hard (should be a boolean)"
+                self._hard = value
             elif key == KW_REGION:
                 assert valid_identifier(value) or value == KW_BLOCKAGE, \
                     "Incorrect value for region (should be a valid string)"
@@ -203,6 +208,14 @@ class Rectangle:
     @fixed.setter
     def fixed(self, value: bool) -> None:
         self._fixed = value
+
+    @property
+    def hard(self) -> bool:
+        return self._hard
+
+    @hard.setter
+    def hard(self, value: bool) -> None:
+        self._hard = value
 
     @property
     def region(self) -> str:
@@ -384,11 +397,13 @@ class Rectangle:
     __repr__ = __str__
 
 
-def parse_yaml_rectangle(r: Sequence[float | int | str], fixed: bool = False) -> Rectangle:
+def parse_yaml_rectangle(r: Sequence[float | int | str],
+                         fixed: bool = False, hard: bool = False) -> Rectangle:
     """Parses a rectangle
     :param r: a YAML description of the rectangle (a tuple or list with 4 numeric values (x, y, w, h)).
     Optionally, it may contain a fifth parameter (string) specifying a region
     :param fixed: Indicates whether the rectangle should be fixed
+    :param hard: Indicates whether the rectangle should be hard
     :return: a rectangle
     """
 
@@ -403,7 +418,8 @@ def parse_yaml_rectangle(r: Sequence[float | int | str], fixed: bool = False) ->
 
     assert isinstance(r[0], (int, float)) and isinstance(r[1], (int, float)) and \
            isinstance(r[2], (int, float)) and isinstance(r[3], (int, float))
-    kwargs = {KW_CENTER: Point(r[0], r[1]), KW_SHAPE: Shape(r[2], r[3]), KW_FIXED: fixed}
+    kwargs = {KW_CENTER: Point(r[0], r[1]), KW_SHAPE: Shape(r[2], r[3]),
+              KW_FIXED: fixed, KW_HARD: hard}
     if len(r) == 5:
         kwargs[KW_REGION] = r[4]
     return Rectangle(**kwargs)
