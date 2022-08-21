@@ -349,6 +349,29 @@ class Rectangle:
         """
         return self.split_vertical() if self.shape.h > self.shape.w else self.split_horizontal()
 
+    def rectangle_grid(self, nrows: int, ncols: int) -> list['Rectangle']:
+        """
+        Generates a grid of nrows x ncols rectangles of the same size starting from the original
+        rectangle.
+        :param nrows: number of rows of the grid
+        :param ncols: number of columns of the grid
+        :return: the list of rectangles
+        """
+        assert nrows > 0 and ncols > 0
+        x_step = self.shape.w/ncols
+        y_step = self.shape.h/nrows
+        x_init = self.center.x - self.shape.w/2 + x_step/2
+        y_init = self.center.y - self.shape.h/2 + y_step/2
+        grid: list[Rectangle] = []
+        shape = Shape(x_step, y_step)
+        for row in range(nrows):
+            for col in range(ncols):
+                r = self.duplicate()
+                r.center = Point(x_init + col*x_step, y_init + row*y_step)
+                r.shape = shape
+                grid.append(r)
+        return grid
+
     def __mul__(self, other: 'Rectangle') -> Optional['Rectangle']:
         """
         Calculates the intersection of two rectangles and returns another rectangle (or None if no intersection).
