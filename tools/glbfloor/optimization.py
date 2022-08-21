@@ -93,13 +93,13 @@ def get_neighbouring_cells(allocation: Allocation, cell_index: int) -> list[int]
     return neigh_cells
 
 
-def extract_solution(model: Model, die: Die, allocation: Allocation, threshold: float) \
+def extract_solution(model: Model, die: Die, cells: list[Rectangle], threshold: float) \
         -> tuple[Die, Allocation, dict[str, tuple[float, float]]]:
     """
     Extracts the solution from the model
     :param model: the model
     :param die: die with netlist containing the modules with centroids initialized
-    :param allocation: allocation to optimize
+    :param cells: cells of the floor plan to allocate the modules
     :param threshold: hyperparameter between 0 and 1 to decide if allocations can be fixed
     :return:
     - die - die with netlist with the centroids of the modules updated
@@ -108,18 +108,15 @@ def extract_solution(model: Model, die: Die, allocation: Allocation, threshold: 
     """
     assert die.netlist is not None, "No netlist associated to the die"
 
-    n_cells = allocation.num_rectangles
-    allocs = allocation.allocations
-
     allocation_list: list[AllocDescriptor] = []
-    for c in range(n_cells):
-        c_alloc = Alloc()
+    for c, cell in enumerate(cells):
+        alloc = Alloc()
         for m, module in enumerate(die.netlist.modules):
             a_mc_val = get_value(model.a[m][c])
             if a_mc_val > 1 - threshold:
-                c_alloc[module.name] = a_mc_val
-        if c_alloc:  # add only if not empty
-            allocation_list.append((allocs[c].rect, c_alloc, 0))
+                alloc[module.name] = a_mc_val
+        if alloc:  # add only if not empty
+            allocation_list.append((cell, alloc, 0))
     allocation = Allocation(allocation_list)
 
     dispersions = {}
@@ -130,13 +127,13 @@ def extract_solution(model: Model, die: Die, allocation: Allocation, threshold: 
     return die, allocation, dispersions
 
 
-def solve(model: Model, die: Die, allocation: Allocation, threshold: float, max_iter: int = 100, verbose: bool = False,
+def solve(model: Model, die: Die, cells: list[Rectangle], threshold: float, max_iter: int = 100, verbose: bool = False,
           visualize: bool = False) -> tuple[Model, list[Image.Image]]:
     """
     Solves the model's optimization problem
     :param model: the model
     :param die: die with netlist containing the modules with centroids initialized
-    :param allocation: allocation to optimize
+    :param cells: cells of the floor plan to allocate the modules
     :param threshold: hyperparameter between 0 and 1 to decide if allocations can be fixed
     :param max_iter: maximum number of iterations for GEKKO
     :param verbose: if True, the GEKKO optimization log is displayed (not supported if visualize is True)
@@ -157,7 +154,7 @@ def solve(model: Model, die: Die, allocation: Allocation, threshold: float, max_
             model.gekko.options.COLDSTART = 1
             model.gekko.solve(disp=False, debug=0)
 
-            die, allocation, _ = extract_solution(model, die, allocation, threshold)
+            die, allocation, _ = extract_solution(model, die, cells, threshold)
             vis_imgs.append(get_grid_image(die, allocation, draw_text=False))
             print(i, end=" ", flush=True)
 
@@ -193,10 +190,10 @@ def optimize_allocation(die: Die, allocation: Allocation, dispersions: dict[str,
     """
     assert die.netlist is not None, "No netlist associated to the die"
 
-    n_modules = die.netlist.num_modules
     n_cells = allocation.num_rectangles
-    allocs = allocation.allocations
+    cells = [alloc.rect for alloc in allocation.allocations]
 
+    n_modules = die.netlist.num_modules
     module2m = {}
     for m, module in enumerate(die.netlist.modules):
         module2m[module.name] = m
@@ -224,7 +221,7 @@ def optimize_allocation(die: Die, allocation: Allocation, dispersions: dict[str,
         model.x[m].value, model.y[m].value = center
         model.dx[m].value, model.dy[m].value = dispersions[module.name]
 
-    for c, rect_alloc in enumerate(allocs):
+    for c, rect_alloc in enumerate(allocation.allocations):
         for module_name, area_ratio in rect_alloc.alloc.items():
             model.a[module2m[module_name]][c].value = area_ratio
 
@@ -264,18 +261,18 @@ def optimize_allocation(die: Die, allocation: Allocation, dispersions: dict[str,
         m_area = die.netlist.modules[m].area()
 
         # Modules must have sufficient area
-        g.Equation(g.sum([allocs[c].rect.area * model.a[m][c] for c in range(n_cells)]) >= m_area)
+        g.Equation(g.sum([cells[c].area * model.a[m][c] for c in range(n_cells)]) >= m_area)
 
         # Centroid of modules
-        g.Equation(1 / m_area * g.sum([allocs[c].rect.area * allocs[c].rect.center.x * model.a[m][c]
+        g.Equation(1 / m_area * g.sum([cells[c].area * cells[c].center.x * model.a[m][c]
                                        for c in range(n_cells)]) == model.x[m])
-        g.Equation(1 / m_area * g.sum([allocs[c].rect.area * allocs[c].rect.center.y * model.a[m][c]
+        g.Equation(1 / m_area * g.sum([cells[c].area * cells[c].center.y * model.a[m][c]
                                        for c in range(n_cells)]) == model.y[m])
 
         # Dispersion of modules
-        g.Equation(g.sum([allocs[c].rect.area * model.a[m][c] * (model.x[m] - allocs[c].rect.center.x)**2
+        g.Equation(g.sum([cells[c].area * model.a[m][c] * (model.x[m] - cells[c].center.x)**2
                           for c in range(n_cells)]) == model.dx[m])
-        g.Equation(g.sum([allocs[c].rect.area * model.a[m][c] * (model.y[m] - allocs[c].rect.center.y)**2
+        g.Equation(g.sum([cells[c].area * model.a[m][c] * (model.y[m] - cells[c].center.y)**2
                           for c in range(n_cells)]) == model.dy[m])
 
     # Objective function: alpha * total wire length + (1 - alpha) * total dispersion
@@ -298,9 +295,9 @@ def optimize_allocation(die: Die, allocation: Allocation, dispersions: dict[str,
     # Total dispersion
     g.Minimize((1 - alpha) * g.sum([model.dx[m] + model.dy[m] for m in range(die.netlist.num_modules)]))
 
-    model, vis_imgs = solve(model, die, allocation, threshold, verbose=verbose, visualize=visualize)
+    model, vis_imgs = solve(model, die, cells, threshold, verbose=verbose, visualize=visualize)
 
-    die, allocation, dispersions = extract_solution(model, die, allocation, threshold)
+    die, allocation, dispersions = extract_solution(model, die, cells, threshold)
 
     return die, allocation, dispersions, vis_imgs
 
