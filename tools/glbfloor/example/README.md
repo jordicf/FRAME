@@ -1,4 +1,4 @@
-# `glbfloor` example 
+# `glbfloor` examples
 
 Note that executing `glbfloor` with `--visualize` like it is done here takes a long time to execute
 (several minutes)!
@@ -27,6 +27,8 @@ frame glbfloor --netlist initial-netlist.yml --die 2x3 -r 2 -n 16 -a 0.3 -i 10 -
 ![glbfloor-1-plot-8](1/plot-8.png)
 ![glbfloor-1-plot-9](1/plot-9.png)
 ![glbfloor-1-plot-10](1/plot-10.png)
+
+The optimal solution (six square modules) is not found due to the initial grid form.
 
 Full optimization animation:
 
@@ -57,6 +59,8 @@ frame glbfloor --netlist initial-netlist.yml --die die.yml -r 2 -n 16 -a 0.3 -i 
 
 ![glbfloor-2-plot-0](2/plot-0.png)
 ![glbfloor-2-plot-1](2/plot-1.png)
+
+After 1 iteration, the floorplan cannot be further refined so no more optimizations are needed.
 
 Full optimization animation:
 
