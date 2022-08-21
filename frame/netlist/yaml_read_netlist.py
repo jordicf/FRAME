@@ -6,7 +6,8 @@ from typing import Any, cast
 from frame.netlist.module import Module
 from frame.netlist.netlist_types import NamedHyperEdge
 from frame.geometry.geometry import Rectangle, Shape, Point, parse_yaml_rectangle
-from frame.utils.keywords import KW_RECTANGLES, KW_CENTER, KW_FIXED, KW_MODULES, KW_NETS, KW_AREA, KW_MIN_SHAPE
+from frame.utils.keywords import KW_RECTANGLES, KW_CENTER, KW_FIXED, KW_HARD, \
+    KW_MODULES, KW_NETS, KW_AREA, KW_MIN_SHAPE
 from frame.utils.utils import valid_identifier, is_number, read_yaml, TextIO_String
 
 
@@ -58,7 +59,7 @@ def parse_yaml_module(name: str, info: dict) -> Module:
     assert valid_identifier(name), f"Invalid name for module: {name}"
 
     params: dict[str, Any]
-    params = {KW_FIXED: False}  # Parameters for the constructor
+    params = {KW_FIXED: False, KW_HARD: False}  # Parameters for the constructor
     for key, value in info.items():
         assert isinstance(key, str)
         if key == KW_AREA:
@@ -73,6 +74,13 @@ def parse_yaml_module(name: str, info: dict) -> Module:
             pass
         else:
             assert False, f"Unknown module attribute {key}"
+
+    if KW_FIXED in info and KW_HARD in info:
+        assert not params[KW_FIXED] and not params[KW_HARD],\
+            f"Contradictory values for fixed and hard in module {name}"
+
+    if params[KW_FIXED]:
+        params[KW_HARD] = True
 
     m = Module(name, **params)
 

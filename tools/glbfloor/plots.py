@@ -29,7 +29,7 @@ class Scaling:
 
 def get_color(ratio: float, color_map: str) -> tuple[int, int, int, int]:
     """
-    Get the color associated to the ratio, using the indicated matplotlib color map.
+    Get the color associated to the ratio, using the indicated matplotlib color map
     :param ratio: number between 0 and 1
     :param color_map: matplotlib color map name. See https://matplotlib.org/stable/gallery/color/colormap_reference.html
     :return: the color as an RGBA integer tuple (in the range [0, 255])

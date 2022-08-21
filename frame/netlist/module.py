@@ -1,7 +1,7 @@
 import math
 
 from frame.geometry.geometry import Point, Shape, Rectangle
-from frame.utils.keywords import KW_CENTER, KW_SHAPE, KW_MIN_SHAPE, KW_AREA, KW_FIXED, KW_GROUND, KW_RECTANGLES
+from frame.utils.keywords import KW_CENTER, KW_SHAPE, KW_MIN_SHAPE, KW_AREA, KW_FIXED, KW_HARD, KW_GROUND, KW_RECTANGLES
 from frame.utils.utils import valid_identifier, is_number
 
 
@@ -12,6 +12,7 @@ class Module:
     _name: str  # Name of the module
     _center: Point | None  # Center of the module (if defined)
     _min_shape: Shape | None  # min width and height
+    _hard: bool  # Must be a hard module (but movable if not fixed)
     _fixed: bool  # Must be fixed in the layout
     # A module can be assigned to different layout areas (LUT, DSP, BRAM).
     # The following attribute indicate the area assigned to each region.
@@ -35,6 +36,7 @@ class Module:
         self._name = name
         self._center = None
         self._min_shape = None
+        self._hard = False
         self._fixed = False
         self._area_regions = {}
         self._total_area = -1
@@ -45,7 +47,7 @@ class Module:
 
         # Reading parameters and type checking
         for key, value in kwargs.items():
-            assert key in [KW_CENTER, KW_MIN_SHAPE, KW_AREA, KW_FIXED], "Unknown module attribute"
+            assert key in [KW_CENTER, KW_MIN_SHAPE, KW_AREA, KW_HARD, KW_FIXED], "Unknown module attribute"
             if key == KW_CENTER:
                 assert isinstance(value, Point), "Incorrect point associated to the center of the module"
                 self._center = value
@@ -59,6 +61,9 @@ class Module:
             elif key == KW_FIXED:
                 assert isinstance(value, bool), "Incorrect value for fixed (should be a boolean)"
                 self._fixed = value
+            elif key == KW_HARD:
+                assert isinstance(value, bool), "Incorrect value for hard (should be a boolean)"
+                self._hard = value
             else:
                 assert False  # Should never happen
 
@@ -91,6 +96,10 @@ class Module:
     @min_shape.setter
     def min_shape(self, shape: Shape) -> None:
         self._min_shape = shape
+
+    @property
+    def hard(self) -> bool:
+        return self._hard
 
     @property
     def fixed(self) -> bool:
