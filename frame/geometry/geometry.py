@@ -2,8 +2,10 @@
 Module to represent points, shapes and rectangles
 """
 
+from collections import deque
+import heapq
 from typing import Any, Union, Sequence, Optional
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 
 from frame.utils.keywords import KW_FIXED, KW_CENTER, KW_SHAPE, KW_REGION, KW_NAME, KW_GROUND, KW_BLOCKAGE
 from frame.utils.utils import valid_identifier
@@ -213,9 +215,9 @@ class Rectangle:
     @property
     def aspect_ratio(self) -> float:
         assert self.shape.w > 0
-        ar = self.shape.h/self.shape.w
+        ar = self.shape.h / self.shape.w
         if ar < 1:
-            ar = 1.0/ar
+            ar = 1.0 / ar
         return ar
 
     @property
@@ -405,3 +407,71 @@ def parse_yaml_rectangle(r: Sequence[float | int | str], fixed: bool = False) ->
     if len(r) == 5:
         kwargs[KW_REGION] = r[4]
     return Rectangle(**kwargs)
+
+
+def gather_boundaries(rectangles: list[Rectangle], epsilon: float = 1e-15) -> tuple[list[float], list[float]]:
+    """
+    Gathers the x and y coordinates of the sides of a list of rectangles
+    :param rectangles: list of rectangles
+    :param epsilon: minimum distance between two adjacent coordinates
+    :return: the list of x and y coordinates, sorted in ascending order
+    """
+    x, y = [], []
+    for r in rectangles:
+        bb = r.bounding_box
+        x.append(bb[0].x)
+        x.append(bb[1].x)
+        y.append(bb[0].y)
+        y.append(bb[1].y)
+    x.sort()
+    y.sort()
+    # Remove duplicates
+    uniq_x: list[float] = []
+    for i, val in enumerate(x):
+        if i == 0 or val > uniq_x[-1] + epsilon:
+            uniq_x.append(float(val))
+    uniq_y: list[float] = []
+    for i, val in enumerate(y):
+        if i == 0 or val > uniq_y[-1] + epsilon:
+            uniq_y.append(float(val))
+    return uniq_x, uniq_y
+
+
+def split_rectangles(rectangles: list[Rectangle], aspect_ratio: float, n: int) -> list[Rectangle]:
+    """
+    Splits the rectangles until n rectangles are obtained. The splitting is done on the
+    largest rectangles of the list
+    :param rectangles: list of rectangles
+    :param aspect_ratio: maximum aspect ratio
+    :param n: number of required rectangles
+    :return: the final rectangles
+    """
+
+    @dataclass(order=True)
+    class PrioritizedRectangle:
+        """To represent rectangles ordered by area"""
+        area: float  # area of the rectangle (negative area to sort by largest)
+        rect: Rectangle = field(compare=False)
+
+    # First split rectangles with large aspect ratio
+    q: deque[Rectangle] = deque(rectangles)
+    heap: list[PrioritizedRectangle] = []
+    while len(q) > 0:
+        r = q.pop()
+        if r.aspect_ratio > aspect_ratio:
+            q.extend(r.split())
+        else:
+            heap.append(PrioritizedRectangle(-r.area, r))
+
+    # Do we have sufficient rectangles?
+    if len(heap) >= n:
+        return [prio_rect.rect for prio_rect in heap]
+
+    # If not, let us split the largest rectangles (heap prioritized by area, the largest first)
+    heapq.heapify(heap)
+    while len(heap) < n:
+        area_rect: PrioritizedRectangle = heapq.heappop(heap)
+        r1, r2 = area_rect.rect.split()
+        heapq.heappush(heap, PrioritizedRectangle(-r1.area, r1))
+        heapq.heappush(heap, PrioritizedRectangle(-r2.area, r2))
+    return [prio_rect.rect for prio_rect in heap]

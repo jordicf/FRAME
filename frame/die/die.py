@@ -1,11 +1,10 @@
-import heapq
 from collections import deque
 from itertools import combinations
 from typing import Set, Deque
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 
 from .yaml_parse_die import parse_yaml_die
-from frame.geometry.geometry import Shape, Rectangle, Point
+from frame.geometry.geometry import Shape, Rectangle, Point, gather_boundaries, split_rectangles
 from frame.netlist.netlist import Netlist
 from frame.utils.keywords import KW_CENTER, KW_SHAPE, KW_REGION, KW_GROUND, KW_BLOCKAGE
 from frame.utils.utils import TextIO_String
@@ -26,13 +25,6 @@ class GroundRegion:
 
     def __hash__(self) -> int:
         return hash(37 * self.rmin + 13 * self.rmax + 7 * self.cmin + 23 * self.cmax)
-
-
-@dataclass(order=True)
-class PrioritizedRectangle:
-    """To represent rectangles ordered by area"""
-    area: float  # area of the rectangle (negative area to sort by largest)
-    rect: Rectangle = field(compare=False)
 
 
 class Die:
@@ -224,8 +216,8 @@ class Die:
 
         # Remove the rectangles touching the occupied cells
         for reg in list(ground_rectangles):
-            if any(self._cells[row][col] for row in range(reg.rmin, reg.rmax+1)
-                   for col in range(reg.cmin, reg.cmax+1)):
+            if any(self._cells[row][col] for row in range(reg.rmin, reg.rmax + 1)
+                   for col in range(reg.cmin, reg.cmax + 1)):
                 ground_rectangles.remove(reg)
 
         x_center = (self._x[best_reg.cmin] + self._x[best_reg.cmax + 1]) / 2
@@ -300,65 +292,3 @@ class Die:
         # Check that the total area of the rectangles is equal to the area of the die
         area_rect = sum(r.area for r in all_rectangles)
         assert abs(area_rect - die.area) < self._epsilon, "Incorrect total area of rectangles"
-
-
-def gather_boundaries(rectangles: list[Rectangle], epsilon: float = 1e-15) -> tuple[list[float], list[float]]:
-    """
-    Gathers the x and y coordinates of the sides of a list of rectangles
-    :param rectangles: list of rectangles
-    :param epsilon: minimum distance between two adjacent coordinates
-    :return: the list of x and y coordinates, sorted in ascending order
-    """
-    x, y = [], []
-    for r in rectangles:
-        bb = r.bounding_box
-        x.append(bb[0].x)
-        x.append(bb[1].x)
-        y.append(bb[0].y)
-        y.append(bb[1].y)
-    x.sort()
-    y.sort()
-    # Remove duplicates
-    uniq_x: list[float] = []
-    for i, val in enumerate(x):
-        if i == 0 or val > uniq_x[-1] + epsilon:
-            uniq_x.append(float(val))
-    uniq_y: list[float] = []
-    for i, val in enumerate(y):
-        if i == 0 or val > uniq_y[-1] + epsilon:
-            uniq_y.append(float(val))
-    return uniq_x, uniq_y
-
-
-def split_rectangles(rectangles: list[Rectangle], aspect_ratio: float, n: int) -> list[Rectangle]:
-    """
-    Splits the rectangles until n rectangles are obtained. The splitting is done on the
-    largest rectangles of the list
-    :param rectangles: list of rectangles
-    :param aspect_ratio: maximum aspect ratio
-    :param n: number of required rectangles
-    :return: the final rectangles
-    """
-
-    # First split rectangles with large aspect ratio
-    q: deque[Rectangle] = deque(rectangles)
-    heap: list[PrioritizedRectangle] = []
-    while len(q) > 0:
-        r = q.pop()
-        if r.aspect_ratio > aspect_ratio:
-            q.extend(r.split())
-        else:
-            heap.append(PrioritizedRectangle(-r.area, r))
-
-    # Do we have sufficient rectangles?
-    if len(heap) >= n:
-        return [prio_rect.rect for prio_rect in heap]
-
-    # If not, let us split the largest rectangles (heap prioritized by area, the largest first)
-    heapq.heapify(heap)
-    while len(heap) < n:
-        area_rect: PrioritizedRectangle = heapq.heappop(heap)
-        r1, r2 = area_rect.rect.split()
-        heapq.heappush(heap, PrioritizedRectangle(-r1.area, r1))
-        heapq.heappush(heap, PrioritizedRectangle(-r2.area, r2))
-    return [prio_rect.rect for prio_rect in heap]
