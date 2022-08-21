@@ -44,6 +44,22 @@ class TestNetlist(unittest.TestCase):
     def test_wire_length(self):
         self.assertAlmostEqual(self.netlist.wire_length, 5 + 42.6733 + 3.66439, places=4)
 
+    def test_simple_netlist(self):
+        yaml = """
+        Modules: {
+          M0: {area: 1, center: [1, 1]},
+          M1: {rectangles: [1, 2, 1.5, 1]}
+        }
+        Nets: [[M0, M1]]
+        """
+        n = Netlist(yaml)
+        for module in n.modules:
+            print(module.name, module.area())
+            print(module.rectangles)
+
+
+
+
 
 if __name__ == '__main__':
     unittest.main()
