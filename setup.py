@@ -46,7 +46,6 @@ PACKAGES = [
 
 INSTALL_REQUIRES = [
     "ruamel.yaml",
-    "numpy",
     "gekko",
     "matplotlib",
     "distinctipy",

@@ -1,47 +1,69 @@
 # `glbfloor` example 
 
+Note that executing `glbfloor` with `--visualize` like it is done here takes a long time to execute
+(several minutes)!
+
+## Example 1
+
 ```
-frame netgen --type grid --size 3 2 -o initial.yml --die 2x3 --add-centers
-frame draw --die 2x3 initial.yml
+frame netgen --type grid --size 3 2 -o initial-netlist.yml --die 2x3 --add-centers
+frame draw --die 2x3 initial-netlist.yml -o initial.gif
 ```
 
-<img src="initial.gif" alt="initial" style="width: 200px;"/>
+<img src="1/initial.gif" alt="glbfloor-1-initial" style="width: 200px;"/>
+
+```
+frame glbfloor --netlist initial-netlist.yml --die 2x3 -r 2 -n 16 -a 0.3 -i 10 --out-netlist final-netlist.yml --out-allocation final-alloc.yml -p plot --verbose --visualize
+```
+
+![glbfloor-1-plot-0](1/plot-0.png)
+![glbfloor-1-plot-1](1/plot-1.png)
+![glbfloor-1-plot-2](1/plot-2.png)
+![glbfloor-1-plot-3](1/plot-3.png)
+![glbfloor-1-plot-4](1/plot-4.png)
+![glbfloor-1-plot-5](1/plot-5.png)
+![glbfloor-1-plot-6](1/plot-6.png)
+![glbfloor-1-plot-7](1/plot-7.png)
+![glbfloor-1-plot-8](1/plot-8.png)
+![glbfloor-1-plot-9](1/plot-9.png)
+![glbfloor-1-plot-10](1/plot-10.png)
+
+Full optimization animation:
+
+![glbfloor-1-animation](1/plot.gif)
+
+
+```
+frame draw --die 2x3 --alloc final-alloc.yml final-netlist.yml -o final.gif
+```
+
+<img src="1/final.gif" alt="glbfloor-1-final" style="width: 200px;"/>
 
 ---
 
-```
-frame glbfloor -d 2x3 -g 4x4 -a 0.3 -i 10 --out-netlist 4x4-0.3-netlist.yml --out-allocation 4x4-0.3-alloc.yml -p 4x4-0.3 --verbose initial.yml  
-```
+## Example 2
 
-![glbfloor-4x4-0.3-0](4x4-0.3-0.png)
-![glbfloor-4x4-0.3-1](4x4-0.3-1.png)
-![glbfloor-4x4-0.3-2](4x4-0.3-2.png)
-![glbfloor-4x4-0.3-3](4x4-0.3-3.png)
-![glbfloor-4x4-0.3-4](4x4-0.3-4.png)
-![glbfloor-4x4-0.3-5](4x4-0.3-5.png)
-![glbfloor-4x4-0.3-6](4x4-0.3-6.png)
-![glbfloor-4x4-0.3-7](4x4-0.3-7.png)
-![glbfloor-4x4-0.3-8](4x4-0.3-8.png)
-![glbfloor-4x4-0.3-9](4x4-0.3-9.png)
-![glbfloor-4x4-0.3-10](4x4-0.3-10.png)
+This example includes a die blockage and a fixed block.
 
 ```
-frame draw --die 2x3 --alloc 4x4-0.3-alloc.yml 4x4-0.3-netlist.yml -o 4x4-0.3-final.gif
+frame draw --die die.yml initial-netlist.yml -o initial.gif
 ```
 
-<img src="4x4-0.3-final.gif" alt="4x4-0.3-final" style="width: 200px;"/>
-
----
+<img src="2/initial.gif" alt="glbfloor-2-initial" style="width: 200px;"/>
 
 ```
-frame glbfloor -d 2x3 -g 3x2 -a 0.3 -i 10 --out-netlist 3x2-0.3-netlist.yml --out-allocation 3x2-0.3-alloc.yml -p 3x2-0.3 --verbose initial.yml
+frame glbfloor --netlist initial-netlist.yml --die die.yml -r 2 -n 16 -a 0.3 -i 10 --out-netlist final-netlist.yml --out-allocation final-alloc.yml -p plot --verbose --visualize
 ```
 
-![glbfloor-3x2-0.3-0](3x2-0.3-0.png)
-![glbfloor-3x2-0.3-1](3x2-0.3-1.png)
+![glbfloor-2-plot-0](2/plot-0.png)
+![glbfloor-2-plot-1](2/plot-1.png)
+
+Full optimization animation:
+
+![glbfloor-2-animation](2/plot.gif)
 
 ```
-frame draw --die 2x3 --alloc 3x2-0.3-alloc.yml 3x2-0.3-netlist.yml -o 3x2-0.3-final.gif
+frame draw --die die.yml --alloc final-alloc.yml final-netlist.yml -o final.gif
 ```
 
-<img src="3x2-0.3-final.gif" alt="3x2-0.3-final" style="width: 200px;"/>
+<img src="2/final.gif" alt="glbfloor-2-final" style="width: 200px;"/>
