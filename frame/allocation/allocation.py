@@ -11,7 +11,7 @@ from frame.utils.utils import TextIO_String, read_yaml, write_yaml, YAML_tree, i
 
 # Types
 Alloc = dict[str, float]  # Allocation in a rectangle (area ratio for each module)
-AllocDescriptor = tuple[Rectangle, Alloc, int]  # ((x,y,w,h), alloc, depth)
+AllocDescriptor = tuple[Rectangle, Alloc, int]  # the last element represents the depth
 
 
 @dataclass()
@@ -25,8 +25,8 @@ class RectAlloc:
 @dataclass()
 class ModuleAlloc:
     """Representation of allocation of one module in a rectangle."""
-    rect: int  # Rectangle index of the allocation
-    area: float  # Area ratio (in [0,1])
+    rect_index: int  # Rectangle index of the allocation
+    area_ratio: float  # Area ratio (in [0,1])
 
 
 class Allocation:
@@ -317,8 +317,8 @@ class Allocation:
             center = Point(0, 0)
             total_area = 0.0
             for mod_alloc in alloc:
-                r = self._allocations[mod_alloc.rect].rect
-                ratio = mod_alloc.area * r.area
+                r = self._allocations[mod_alloc.rect_index].rect
+                ratio = mod_alloc.area_ratio * r.area
                 center += r.center * ratio
                 total_area += ratio
             self._areas[module] = total_area
@@ -344,14 +344,15 @@ class Allocation:
             Allocation._split_allocation(rect2, alloc, depth + 1, levels - 1)
 
 
-def create_initial_allocation(die: Die) -> Allocation:
+def create_initial_allocation(die: Die, include_area_zero: bool = False) -> Allocation:
     """
     Creates the initial allocation. The allocation ratios are assigned according to the intersection of the module
     rectangles with the regions (rectangles) of the die
     :param die: the die
+    :param include_area_zero: Whether to include allocations with area 0 in the allocation
     :return: the initial allocation
     """
     assert die.netlist is not None, "No netlist associated to the die"
     refinable, fixed = die.floorplanning_rectangles()
     allocation_list: list[AllocDescriptor] = [(rect, {}, 0) for rect in refinable + fixed]
-    return Allocation(allocation_list).initial_allocation(die.netlist, include_area_zero=True)
+    return Allocation(allocation_list).initial_allocation(die.netlist, include_area_zero)
