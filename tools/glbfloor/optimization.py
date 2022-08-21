@@ -127,10 +127,11 @@ def extract_solution(model: Model, die: Die, cells: list[Rectangle], threshold: 
     return die, allocation, dispersions
 
 
-def solve(model: Model, die: Die, cells: list[Rectangle], threshold: float, max_iter: int = 100, verbose: bool = False,
-          visualize: bool = False) -> tuple[Model, list[Image.Image]]:
+def solve_and_extract_solution(model: Model, die: Die, cells: list[Rectangle], threshold: float, max_iter: int = 100,
+                               verbose: bool = False, visualize: bool = False) \
+        -> tuple[Die, Allocation, dict[str, tuple[float, float]], list[Image.Image]]:
     """
-    Solves the model's optimization problem
+    Solves the model's optimization problem, extracts the solution from it, and returns it
     :param model: the model
     :param die: die with netlist containing the modules with centroids initialized
     :param cells: cells of the floor plan to allocate the modules
@@ -139,13 +140,17 @@ def solve(model: Model, die: Die, cells: list[Rectangle], threshold: float, max_
     :param verbose: if True, the GEKKO optimization log is displayed (not supported if visualize is True)
     :param visualize: if True, a list of PIL images is returned visualizing the optimization
     :return:
-    - model - the solved model
+    - die - die with netlist with the centroids of the modules updated
+    - dispersions - a dictionary from module name to float pair which indicates the dispersion of each module
     - vis_imgs - if visualize is True, a list of images visualizing the optimization, otherwise, an empty list
     """
+    allocation = None
+    dispersions = None
     vis_imgs = []
     if not visualize:
         model.gekko.options.MAX_ITER = max_iter
         model.gekko.solve(disp=verbose)
+        die, allocation, dispersions = extract_solution(model, die, cells, threshold)
     else:
         # See https://stackoverflow.com/a/73196238/10152624 for the method used here
         i = 0
@@ -154,7 +159,7 @@ def solve(model: Model, die: Die, cells: list[Rectangle], threshold: float, max_
             model.gekko.options.COLDSTART = 1
             model.gekko.solve(disp=False, debug=0)
 
-            die, allocation, _ = extract_solution(model, die, cells, threshold)
+            die, allocation, dispersions = extract_solution(model, die, cells, threshold)
             vis_imgs.append(get_grid_image(die, allocation, draw_text=False))
             print(i, end=" ", flush=True)
 
@@ -165,7 +170,9 @@ def solve(model: Model, die: Die, cells: list[Rectangle], threshold: float, max_
                 i += 1
         else:
             print(f"Maximum number of iterations ({max_iter}) reached! The solution was not found.")
-    return model, vis_imgs
+
+    assert allocation is not None and dispersions is not None  # Assertion to supress Mypy error
+    return die, allocation, dispersions, vis_imgs
 
 
 def optimize_allocation(die: Die, allocation: Allocation, dispersions: dict[str, tuple[float, float]],
@@ -295,10 +302,8 @@ def optimize_allocation(die: Die, allocation: Allocation, dispersions: dict[str,
     # Total dispersion
     g.Minimize((1 - alpha) * g.sum([model.dx[m] + model.dy[m] for m in range(die.netlist.num_modules)]))
 
-    model, vis_imgs = solve(model, die, cells, threshold, verbose=verbose, visualize=visualize)
-
-    die, allocation, dispersions = extract_solution(model, die, cells, threshold)
-
+    die, allocation, dispersions, vis_imgs = solve_and_extract_solution(model, die, cells, threshold,
+                                                                        verbose=verbose, visualize=visualize)
     return die, allocation, dispersions, vis_imgs
 
 
