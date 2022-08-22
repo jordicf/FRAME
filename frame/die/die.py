@@ -126,6 +126,18 @@ class Die:
             else:
                 self._specialized_regions.append(r)
 
+    def gridded_die(self, nrows: int, ncols: int) -> None:
+        """
+        Creates a matrix of refinable rectangles from a clean die (no regions, no fixed modules)
+        :param nrows: number of rows of the grid
+        :param ncols: number of columns of the grid
+        """
+        assert nrows > 0 and ncols > 0 and nrows + ncols > 1
+        assert len(self.fixed_regions) == 0 and len(self.specialized_regions) == 0 and len(self.blockages) == 0,\
+            "Cannot create a gridded die: it has blockages, fixed regions or specialized regions."
+        assert len(self.ground_regions) == 1, "Cannot create a gridded die: it has more than one ground region."
+        self._ground_regions = self._die.rectangle_grid(nrows, ncols)
+
     def floorplanning_rectangles(self) -> tuple[list[Rectangle], list[Rectangle]]:
         """
         Returns the two lists of rectangles usable for module allocation. The first list contains
