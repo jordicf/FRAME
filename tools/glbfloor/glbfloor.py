@@ -70,7 +70,7 @@ def main(prog: str | None = None, args: list[str] | None = None):
         assert aspect_ratio is None and num_rectangles is None, \
             "--grid is incompatible with --aspect-ratio and --num-rectangles"
         n_rows, n_cols = map(int, options["grid"].split("x"))
-        die.gridded_die(n_rows, n_cols)
+        die.initial_grid(n_rows, n_cols)
 
     if aspect_ratio is not None:
         if num_rectangles is None:
