@@ -4,19 +4,16 @@
 __pycache__
 venv
 frame.egg-info
-/build
+
+*.pyd
+*.pyc
+*.exe
 
 tools/glbfloor/ignore
 
-rect_greedy.pyd
 tools/rect/bestbox.txt
 tools/rect/tofind.txt
-tools/rect/greedy.exe
 tools/rect/output.out
-tools/rect/pseudobool.pyc
-tools/rect/satmanager.pyc
 tools/rect/tmp.cnf
-tools/rect/cpp_bin/experiment.exe
-tools/rect/cpp_bin/greedy.exe
 victor.bat
 tools/rect/data/.~lock.times.csv\#
