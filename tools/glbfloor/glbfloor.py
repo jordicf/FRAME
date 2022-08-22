@@ -26,6 +26,10 @@ def parse_options(prog: str | None = None, args: list[str] | None = None) -> dic
                         help="input netlist filename")
     parser.add_argument("-d", "--die", metavar="<WIDTH>x<HEIGHT> or FILENAME", required=True,
                         help="size of the die (width x height) or name of the file")
+    parser.add_argument("-g", "--grid", metavar="<ROWS>x<COLS>",
+                        help="size of the initial grid (rows x columns) "
+                             "(only supported if there are no fixed modules nor blockages, "
+                             "and incompatible with --aspect-ratio and --num-rectangles)")
     parser.add_argument("-r", "--aspect-ratio", type=float)  # TODO: write help
     parser.add_argument("-n", "--num-rectangles", type=int)  # TODO: write help
     parser.add_argument("-a", "--alpha", type=float, required=True,
@@ -60,12 +64,21 @@ def main(prog: str | None = None, args: list[str] | None = None):
     die = Die(options["die"], netlist)
 
     aspect_ratio = options["aspect_ratio"]
+    num_rectangles = options["num_rectangles"]
+
+    if options["grid"]:
+        assert aspect_ratio is None and num_rectangles is None, \
+            "--grid is incompatible with --aspect-ratio and --num-rectangles"
+        n_rows, n_cols = map(int, options["grid"].split("x"))
+        die.gridded_die(n_rows, n_cols)
+
     if aspect_ratio is not None:
-        num_rectangles = options["num_rectangles"]
         if num_rectangles is None:
             die.split_refinable_regions(aspect_ratio)
         else:
             die.split_refinable_regions(aspect_ratio, num_rectangles)
+    else:
+        assert num_rectangles is None, "--aspect-ratio must be specified when using --num-rectangles"
 
     alpha: bool = options["alpha"]
     assert 0 <= alpha <= 1, "alpha must be between 0 and 1"
