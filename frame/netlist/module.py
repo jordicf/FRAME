@@ -2,7 +2,8 @@ import math
 from itertools import combinations
 
 from frame.geometry.geometry import Point, Shape, Rectangle
-from frame.utils.keywords import KW_CENTER, KW_SHAPE, KW_MIN_SHAPE, KW_AREA, KW_FIXED, KW_HARD, KW_GROUND, KW_RECTANGLES
+from frame.utils.keywords import KW_CENTER, KW_SHAPE, KW_MIN_SHAPE, KW_AREA, KW_FIXED, KW_HARD, KW_FLIP,\
+    KW_GROUND, KW_RECTANGLES
 from frame.utils.utils import valid_identifier, is_number
 
 
@@ -15,6 +16,7 @@ class Module:
     _min_shape: Shape | None  # min width and height
     _hard: bool  # Must be a hard module (but movable if not fixed)
     _fixed: bool  # Must be fixed in the layout
+    _flip: bool  # May be flipped (only for hard modules, not fixed)
     # A module can be assigned to different layout areas (LUT, DSP, BRAM).
     # The following attribute indicate the area assigned to each region.
     # If no region specified, the default is assigned (Ground).
@@ -39,6 +41,7 @@ class Module:
         self._min_shape = None
         self._hard = False
         self._fixed = False
+        self._flip = False
         self._area_regions = {}
         self._total_area = -1
         self._rectangles = []
@@ -48,7 +51,8 @@ class Module:
 
         # Reading parameters and type checking
         for key, value in kwargs.items():
-            assert key in [KW_CENTER, KW_MIN_SHAPE, KW_AREA, KW_HARD, KW_FIXED], "Unknown module attribute"
+            assert key in [KW_CENTER, KW_MIN_SHAPE, KW_AREA, KW_HARD, KW_FIXED, KW_FLIP],\
+                "Unknown module attribute"
             if key == KW_CENTER:
                 assert isinstance(value, Point), "Incorrect point associated to the center of the module"
                 self._center = value
@@ -65,6 +69,9 @@ class Module:
             elif key == KW_HARD:
                 assert isinstance(value, bool), "Incorrect value for hard (should be a boolean)"
                 self._hard = value
+            elif key == KW_FLIP:
+                assert isinstance(value, bool), "Incorrect value for flip (should be a boolean)"
+                self._flip = value
             else:
                 assert False  # Should never happen
 
@@ -105,6 +112,10 @@ class Module:
     @property
     def fixed(self) -> bool:
         return self._fixed
+
+    @property
+    def flip(self) -> bool:
+        return self._flip
 
     # Getters for area
     def area(self, region: str | None = None) -> float:
@@ -182,6 +193,9 @@ class Module:
 
         assert not (self.fixed and not self.hard),\
             f"Inconsistent fixed module {self.name}. It should be also hard."
+
+        assert not(self.flip and self.fixed), f"Fixed module {self.name} cannot be flipped."
+        assert not(self.flip and not self.hard), f"Soft module {self.name} cannot be flipped."
 
         area_defined = len(self.area_regions) > 0
         assert self.hard or area_defined, f"No area defined for a soft module {self.name}."

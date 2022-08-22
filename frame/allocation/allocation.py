@@ -1,11 +1,12 @@
 import itertools
 import math
 
+from collections import deque
 from dataclasses import dataclass
 
 from frame.die.die import Die
 from frame.netlist.netlist import Netlist
-from frame.geometry.geometry import Point, Shape, Rectangle, parse_yaml_rectangle
+from frame.geometry.geometry import Point, Shape, Rectangle, parse_yaml_rectangle, gather_boundaries
 from frame.utils.keywords import KW_CENTER, KW_SHAPE
 from frame.utils.utils import TextIO_String, read_yaml, write_yaml, YAML_tree, is_number, valid_identifier
 
@@ -194,6 +195,43 @@ class Allocation:
         :return: the maximum depth of refinement
         """
         return max(r.depth for r in self.allocations)
+
+    def griddify(self) -> 'Allocation':
+        """Refines all refinable rectangles in a way that the boundaries of the
+        rectangles are aligned with the neighboring rectangles
+        :return: a new Allocation
+        """
+        # calculate all horizontal and vertical cuts
+        x_cuts, y_cuts = gather_boundaries([r.rect for r in self.allocations])
+        new_allocs: deque[RectAlloc] = deque(self.allocations)
+
+        # Apply the x cuts
+        for i in range(1, len(x_cuts) - 1):
+            # Visit the rectangles
+            n = len(new_allocs)
+            for _ in range(n):
+                a = new_allocs.popleft()
+                if not a.rect.fixed and a.rect.x_cuttable(x_cuts[i], 0.01):
+                    r1, r2 = a.rect.split_horizontal(x_cuts[i])
+                    for rect in [r1, r2]:
+                        new_allocs.append(RectAlloc(rect, {m: r for m, r in a.alloc.items()}, a.depth + 1))
+                else:
+                    new_allocs.append(a)
+
+        # Apply the y cuts
+        for i in range(1, len(x_cuts) - 1):
+            # Visit the rectangles
+            n = len(new_allocs)
+            for _ in range(n):
+                a = new_allocs.popleft()
+                if not a.rect.fixed and a.rect.y_cuttable(y_cuts[i], 0.01):
+                    r1, r2 = a.rect.split_vertical(y_cuts[i])
+                    for rect in [r1, r2]:
+                        new_allocs.append(RectAlloc(rect, {m: r for m, r in a.alloc.items()}, a.depth + 1))
+                else:
+                    new_allocs.append(a)
+
+        return Allocation([(a.rect, a.alloc, a.depth) for a in new_allocs])
 
     def uniform_refinement_depth(self) -> 'Allocation':
         """

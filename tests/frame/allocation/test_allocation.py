@@ -79,6 +79,17 @@ class TestAllocation(unittest.TestCase):
         a_uniform = a4.uniform_refinement_depth()
         self.assertEqual(12, a_uniform.num_rectangles)
 
+    def test_griddify(self):
+        a = Allocation(alloc_griddify)
+        self.assertEqual(12, a.num_rectangles)
+        new_a = a.griddify()
+        self.assertEqual(42, new_a.num_rectangles)
+        # make the last rectangle fixed
+        a.allocations[-1].rect.fixed = True
+        new_a = a.griddify()
+        self.assertEqual(40, new_a.num_rectangles)
+
+
 
 if __name__ == '__main__':
     unittest.main()
@@ -149,6 +160,22 @@ alloc8 = """
   [[4,8,8,4], {M1: 0.3, M2: 0.7}]
 ]
 """
+alloc_griddify = """
+[
+  [[1, 1.5, 2, 3], {M1: 1}],
+  [[5.5, 1, 7, 2], {M2: 1}],
+  [[10.5, 1, 3, 2], {M3: 1}],
+  [[1, 4.5, 2, 3], {M4: 1}],
+  [[7.5, 3.5, 5, 3], {M5: 1}],
+  [[11, 3.5, 2, 3], {M6: 1}],
+  [[2.5, 7, 5, 2], {M7: 1}],
+  [[6.5, 7.5, 3, 5], {M8: 1}],
+  [[10, 7.5, 4, 5], {M9: 1}],
+  [[2.5, 9, 5, 2], {M10: 1}],
+  [[6, 11, 12, 2], {M11: 1}],
+  [[3.5, 4, 3, 4], {FIX: 1}]
+]
+"""
 
 netlist1 = """
 Modules: {
@@ -194,4 +221,21 @@ mod2rect = """
 M1: [[5, 6.5, 2, 4, "DSP"], [7, 4, 8, 10]],
 M3: [[15, 8, 12, 6, "DSP"], [5, 16, 4.5, 8.4]]
 }
+"""
+
+alloc_griddify = """
+[
+  [[1, 1.5, 2, 3], {M1: 1}],
+  [[5.5, 1, 7, 2], {M2: 1}],
+  [[10.5, 1, 3, 2], {M3: 1}],
+  [[1, 4.5, 2, 3], {M4: 1}],
+  [[7.5, 3.5, 5, 3], {M5: 1}],
+  [[11, 3.5, 2, 3], {M6: 1}],
+  [[2.5, 7, 5, 2], {M7: 1}],
+  [[6.5, 7.5, 3, 5], {M8: 1}],
+  [[10, 7.5, 4, 5], {M9: 1}],
+  [[2.5, 9, 5, 2], {M10: 1}],
+  [[6, 11, 12, 2], {M11: 1}],
+  [[3.5, 4, 3, 4], {FIX: 1}]
+]
 """

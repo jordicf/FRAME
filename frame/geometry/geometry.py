@@ -304,7 +304,8 @@ class Rectangle:
         Creates a duplication of the rectangle
         :return: the rectangle
         """
-        return Rectangle(**{KW_CENTER: self.center, KW_SHAPE: self.shape, KW_FIXED: self.fixed, KW_REGION: self.region})
+        return Rectangle(**{KW_CENTER: self.center, KW_SHAPE: self.shape, KW_FIXED: self.fixed,
+                            KW_HARD: self.hard, KW_REGION: self.region})
 
     def split_horizontal(self, x: float = -1) -> tuple['Rectangle', 'Rectangle']:
         """
@@ -320,8 +321,9 @@ class Rectangle:
         sh1 = Shape(x - bb[0].x, self.shape.h)
         c2 = Point((bb[1].x + x) / 2, self.center.y)
         sh2 = Shape(self.shape.w - sh1.w, self.shape.h)
-        r1 = Rectangle(**{KW_CENTER: c1, KW_SHAPE: sh1, KW_REGION: self.region, KW_FIXED: self.fixed})
-        r2 = Rectangle(**{KW_CENTER: c2, KW_SHAPE: sh2, KW_REGION: self.region, KW_FIXED: self.fixed})
+        r1, r2 = self.duplicate(), self.duplicate()
+        r1.center, r1.shape = c1, sh1
+        r2.center, r2.shape = c2, sh2
         return r1, r2
 
     def split_vertical(self, y: float = -1) -> tuple['Rectangle', 'Rectangle']:
@@ -338,8 +340,9 @@ class Rectangle:
         sh1 = Shape(self.shape.w, y - bb[0].y)
         c2 = Point(self.center.x, (bb[1].y + y) / 2)
         sh2 = Shape(self.shape.w, self.shape.h - sh1.h)
-        r1 = Rectangle(**{KW_CENTER: c1, KW_SHAPE: sh1, KW_REGION: self.region, KW_FIXED: self.fixed})
-        r2 = Rectangle(**{KW_CENTER: c2, KW_SHAPE: sh2, KW_REGION: self.region, KW_FIXED: self.fixed})
+        r1, r2 = self.duplicate(), self.duplicate()
+        r1.center, r1.shape = c1, sh1
+        r2.center, r2.shape = c2, sh2
         return r1, r2
 
     def split(self) -> tuple['Rectangle', 'Rectangle']:
@@ -422,7 +425,9 @@ class Rectangle:
         if height <= 0:
             return None
         center = Point(minx + width / 2, miny + height / 2)
-        return Rectangle(**{KW_CENTER: center, KW_SHAPE: Shape(width, height), KW_REGION: self.region})
+        r = self.duplicate()
+        r.center, r.shape = center, Shape(width, height)
+        return r
 
     def __eq__(self, other: Any) -> bool:
         """
