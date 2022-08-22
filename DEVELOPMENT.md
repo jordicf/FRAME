@@ -18,8 +18,7 @@ git clone https://github.com/jordicf/FRAME.git
 cd FRAME
 python -m venv venv
 source venv/bin/activate
-pip install setuptools
-pip install -e .
+pip install -e '.[mypy]'
 ```
 
 #### Windows
@@ -29,25 +28,18 @@ git clone https://github.com/jordicf/FRAME.git
 cd FRAME
 python -m venv venv
 .\venv\Scripts\activate
-pip install setuptools
-pip install -e .
+pip install -e '.[mypy]'
 ```
 
-### PyCharm and Mypy configuration
+### PyCharm configuration
 
 If you use PyCharm, to configure the project Python interpreter go to File | Settings... |
 Project: FRAME | Python Interpreter.
 Then click the gears icon, Add..., and choose Existing environment and select Interpreter as the one
 in the `FRAME/venv` folder.
 
-Mypy is also used to check the types. Install the tool and the available type hints packages for the
-used third-party libraries with the following command:
-
-```
-pip install mypy types-Pillow types-setuptools
-```
-
-Finally, install the Mypy PyCharm plugin: https://plugins.jetbrains.com/plugin/11086-mypy.
+Mypy is also used to check the types. To integrate it with PyCharm, install the following plugin: 
+https://plugins.jetbrains.com/plugin/11086-mypy.
 
 Code inspection can be executed in PyCharm going to Code | Inspect Code.... Creating a Custom Scope
 including only the FRAME code can be helpful to speed up the inspection and not get errors about
@@ -73,9 +65,9 @@ python -m unittest discover -v -t . -s tests
 
 ### Adding third-party dependencies
 
-To add a third-party dependency, add the module name in the `INSTALL_REQUIRES` list of the
-[`setup.py` script](setup.py) and re-execute `pip install -e .` from the top-level project
-folder. Note that the module name should be the one that appears in the
+To add a third-party dependency, add the package name in the `dependencies` list of the `[project]`
+section of the [`pyproject.toml` file](pyproject.toml) and re-execute `pip install -e '.[mypy]'`
+from the top-level project folder. Note that the package name should be the one that appears in the
 [Python Package Index](https://pypi.org/).
 
 ### Adding a new subpackage
@@ -83,8 +75,9 @@ folder. Note that the module name should be the one that appears in the
 To add a new subpackage to the `frame` Python package, create a new directory inside the
 [`frame` directory](frame). This new folder should contain an empty `__init__.py`
 file, and all the Python code of the new subpackage. Then, add the subpackage name (prefixed with
-`frame.`) in the `PACKAGES` list of the [`setup.py` script](setup.py). Finally, re-execute
-`pip install -e .` from the top-level project folder.
+`frame.`) in the `packages` list of the `[tool.setuptools]` of the 
+[`pyproject.toml` file](pyproject.toml). Finally, re-execute `pip install -e '.[mypy]'` from the
+top-level project folder.
 
 To add unit tests for the new subpackage, create a new directory inside the
 [`tests/frame` folder](tests/frame) with the name of the subpackage. This folder should
@@ -105,10 +98,10 @@ main(prog: str | None = None, args: list[str] | None = None)
 where `prog` will be the name of the tool to be used in the command-line, and `args` is the list
 of arguments passed to the tool. These arguments should be parsed using the
 [`argparse` module](https://docs.python.org/3/library/argparse.html). Then, add the tool name
-(prefixed with `tools.`) in the `PACKAGES` list of the [`setup.py` script](setup.py), and
-specify the tool name and the main function to call in the `TOOLS` dictionary in
-[`tools/frame.py`](tools/frame.py). Finally, re-execute `pip install -e .` from the top-level
-project folder.
+(prefixed with `tools.`) in the `packages` list of the `[tool.setuptools]` of the 
+[`pyproject.toml` file](pyproject.toml), and specify the tool name and the main function to call in 
+the `TOOLS` dictionary in [`tools/frame.py`](tools/frame.py). Finally, re-execute 
+`pip install -e '.[mypy]'` from the top-level project folder.
 
 To add unit tests for the new tool, create a new directory inside the
 [`tests` folder](tests) with the name of the tool. This folder should
