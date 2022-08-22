@@ -193,17 +193,41 @@ def draw_geometry(im: Image.Image, ll: Point, ur: Point, color, scaling: Scaling
     im.paste(Image.alpha_composite(im, transp))
 
 
-def draw(options: dict[str, Any]) -> int:
-    infile = options['netlist']
-    netlist = Netlist(infile)
-    fontsize = options['fontsize']
+def parse_options(prog: str | None = None, args: list[str] | None = None) -> dict[str, Any]:
+    """
+    Parse the command-line arguments for the tool
+    :param prog: tool name
+    :param args: command-line arguments
+    :return: a dictionary with the arguments
+    """
+    parser = ArgumentParser(prog=prog, description="A floorplan drawing tool.", usage='%(prog)s [options]')
+    parser.add_argument("netlist", help="input file (netlist)")
+    parser.add_argument("-d", "--die", metavar="<WIDTH>x<HEIGHT> or FILENAME",
+                        help="size of the die (width x height) or name of the file")
+    parser.add_argument("--alloc", metavar="FILENAME",
+                        help="allocation file of modules to rectangles", )
+    parser.add_argument("-o", "--outfile", help="output file (gif)")
+    parser.add_argument("--width", type=int, default=0, help="width of the picture (in pixels)")
+    parser.add_argument("--height", type=int, default=0, help="height of the picture (in pixels)")
+    parser.add_argument("--frame", type=int, default=40, help="frame around the die (in pixels). Default: 40")
+    parser.add_argument("--fontsize", type=int, default=20, help="text font size. Default: 20")
+    return vars(parser.parse_args(args))
 
-    # Rectangle allocation
-    alloc_option = options['alloc']
-    alloc: Allocation | None = None
-    if alloc_option is not None:
-        alloc = Allocation(alloc_option)
 
+def get_floorplan_plot(netlist: Netlist, allocation: Allocation | None, die_shape: Shape,
+                       width: int = 0, height: int = 0, frame: int = 20, fontsize: int = 20) -> Image.Image:
+    """
+    Generates the plot of the floorplan
+
+    :param netlist: the netlist with the modules and the hyperedges
+    :param allocation: allocation of modules to rectangles
+    :param die_shape: the shape of the die
+    :param width: desired width (0 if aspect ratio must be preserved)
+    :param height: desired height (0 if aspect ratio must be preserved)
+    :param frame: size of the frame around the canvas
+    :param fontsize: text font size
+    :return: PIL Image containing the floorplan plot
+    """
     # Check that all modules are drawable
     check_modules(netlist.modules)
 
@@ -212,29 +236,9 @@ def draw(options: dict[str, Any]) -> int:
     colors = [(round(r * 255), round(g * 255), round(b * 255), 128) for (r, g, b) in colors]
     module2color = {b: colors[i] for i, b in enumerate(netlist.modules)}
 
-    # Canvas
-    alloc_die = Shape(0, 0)
-    if alloc_option is not None:
-        assert alloc is not None
-        r = alloc.bounding_box
-        ll, ur = r.bounding_box
-        alloc_die = Shape(ur.x, ur.y)
-
-    die_file = options['die']
-    if die_file is not None:
-        d = Die(die_file)
-        die = Shape(d.width, d.height)
-    elif alloc_option is not None:
-        die = alloc_die
-    else:
-        # Calculate bounding box
-        die = calculate_bbox(netlist)
-
-    assert alloc_die.w <= die.w and alloc_die.h <= die.h
-
     # Scaling factors
-    frame = options['frame']
-    scaling = calculate_scaling(die, options['width'], options['height'], frame)
+    scaling = calculate_scaling(die_shape, width, height, frame)
+
     im, drawing = create_canvas(scaling)
 
     # Outer frame
@@ -242,9 +246,8 @@ def draw(options: dict[str, Any]) -> int:
     # Inner frame
     drawing.rectangle((frame, frame, scaling.width + frame, scaling.height + frame), outline=COLOR_WHITE, width=2)
 
-    if alloc_option is not None:
-        assert alloc is not None
-        for rect_alloc in alloc.allocations:
+    if allocation is not None:
+        for rect_alloc in allocation.allocations:
             r = rect_alloc.rect
             ll, ur = r.bounding_box
             ll, ur = scale(ll, scaling), scale(ur, scaling)
@@ -258,7 +261,7 @@ def draw(options: dict[str, Any]) -> int:
         # Draw the module names
         font = ImageFont.truetype("arial.ttf", fontsize)
         for m in netlist.modules:
-            center = scale(alloc.center(m.name), scaling)
+            center = scale(allocation.center(m.name), scaling)
             txt_w, txt_h = drawing.textsize(m.name, font=font)  # To center the text
             txt_x, txt_y = center.x - txt_w / 2, center.y - txt_h / 2
             drawing.text((txt_x, txt_y), m.name, fill=COLOR_WHITE, font=font, align="center",
@@ -272,12 +275,12 @@ def draw(options: dict[str, Any]) -> int:
             else:
                 name = m.name
                 for i, r in enumerate(m.rectangles):
-                    rname = name if m.num_rectangles == 1 else name+"["+str(i)+"]"
+                    rname = name if m.num_rectangles == 1 else f"{name}[{i}]"
                     draw_rectangle(im, r, rname, color, scaling, fontsize)
 
     # Draw edges
     for e in netlist.edges:
-        list_points: list[Point] = calculate_centers(e, alloc)
+        list_points: list[Point] = calculate_centers(e, allocation)
         canvas_points = [scale(p, scaling) for p in list_points]
         center = canvas_points[0]
         for pin in canvas_points[1:]:
@@ -287,39 +290,48 @@ def draw(options: dict[str, Any]) -> int:
             drawing.ellipse([center.x - rad, center.y - rad, center.x + rad, center.y + rad],
                             outline=COLOR_WHITE, width=3)
 
+    return im
+
+
+def main(prog: str | None = None, args: list[str] | None = None) -> None:
+    """Main function."""
+    options = parse_options(prog, args)
+
+    infile = options['netlist']
+    netlist = Netlist(infile)
+
+    # Rectangle allocation
+    alloc_option = options['alloc']
+    allocation: Allocation | None = None
+    if alloc_option is not None:
+        allocation = Allocation(alloc_option)
+
+    # Canvas
+    alloc_die = Shape(0, 0)
+    if allocation is not None:
+        r = allocation.bounding_box
+        ll, ur = r.bounding_box
+        alloc_die = Shape(ur.x, ur.y)
+
+    die_file = options['die']
+    if die_file is not None:
+        die = Die(die_file)
+        die_shape = Shape(die.width, die.height)
+    elif alloc_option is not None:
+        die_shape = alloc_die
+    else:
+        die_shape = calculate_bbox(netlist)
+
+    assert alloc_die.w <= die_shape.w and alloc_die.h <= die_shape.h
+
+    im = get_floorplan_plot(netlist, allocation, die_shape,
+                            options['width'], options['height'], options['frame'], options['fontsize'])
+
     # Output file
     outfile = options['outfile']
     if outfile is None:
         outfile = gen_out_filename(infile)
     im.save(outfile, quality=95)
-    return 0
-
-
-def parse_options(prog: str | None = None, args: list[str] | None = None) -> dict[str, Any]:
-    """
-    Parse the command-line arguments for the tool
-    :param prog: tool name
-    :param args: command-line arguments
-    :return: a dictionary with the arguments
-    """
-    parser = ArgumentParser(prog=prog, description="A floorplan drawing tool.", usage='%(prog)s [options]')
-    parser.add_argument("netlist", help="input file (netlist)")
-    parser.add_argument("-d", "--die", metavar="<WIDTH>x<HEIGHT> or FILENAME",
-                        help="size of the die (width x height) or name of the file")
-    parser.add_argument("--alloc", metavar="FILENAME",
-                        help="allocation file of modules to rectangles",)
-    parser.add_argument("-o", "--outfile", help="output file (gif)")
-    parser.add_argument("--width", type=int, default=0, help="width of the picture (in pixels)")
-    parser.add_argument("--height", type=int, default=0, help="height of the picture (in pixels)")
-    parser.add_argument("--frame", type=int, default=40, help="frame around the die (in pixels). Default: 40")
-    parser.add_argument("--fontsize", type=int, default=20, help="text font size. Default: 20")
-    return vars(parser.parse_args(args))
-
-
-def main(prog: str | None = None, args: list[str] | None = None) -> int:
-    """Main function."""
-    options = parse_options(prog, args)
-    return draw(options)
 
 
 if __name__ == "__main__":
