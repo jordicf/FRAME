@@ -485,7 +485,7 @@ def split_rectangles(rectangles: list[Rectangle], aspect_ratio: float, n: int) -
     Splits the rectangles until n rectangles are obtained. The splitting is done on the
     largest rectangles of the list
     :param rectangles: list of rectangles
-    :param aspect_ratio: maximum aspect ratio
+    :param aspect_ratio: maximum aspect ratio (must be greater than sqrt(2))
     :param n: number of required rectangles
     :return: the final rectangles
     """
@@ -495,6 +495,9 @@ def split_rectangles(rectangles: list[Rectangle], aspect_ratio: float, n: int) -
         """To represent rectangles ordered by area"""
         area: float  # area of the rectangle (negative area to sort by largest)
         rect: Rectangle = field(compare=False)
+
+    assert n > 0
+    assert aspect_ratio > 1.415, "Aspect ratio cannot be smaller than sqrt(2) to guarantee convergence"
 
     # First split rectangles with large aspect ratio
     q: deque[Rectangle] = deque(rectangles)

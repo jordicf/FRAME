@@ -113,7 +113,7 @@ class Die:
         a certain value. After that, rectangles are split until n rectangles are obtained. The rectangles correspond
         to the ground and non-ground rectangles. Fixed rectangles are neither modified nor counted. The aspect ratio
         is always >= 1, i.e., max(width/height, height/width)
-        :param aspect_ratio: the maximum aspect ratio of the rectangles
+        :param aspect_ratio: the maximum aspect ratio of the rectangles (must be greater than > sqrt(2))
         :param n: number of refinable rectangles that are required
         """
         assert n > 0
@@ -128,7 +128,8 @@ class Die:
 
     def gridded_die(self, nrows: int, ncols: int) -> None:
         """
-        Creates a matrix of refinable rectangles from a clean die (no regions, no fixed modules)
+        Creates a matrix of refinable rectangles from a clean die (no specialized regions, no fixed modules,
+        no blockages)
         :param nrows: number of rows of the grid
         :param ncols: number of columns of the grid
         """
