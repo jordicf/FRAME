@@ -126,7 +126,7 @@ class Die:
             else:
                 self._specialized_regions.append(r)
 
-    def gridded_die(self, nrows: int, ncols: int) -> None:
+    def initial_grid(self, nrows: int, ncols: int) -> None:
         """
         Creates a matrix of refinable rectangles from a clean die (no specialized regions, no fixed modules,
         no blockages)

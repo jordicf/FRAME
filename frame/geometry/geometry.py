@@ -349,6 +349,34 @@ class Rectangle:
         """
         return self.split_vertical() if self.shape.h > self.shape.w else self.split_horizontal()
 
+    def x_cuttable(self, x: float, ratio: float = 0.01) -> bool:
+        """
+        Checks whether the rectangle can be cut vertically at coordinate x in a way that
+        the smallest chunk is larger than epsilon*area (e.g. 0.01 means 1%)
+        :param x: coordinate of the horizontal cut
+        :param ratio: ratio of the rectangle that defines the minimum area of the
+        smallest rectangle after the cut
+        :return: True if cuttable, False otherwise
+        """
+        bb = self.bounding_box
+        if x <= bb[0].x or x >= bb[1].x:
+            return False
+        return min(x-bb[0].x, bb[1].x-x) > ratio*self.shape.h
+
+    def y_cuttable(self, y: float, ratio: float = 0.01) -> bool:
+        """
+        Checks whether the rectangle can be cut horizontally at coordinate y in a way that
+        the smallest chunk is larger than epsilon*area (e.g. 0.01 means 1%)
+        :param y: coordinate of the vertical cut
+        :param ratio: ratio of the rectangle that defines the minimum area of the
+        smallest rectangle after the cut
+        :return: True if cuttable, False otherwise
+        """
+        bb = self.bounding_box
+        if y <= bb[0].y or y >= bb[1].y:
+            return False
+        return min(y-bb[0].y, bb[1].y-y) > ratio*self.shape.w
+
     def rectangle_grid(self, nrows: int, ncols: int) -> list['Rectangle']:
         """
         Generates a grid of nrows x ncols rectangles of the same size starting from the original
