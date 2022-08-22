@@ -1,4 +1,4 @@
-# FRAME Development
+# `FRAME` Development
 
 `FRAME` is both a Python library (the `frame` package and its subpackages) and a set of tools
 accessible from the `frame` command-line utility.
