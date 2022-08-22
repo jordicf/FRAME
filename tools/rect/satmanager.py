@@ -221,7 +221,7 @@ class SATManager:
             self.ttable[lit.v] = i
             self.vtable[i] = lit.v
             self.setflipped(lit.v, not lit.s)
-            i = i + 1
+            i += 1
 
     def solve(self) -> bool:
         """

@@ -201,7 +201,7 @@ class Die:
                         ratio = 1 / ratio
                     reg: GroundRegion = GroundRegion(r, r, c, c, area, ratio)
                     more_regions = self._expand_rectangle(reg)
-                    all_regions = all_regions | more_regions
+                    all_regions |= more_regions
         return all_regions
 
     def _find_best_rectangle(self, ground_rectangles: Set[GroundRegion]) -> Rectangle | None:

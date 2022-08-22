@@ -295,7 +295,7 @@ def fstr_to_tuple(carrier: Carrier, p: str, f: float) -> tuple[int, int]:
             else:
                 n1 = n1 * 10 + int(p[i])
                 if fp:
-                    n2 = n2 * 10
+                    n2 *= 10
         return n1, n2
     # Min error approach
     print(area(carrier, carrier.inibox, True), area(carrier, carrier.inibox, False))

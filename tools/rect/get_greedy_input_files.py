@@ -40,7 +40,7 @@ def main(prog: str | None = None, args: list[str] | None = None) -> int:
         iofile = open(options["outdir"] + basefile + "." + mod + ".txt", "w")
         iofile.write(getfile(input_problem, ifile, 2.00))
         iofile.close()
-        counter = counter - 1
+        counter -= 1
         if counter <= 0:
             break
 

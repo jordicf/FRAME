@@ -222,7 +222,7 @@ def largebit(n: int):
     """
     i = 1
     while 2 * i <= n:
-        i = i * 2
+        i *= 2
     return i
 
 
@@ -234,11 +234,11 @@ def insert(lst: list[Term], trm: Term):
     """
     if trm.c == 0:
         return lst
-    lst = lst + [trm]
+    lst.append(trm)
     i = len(lst) - 1
     while i > 0 and lst[i].c > lst[i - 1].c:
         lst[i], lst[i - 1] = lst[i - 1], lst[i]
-        i = i - 1
+        i -= 1
     return lst
 
 
@@ -283,11 +283,11 @@ class Ineq:
         i = 0
         while i < len(lst) and (lst[i].c > self.rhs or (lst[i].c >= self.rhs and self.op == ">=")):
             clause.append(lst[i].L)
-            i = i + 1
+            i += 1
         s = 0
         while i < len(lst) and s <= self.rhs:
             s += lst[i].c
-            i = i + 1
+            i += 1
         if s > self.rhs or (s >= self.rhs and self.op == ">="):
             return False
         self.clause = clause

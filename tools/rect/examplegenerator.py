@@ -131,7 +131,7 @@ def fuzzify(options: dict[str, typing.Any], layout: list[list[int]], nblocks: in
             # Type 0 noise
             nnoise = flayout[i][j].copy()
             for k in range(0, nblocks):
-                nnoise[k] = type0 * nnoise[k]
+                nnoise[k] *= type0
 
             resum = 0.0
             for k in range(0, nblocks):
@@ -244,7 +244,7 @@ def generatedie(options: dict[str, typing.Any]) -> list[list[list[float]]]:
             else:
                 # We don't expand
                 counter -= addblock(layout, block, [i, j, i, j])
-        block = block + 1
+        block += 1
     tabulate(transpose(layout))
     return fuzzify(options, layout, block)
 
