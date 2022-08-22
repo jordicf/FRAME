@@ -63,13 +63,14 @@ def main(prog: str | None = None, args: list[str] | None = None):
     netlist = Netlist(options["netlist"])
     die = Die(options["die"], netlist)
 
-    aspect_ratio = options["aspect_ratio"]
-    num_rectangles = options["num_rectangles"]
+    aspect_ratio: float | None = options["aspect_ratio"]
+    num_rectangles: int | None = options["num_rectangles"]
 
-    if options["grid"]:
+    grid_form: str | None = options["grid"]
+    if grid_form is not None:
         assert aspect_ratio is None and num_rectangles is None, \
             "--grid is incompatible with --aspect-ratio and --num-rectangles"
-        n_rows, n_cols = map(int, options["grid"].split("x"))
+        n_rows, n_cols = map(int, grid_form.split("x"))
         die.initial_grid(n_rows, n_cols)
 
     if aspect_ratio is not None:
@@ -86,10 +87,10 @@ def main(prog: str | None = None, args: list[str] | None = None):
     threshold: float = options["threshold"]
     assert 0 <= threshold <= 1, "threshold must be between 0 and 1"
 
-    max_iter: int = options["max_iter"]
-    assert max_iter > 0, "The maximum number of iterations must be positive"
+    max_iter: int | None = options["max_iter"]
+    assert max_iter is None or max_iter > 0, "The maximum number of iterations must be positive"
 
-    plot_name: str = options["plot"]
+    plot_name: str | None = options["plot"]
     verbose: bool = options["verbose"]
     visualize: bool = options["visualize"]
     assert not visualize or visualize and plot_name, "--plot_name is required when using --visualize"
