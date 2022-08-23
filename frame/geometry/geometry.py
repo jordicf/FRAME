@@ -251,6 +251,10 @@ class Rectangle:
     def location(self) -> Location:
         return self._location
 
+    @location.setter
+    def location(self, loc: Location) -> None:
+        self._location = loc
+
     def duplicate(self) -> 'Rectangle':
         """
         Creates a duplication of the rectangle
@@ -605,3 +609,39 @@ def split_rectangles(rectangles: list[Rectangle], aspect_ratio: float, n: int) -
         heapq.heappush(heap, PrioritizedRectangle(-r1.area, r1))
         heapq.heappush(heap, PrioritizedRectangle(-r2.area, r2))
     return [prio_rect.rect for prio_rect in heap]
+
+
+def trunked_rectilinear_polygon(rectangles: list[Rectangle], epsilon: float = 1e-12) -> bool:
+    """
+    Identifies the rectangles of a trunked rectilinear polygon. At the end of the function, the location of
+    each rectangle is defined (in case the trunked polygon has been identifed). In case more than one rectangle
+    can be a trunk, the one with largest area is selected. The selected trunk is put at the front of the list.
+    If no trunked polygon can be identified, it returns False
+    :param rectangles: list of rectangles of the polygon
+    :param epsilon: error tolerance to measure distances
+    :return: True if the trunked polygon is identifed, and False otherwise
+    """
+    assert len(rectangles) > 0
+    if len(rectangles) == 1:
+        rectangles[0].location = Rectangle.Location.TRUNK
+        return True
+
+    best_trunk = -1
+    for i, trunk in enumerate(rectangles):
+        # Check if it is a good candidate
+        if best_trunk >= 0 and trunk.area <= rectangles[best_trunk].area:
+            break
+        if all(r == trunk or trunk.find_location(r) != Rectangle.Location.NO_BRANCH for r in rectangles):
+            best_trunk = i
+
+    if best_trunk < 0:
+        return False
+
+    # swap to put the trunk in front of the list
+    rectangles[0], rectangles[best_trunk] = rectangles[best_trunk], rectangles[0]
+    rectangles[0].location = Rectangle.Location.TRUNK
+    # Define the location for the rest of rectangles
+    for i in range(1, len(rectangles)):
+        rectangles[i].location = rectangles[0].find_location(rectangles[i])
+
+    return True
