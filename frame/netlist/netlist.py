@@ -109,6 +109,16 @@ class Netlist:
                 modules.append(m)
         return modules
 
+    def create_trunked_polygons(self, epsilon: float = 1e-12) -> None:
+        """
+        Creates the trunked polygons for each module (if they can be identified as trunked polygons).
+        The location of the rectangles of each module a labelled according to their role. If no trunked polygon
+        can be identified, the rectangles are labelled as NO_POLYGON
+        :param epsilon: tolerance in measurement of distances
+        """
+        for m in self.modules:
+            m.create_trunked_polygon(epsilon)
+
     def assign_rectangles(self, m2r: Module2Rectangles) -> None:
         """
         Defines the rectangles of the modules of the netlist
