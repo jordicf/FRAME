@@ -3,13 +3,14 @@ Module to represent points, shapes and rectangles
 """
 
 from collections import deque
+from enum import Enum
 import heapq
 from typing import Any, Union, Sequence, Optional
 from dataclasses import dataclass, field
 
-from frame.utils.keywords import KW_FIXED, KW_HARD, KW_CENTER, KW_SHAPE, KW_REGION, KW_NAME,\
+from frame.utils.keywords import KW_FIXED, KW_HARD, KW_CENTER, KW_SHAPE, KW_REGION, KW_NAME, \
     KW_GROUND, KW_BLOCKAGE
-from frame.utils.utils import valid_identifier
+from frame.utils.utils import valid_identifier, almost_eq
 
 RectDescriptor = tuple[float, float, float, float, str]  # (x,y,w,h, region)
 
@@ -143,6 +144,17 @@ class Rectangle:
     A class to represent a rectilinear rectangle
     """
 
+    class Location(Enum):
+        """Class to represent the location of a rectangle in a trunked rectilinear polygon.
+        The values NSEW represent the location with regard to the trunk. If a rectangle is not
+        a branch, the value NO_BRANCH is assigned"""
+        TRUNK = 1
+        NORTH = 2
+        SOUTH = 3
+        EAST = 4
+        WEST = 5
+        NO_BRANCH = 6
+
     def __init__(self, **kwargs: Any):
         """
         Constructor
@@ -155,10 +167,11 @@ class Rectangle:
         self._fixed: bool = False  # Is the rectangle fixed?
         self._hard: bool = False  # Is the rectangle hard?
         self._region: str = KW_GROUND  # Region of the layout to which the rectangle belongs to
+        self._location: Rectangle.Location = Rectangle.Location.NO_BRANCH
 
         # Reading parameters and type checking
         for key, value in kwargs.items():
-            assert key in [KW_CENTER, KW_SHAPE, KW_FIXED, KW_HARD, KW_REGION, KW_NAME],\
+            assert key in [KW_CENTER, KW_SHAPE, KW_FIXED, KW_HARD, KW_REGION, KW_NAME], \
                 "Unknown rectangle attribute"
             if key == KW_CENTER:
                 assert isinstance(value, Point), "Incorrect point associated to the center of the rectangle"
@@ -235,6 +248,18 @@ class Rectangle:
         return ar
 
     @property
+    def location(self) -> Location:
+        return self._location
+
+    def duplicate(self) -> 'Rectangle':
+        """
+        Creates a duplication of the rectangle
+        :return: the rectangle
+        """
+        return Rectangle(**{KW_CENTER: self.center, KW_SHAPE: self.shape, KW_FIXED: self.fixed,
+                            KW_HARD: self.hard, KW_REGION: self.region})
+
+    @property
     def bounding_box(self) -> tuple[Point, Point]:
         """
         :return: a tuple ((xmin, ymin), (xmax, ymax))
@@ -299,13 +324,39 @@ class Rectangle:
             return 0.0
         return (maxx - minx) * (maxy - miny)
 
-    def duplicate(self) -> 'Rectangle':
+    def find_location(self, r: 'Rectangle', epsilon: float = 10e-12) -> Location:
+        """Defines the location of a rectangle with regard to the trunk (self)
+        :param r: the rectangle that must be located
+        :param epsilon: tolerance for comparisons with floats
+        :return: the location
         """
-        Creates a duplication of the rectangle
-        :return: the rectangle
-        """
-        return Rectangle(**{KW_CENTER: self.center, KW_SHAPE: self.shape, KW_FIXED: self.fixed,
-                            KW_HARD: self.hard, KW_REGION: self.region})
+        # If they overlap, it cannot be a branch
+        if self.area_overlap(r) > epsilon:
+            return Rectangle.Location.NO_BRANCH
+
+        bb_self = self.bounding_box
+        bb_r = r.bounding_box
+
+        # Let us first find the common side and then check the interval
+        if almost_eq(bb_self[1].y, bb_r[0].y, epsilon):
+            loc = Rectangle.Location.NORTH
+        elif almost_eq(bb_self[0].y, bb_r[1].y, epsilon):
+            loc = Rectangle.Location.SOUTH
+        elif almost_eq(bb_self[1].x, bb_r[0].x, epsilon):
+            loc = Rectangle.Location.EAST
+        elif almost_eq(bb_self[0].x, bb_r[1].x, epsilon):
+            loc = Rectangle.Location.WEST
+        else:
+            return Rectangle.Location.NO_BRANCH
+
+        # Check the intervals
+        if loc in [Rectangle.Location.NORTH, Rectangle.Location.SOUTH]:
+            return loc if bb_r[0].x > bb_self[0].x - epsilon and bb_r[1].x < bb_self[1].x + epsilon \
+                else Rectangle.Location.NO_BRANCH
+
+        # West or East
+        return loc if bb_r[0].y > bb_self[0].y - epsilon and bb_r[1].y < bb_self[1].y + epsilon \
+            else Rectangle.Location.NO_BRANCH
 
     def split_horizontal(self, x: float = -1) -> tuple['Rectangle', 'Rectangle']:
         """
@@ -355,7 +406,7 @@ class Rectangle:
     def x_cuttable(self, x: float, ratio: float = 0.01) -> bool:
         """
         Checks whether the rectangle can be cut vertically at coordinate x in a way that
-        the smallest chunk is larger than epsilon*area (e.g. 0.01 means 1%)
+        the smallest chunk is larger than ratio*area (e.g. 0.01 means 1%)
         :param x: coordinate of the horizontal cut
         :param ratio: ratio of the rectangle that defines the minimum area of the
         smallest rectangle after the cut
@@ -364,12 +415,12 @@ class Rectangle:
         bb = self.bounding_box
         if x <= bb[0].x or x >= bb[1].x:
             return False
-        return min(x-bb[0].x, bb[1].x-x) > ratio*self.shape.h
+        return min(x - bb[0].x, bb[1].x - x) > ratio * self.shape.h
 
     def y_cuttable(self, y: float, ratio: float = 0.01) -> bool:
         """
         Checks whether the rectangle can be cut horizontally at coordinate y in a way that
-        the smallest chunk is larger than epsilon*area (e.g. 0.01 means 1%)
+        the smallest chunk is larger than ratio*area (e.g. 0.01 means 1%)
         :param y: coordinate of the vertical cut
         :param ratio: ratio of the rectangle that defines the minimum area of the
         smallest rectangle after the cut
@@ -378,7 +429,7 @@ class Rectangle:
         bb = self.bounding_box
         if y <= bb[0].y or y >= bb[1].y:
             return False
-        return min(y-bb[0].y, bb[1].y-y) > ratio*self.shape.w
+        return min(y - bb[0].y, bb[1].y - y) > ratio * self.shape.w
 
     def rectangle_grid(self, nrows: int, ncols: int) -> list['Rectangle']:
         """
@@ -389,16 +440,16 @@ class Rectangle:
         :return: the list of rectangles
         """
         assert nrows > 0 and ncols > 0
-        x_step = self.shape.w/ncols
-        y_step = self.shape.h/nrows
-        x_init = self.center.x - self.shape.w/2 + x_step/2
-        y_init = self.center.y - self.shape.h/2 + y_step/2
+        x_step = self.shape.w / ncols
+        y_step = self.shape.h / nrows
+        x_init = self.center.x - self.shape.w / 2 + x_step / 2
+        y_init = self.center.y - self.shape.h / 2 + y_step / 2
         grid: list[Rectangle] = []
         shape = Shape(x_step, y_step)
         for row in range(nrows):
             for col in range(ncols):
                 r = self.duplicate()
-                r.center = Point(x_init + col*x_step, y_init + row*y_step)
+                r.center = Point(x_init + col * x_step, y_init + row * y_step)
                 r.shape = shape
                 grid.append(r)
         return grid
@@ -485,7 +536,7 @@ def parse_yaml_rectangle(r: Sequence[float | int | str],
     return Rectangle(**kwargs)
 
 
-def gather_boundaries(rectangles: list[Rectangle], epsilon: float = 1e-15) -> tuple[list[float], list[float]]:
+def gather_boundaries(rectangles: list[Rectangle], epsilon: float = 1e-12) -> tuple[list[float], list[float]]:
     """
     Gathers the x and y coordinates of the sides of a list of rectangles
     :param rectangles: list of rectangles

@@ -91,3 +91,12 @@ def write_yaml(data: Any, filename: str = None) -> None | str:
     with open(filename, 'w') as stream:
         yaml.dump(data, stream)
         return None
+
+
+def almost_eq(v1: float, v2: float, epsilon: float = 10e-12) -> bool:
+    """Compares two float numbers for equality with a margin of tolerance
+    :param v1: one of the numbers
+    :param v2: the other number
+    :param epsilon: tolerance
+    :return: True if they are almost equal, and False otherwise"""
+    return abs(v1 - v2) < epsilon
