@@ -218,7 +218,6 @@ def get_floorplan_plot(netlist: Netlist, allocation: Allocation | None, die_shap
                        width: int = 0, height: int = 0, frame: int = 20, fontsize: int = 20) -> Image.Image:
     """
     Generates the plot of the floorplan
-
     :param netlist: the netlist with the modules and the hyperedges
     :param allocation: allocation of modules to rectangles
     :param die_shape: the shape of the die
