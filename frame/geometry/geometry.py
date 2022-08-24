@@ -311,6 +311,16 @@ class Rectangle:
         bbr = r.bounding_box
         return bb.ll.x >= bbr.ll.x and bb.ll.y >= bbr.ll.y and bb.ur.x <= bbr.ur.x and bb.ur.y <= bbr.ur.y
 
+    def touches(self, r: 'Rectangle', epsilon: float = 1e-12) -> bool:
+        """Checks whether the two rectangles touch each other according to some distance tolerance
+        :param r: the other rectangle
+        :param epsilon: tolerance for distance measurements
+        :return: True if they touch each other, and False otherwise
+        """
+        bb_self, bb_r = self.bounding_box, r.bounding_box
+        return bb_self.ll.x <= bb_r.ur.x + epsilon and bb_r.ll.x <= bb_self.ur.x + epsilon \
+            and bb_self.ll.y <= bb_r.ur.y + epsilon and bb_r.ll.y <= bb_self.ur.y + epsilon
+
     def overlap(self, r: 'Rectangle') -> bool:
         """
         Checks whether two rectangles overlap. They are considered not to overlap if they touch each other

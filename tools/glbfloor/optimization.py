@@ -69,14 +69,6 @@ def calculate_dispersions(modules: list[Module], allocation: Allocation) -> dict
     return dispersions
 
 
-def touch(r1: Rectangle, r2: Rectangle, epsilon: float = 0.001) -> bool:
-    """Checks whether two rectangles touch. Overlapping rectangles are considered to be touching too"""
-    bb1 = r1.bounding_box
-    bb2 = r2.bounding_box
-    return bb2.ll.x - bb1.ur.x < epsilon and bb1.ll.x - bb2.ur.x < epsilon \
-        and bb2.ll.y - bb1.ur.y < epsilon and bb1.ll.y - bb2.ur.y < epsilon
-
-
 def get_neighbouring_cells(allocation: Allocation, cell_index: int) -> list[int]:
     """
     Given an allocation and a cell index, returns a list of the indices of the cells neighbouring the specified cell
@@ -88,7 +80,7 @@ def get_neighbouring_cells(allocation: Allocation, cell_index: int) -> list[int]
     neigh_cells = []
     for c in range(n_cells):
         if c != cell_index and \
-                touch(allocation.allocation_rectangle(cell_index).rect, allocation.allocation_rectangle(c).rect):
+                allocation.allocation_rectangle(cell_index).rect.touches(allocation.allocation_rectangle(c).rect):
             neigh_cells.append(c)
     return neigh_cells
 
