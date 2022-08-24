@@ -1,6 +1,6 @@
 import unittest
 
-from frame.geometry.geometry import Point, Shape, Rectangle, trunked_rectilinear_polygon
+from frame.geometry.geometry import Point, Shape, Rectangle, BoundingBox, trunked_rectilinear_polygon
 from frame.utils.keywords import KW_CENTER, KW_SHAPE
 
 
@@ -109,13 +109,13 @@ class TestRectangle(unittest.TestCase):
         self.assertTrue(r.point_inside(Point(3.1, 2.5)))
         self.assertFalse(r.point_inside(Point(2.9, 2.1)))
         self.assertFalse(r.point_inside(Point(3.1, 1.9)))
-        self.assertEqual(r.bounding_box, (Point(3, 2), Point(7, 4)))
+        self.assertEqual(r.bounding_box, BoundingBox(ll=Point(3, 2), ur=Point(7, 4)))
         r.shape = Shape(3, 1)
         self.assertEqual(r.area, 3)
-        self.assertEqual(r.bounding_box, (Point(3.5, 2.5), Point(6.5, 3.5)))
+        self.assertEqual(r.bounding_box, BoundingBox(ll=Point(3.5, 2.5), ur=Point(6.5, 3.5)))
         r.center = Point(30, 40)
         self.assertEqual(r.area, 3)
-        self.assertEqual(r.bounding_box, (Point(28.5, 39.5), Point(31.5, 40.5)))
+        self.assertEqual(r.bounding_box, BoundingBox(ll=Point(28.5, 39.5), ur=Point(31.5, 40.5)))
 
     def test_overlap_rectangles(self):
         r1 = Rectangle(center=Point(2, 3), shape=Shape(2, 4))

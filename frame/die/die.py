@@ -295,8 +295,8 @@ class Die:
 
         # Check that all rectangles are inside
         for r in all_rectangles:
-            ll, ur = r.bounding_box
-            assert die.point_inside(ll) and die.point_inside(ur), "Some rectangle is outside the die"
+            bb = r.bounding_box
+            assert die.point_inside(bb.ll) and die.point_inside(bb.ur), "Some rectangle is outside the die"
 
         # Check that no rectangles overlap
         pairs = list(combinations(all_rectangles, 2))

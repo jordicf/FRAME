@@ -130,13 +130,22 @@ class Point:
         yield self.y
 
 
-@dataclass()
+@dataclass
 class Shape:
     """
     A class to represent a two-dimensional rectilinear shape (width and height)
     """
     w: float
     h: float
+
+
+@dataclass
+class BoundingBox:
+    """
+    A class to represent a rectangle using a bounding box
+    """
+    ll: Point
+    ur: Point
 
 
 class Rectangle:
@@ -264,14 +273,14 @@ class Rectangle:
                             KW_HARD: self.hard, KW_REGION: self.region})
 
     @property
-    def bounding_box(self) -> tuple[Point, Point]:
+    def bounding_box(self) -> BoundingBox:
         """
-        :return: a tuple ((xmin, ymin), (xmax, ymax))
+        Returns the bounding box of the rectangle
         """
         half_w, half_h = self.shape.w / 2, self.shape.h / 2
         xmin, xmax = self.center.x - half_w, self.center.x + half_w
         ymin, ymax = self.center.y - half_h, self.center.y + half_h
-        return Point(xmin, ymin), Point(xmax, ymax)
+        return BoundingBox(ll=Point(xmin, ymin), ur=Point(xmax, ymax))
 
     @property
     def vector_spec(self) -> RectDescriptor:
@@ -289,7 +298,7 @@ class Rectangle:
         :return: True if inside, False otherwise
         """
         bb = self.bounding_box
-        return bb[0].x <= p.x <= bb[1].x and bb[0].y <= p.y <= bb[1].y
+        return bb.ll.x <= p.x <= bb.ur.x and bb.ll.y <= p.y <= bb.ur.y
 
     def is_inside(self, r: 'Rectangle') -> bool:
         """
@@ -300,7 +309,7 @@ class Rectangle:
         bb = self.bounding_box
         # It is a rectangle
         bbr = r.bounding_box
-        return bb[0].x >= bbr[0].x and bb[0].y >= bbr[0].y and bb[1].x <= bbr[1].x and bb[1].y <= bbr[1].y
+        return bb.ll.x >= bbr.ll.x and bb.ll.y >= bbr.ll.y and bb.ur.x <= bbr.ur.x and bb.ur.y <= bbr.ur.y
 
     def overlap(self, r: 'Rectangle') -> bool:
         """
@@ -316,14 +325,14 @@ class Rectangle:
         :param r: the other rectangle
         :return: the area overlap
         """
-        ll1, ur1 = self.bounding_box
-        ll2, ur2 = r.bounding_box
-        minx = max(ll1.x, ll2.x)
-        maxx = min(ur1.x, ur2.x)
+        bb1 = self.bounding_box
+        bb2 = r.bounding_box
+        minx = max(bb1.ll.x, bb2.ll.x)
+        maxx = min(bb1.ur.x, bb2.ur.x)
         if minx >= maxx:
             return 0.0
-        miny = max(ll1.y, ll2.y)
-        maxy = min(ur1.y, ur2.y)
+        miny = max(bb1.ll.y, bb2.ll.y)
+        maxy = min(bb1.ur.y, bb2.ur.y)
         if miny >= maxy:
             return 0.0
         return (maxx - minx) * (maxy - miny)
@@ -342,24 +351,24 @@ class Rectangle:
         bb_r = r.bounding_box
 
         # Let us first find the common side and then check the interval
-        if almost_eq(bb_self[1].y, bb_r[0].y, epsilon):
+        if almost_eq(bb_self.ur.y, bb_r.ll.y, epsilon):
             loc = Rectangle.Location.NORTH
-        elif almost_eq(bb_self[0].y, bb_r[1].y, epsilon):
+        elif almost_eq(bb_self.ll.y, bb_r.ur.y, epsilon):
             loc = Rectangle.Location.SOUTH
-        elif almost_eq(bb_self[1].x, bb_r[0].x, epsilon):
+        elif almost_eq(bb_self.ur.x, bb_r.ll.x, epsilon):
             loc = Rectangle.Location.EAST
-        elif almost_eq(bb_self[0].x, bb_r[1].x, epsilon):
+        elif almost_eq(bb_self.ll.x, bb_r.ur.x, epsilon):
             loc = Rectangle.Location.WEST
         else:
             return Rectangle.Location.NO_POLYGON
 
         # Check the intervals
         if loc in [Rectangle.Location.NORTH, Rectangle.Location.SOUTH]:
-            return loc if bb_r[0].x > bb_self[0].x - epsilon and bb_r[1].x < bb_self[1].x + epsilon \
+            return loc if bb_r.ll.x > bb_self.ll.x - epsilon and bb_r.ur.x < bb_self.ur.x + epsilon \
                 else Rectangle.Location.NO_POLYGON
 
         # West or East
-        return loc if bb_r[0].y > bb_self[0].y - epsilon and bb_r[1].y < bb_self[1].y + epsilon \
+        return loc if bb_r.ll.y > bb_self.ll.y - epsilon and bb_r.ur.y < bb_self.ur.y + epsilon \
             else Rectangle.Location.NO_POLYGON
 
     def split_horizontal(self, x: float = -1) -> tuple['Rectangle', 'Rectangle']:
@@ -371,10 +380,10 @@ class Rectangle:
         if x < 0:
             x = self.center.x
         bb = self.bounding_box
-        assert bb[0].x < x < bb[1].x
-        c1 = Point((bb[0].x + x) / 2, self.center.y)
-        sh1 = Shape(x - bb[0].x, self.shape.h)
-        c2 = Point((bb[1].x + x) / 2, self.center.y)
+        assert bb.ll.x < x < bb.ur.x
+        c1 = Point((bb.ll.x + x) / 2, self.center.y)
+        sh1 = Shape(x - bb.ll.x, self.shape.h)
+        c2 = Point((bb.ur.x + x) / 2, self.center.y)
         sh2 = Shape(self.shape.w - sh1.w, self.shape.h)
         r1, r2 = self.duplicate(), self.duplicate()
         r1.center, r1.shape = c1, sh1
@@ -390,10 +399,10 @@ class Rectangle:
         if y < 0:
             y = self.center.y
         bb = self.bounding_box
-        assert bb[0].y < y < bb[1].y
-        c1 = Point(self.center.x, (bb[0].y + y) / 2)
-        sh1 = Shape(self.shape.w, y - bb[0].y)
-        c2 = Point(self.center.x, (bb[1].y + y) / 2)
+        assert bb.ll.y < y < bb.ur.y
+        c1 = Point(self.center.x, (bb.ll.y + y) / 2)
+        sh1 = Shape(self.shape.w, y - bb.ll.y)
+        c2 = Point(self.center.x, (bb.ur.y + y) / 2)
         sh2 = Shape(self.shape.w, self.shape.h - sh1.h)
         r1, r2 = self.duplicate(), self.duplicate()
         r1.center, r1.shape = c1, sh1
@@ -417,9 +426,9 @@ class Rectangle:
         :return: True if cuttable, False otherwise
         """
         bb = self.bounding_box
-        if x <= bb[0].x or x >= bb[1].x:
+        if x <= bb.ll.x or x >= bb.ur.x:
             return False
-        return min(x - bb[0].x, bb[1].x - x) > ratio * self.shape.h
+        return min(x - bb.ll.x, bb.ur.x - x) > ratio * self.shape.h
 
     def y_cuttable(self, y: float, ratio: float = 0.01) -> bool:
         """
@@ -431,9 +440,9 @@ class Rectangle:
         :return: True if cuttable, False otherwise
         """
         bb = self.bounding_box
-        if y <= bb[0].y or y >= bb[1].y:
+        if y <= bb.ll.y or y >= bb.ur.y:
             return False
-        return min(y - bb[0].y, bb[1].y - y) > ratio * self.shape.w
+        return min(y - bb.ll.y, bb.ur.y - y) > ratio * self.shape.w
 
     def rectangle_grid(self, nrows: int, ncols: int) -> list['Rectangle']:
         """
@@ -467,15 +476,15 @@ class Rectangle:
         """
         if self.region != other.region:
             return None
-        ll1, ur1 = self.bounding_box
-        ll2, ur2 = other.bounding_box
-        minx = max(ll1.x, ll2.x)
-        maxx = min(ur1.x, ur2.x)
+        bb1 = self.bounding_box
+        bb2 = other.bounding_box
+        minx = max(bb1.ll.x, bb2.ll.x)
+        maxx = min(bb1.ur.x, bb2.ur.x)
         width = maxx - minx
         if width <= 0:
             return None
-        miny = max(ll1.y, ll2.y)
-        maxy = min(ur1.y, ur2.y)
+        miny = max(bb1.ll.y, bb2.ll.y)
+        maxy = min(bb1.ur.y, bb2.ur.y)
         height = maxy - miny
         if height <= 0:
             return None
@@ -550,10 +559,10 @@ def gather_boundaries(rectangles: list[Rectangle], epsilon: float = 1e-12) -> tu
     x, y = [], []
     for r in rectangles:
         bb = r.bounding_box
-        x.append(bb[0].x)
-        x.append(bb[1].x)
-        y.append(bb[0].y)
-        y.append(bb[1].y)
+        x.append(bb.ll.x)
+        x.append(bb.ur.x)
+        y.append(bb.ll.y)
+        y.append(bb.ur.y)
     x.sort()
     y.sort()
     # Remove duplicates

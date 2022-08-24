@@ -71,10 +71,10 @@ def calculate_dispersions(modules: list[Module], allocation: Allocation) -> dict
 
 def touch(r1: Rectangle, r2: Rectangle, epsilon: float = 0.001) -> bool:
     """Checks whether two rectangles touch. Overlapping rectangles are considered to be touching too"""
-    r1min, r1max = r1.bounding_box
-    r2min, r2max = r2.bounding_box
-    return r2min.x - r1max.x < epsilon and r1min.x - r2max.x < epsilon \
-        and r2min.y - r1max.y < epsilon and r1min.y - r2max.y < epsilon
+    bb1 = r1.bounding_box
+    bb2 = r2.bounding_box
+    return bb2.ll.x - bb1.ur.x < epsilon and bb1.ll.x - bb2.ur.x < epsilon \
+        and bb2.ll.y - bb1.ur.y < epsilon and bb1.ll.y - bb2.ur.y < epsilon
 
 
 def get_neighbouring_cells(allocation: Allocation, cell_index: int) -> list[int]:
@@ -205,14 +205,14 @@ def optimize_allocation(die: Die, allocation: Allocation, dispersions: dict[str,
     for m, module in enumerate(die.netlist.modules):
         module2m[module.name] = m
 
-    (x_min, y_min), (x_max, y_max) = die.bounding_box.bounding_box
+    bb = die.bounding_box.bounding_box
 
     model = Model()
     g = model.gekko  # Shortcut (reference)
 
     # Centroid of modules
-    model.x = g.Array(g.Var, n_modules, lb=x_min, ub=x_max)
-    model.y = g.Array(g.Var, n_modules, lb=y_min, ub=y_max)
+    model.x = g.Array(g.Var, n_modules, lb=bb.ll.x, ub=bb.ur.x)
+    model.y = g.Array(g.Var, n_modules, lb=bb.ll.y, ub=bb.ur.y)
 
     # Dispersion of modules
     model.dx = g.Array(g.Var, n_modules, lb=0)

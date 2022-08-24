@@ -75,15 +75,15 @@ def get_grid_image(die: Die, allocation: Allocation,
 
     for module in die.netlist.modules:
         for rect in refinable + fixed:
-            unscaled_bbox_min, unscaled_bbox_max = rect.bounding_box
-            draw.rectangle((s.scale(unscaled_bbox_min), s.scale(unscaled_bbox_max)),
+            unscaled_bbox = rect.bounding_box
+            draw.rectangle((s.scale(unscaled_bbox.ll), s.scale(unscaled_bbox.ur)),
                            fill=get_color(0, color_map),
                            outline="Black" if draw_borders else None)
 
         for module_alloc in allocation.allocation_module(module.name):
             rect = allocation.allocation_rectangle(module_alloc.rect_index).rect
-            unscaled_bbox_min, unscaled_bbox_max = rect.bounding_box
-            bbox_min, bbox_max = s.scale(unscaled_bbox_min), s.scale(unscaled_bbox_max)
+            unscaled_bbox = rect.bounding_box
+            bbox_min, bbox_max = s.scale(unscaled_bbox.ll), s.scale(unscaled_bbox.ur)
 
             ratio = module_alloc.area_ratio
             color = get_color(ratio, color_map)

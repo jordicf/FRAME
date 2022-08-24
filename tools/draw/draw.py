@@ -11,7 +11,7 @@ from PIL import Image, ImageDraw, ImageFont
 from distinctipy import distinctipy
 
 from frame.die.die import Die
-from frame.geometry.geometry import Point, Shape, Rectangle
+from frame.geometry.geometry import Point, Shape, Rectangle, BoundingBox
 from frame.netlist.module import Module
 from frame.netlist.netlist import Netlist
 from frame.netlist.netlist_types import HyperEdge
@@ -89,14 +89,15 @@ def check_modules(modules: list[Module]) -> None:
 
 def calculate_bbox(netlist: Netlist) -> Shape:
     """
-    Calculates the bounding box of the netlist using the rectangles
+    Calculates the bounding box of the netlist using the rectangles. Only xmax and ymax are returned.
+    The ll corner of the bounding box is assumed to be (0,0)
     :param netlist: the netlist
     :return: the bounding box
     """
     xmax, ymax = 0.0, 0.0
     if netlist.num_rectangles > 0:
-        xmax = max([r.bounding_box[1].x for r in netlist.rectangles])
-        ymax = max([r.bounding_box[1].y for r in netlist.rectangles])
+        xmax = max([r.bounding_box.ur.x for r in netlist.rectangles])
+        ymax = max([r.bounding_box.ur.y for r in netlist.rectangles])
     # Check now the centers of the blocks
     for m in netlist.modules:
         c = m.center
@@ -158,23 +159,23 @@ def draw_circle(im: Image.Image, m: Module, color, scaling: Scaling, fontsize: i
     """Draws a circle for block b. The area of the circle corresponds to the area of the b"""
     radius = math.sqrt(m.area() / math.pi)
     assert m.center is not None
-    ll = Point(m.center.x - radius, m.center.y - radius)
-    ur = Point(m.center.x + radius, m.center.y + radius)
-    draw_geometry(im, ll, ur, color, scaling, m.name, fontsize, True)
+    bb = BoundingBox(ll=Point(m.center.x - radius, m.center.y - radius),
+                     ur=Point(m.center.x + radius, m.center.y + radius))
+    draw_geometry(im, bb, color, scaling, m.name, fontsize, True)
 
 
 def draw_rectangle(im: Image.Image, r: Rectangle, name: str, color, scaling: Scaling, fontsize: int = 0) -> None:
     """Draws the rectangle r"""
-    ll, ur = r.bounding_box
-    draw_geometry(im, ll, ur, color, scaling, name, fontsize, False)
+    bb = r.bounding_box
+    draw_geometry(im, bb, color, scaling, name, fontsize, False)
 
 
-def draw_geometry(im: Image.Image, ll: Point, ur: Point, color, scaling: Scaling,
+def draw_geometry(im: Image.Image, bb: BoundingBox, color, scaling: Scaling,
                   name: str, fontsize: int, circle: bool) -> None:
     transp = Image.new('RGBA', im.size, (0, 0, 0, 0))
     drawing = ImageDraw.Draw(transp, "RGBA")
-    ll = scale(ll, scaling)
-    ur = scale(ur, scaling)
+    ll = scale(bb.ll, scaling)
+    ur = scale(bb.ur, scaling)
     # Notice that y-coordinates are swapped
     if circle:
         drawing.ellipse((ll.x, ur.y, ur.x, ll.y), fill=color)
@@ -248,8 +249,8 @@ def get_floorplan_plot(netlist: Netlist, allocation: Allocation | None, die_shap
     if allocation is not None:
         for rect_alloc in allocation.allocations:
             r = rect_alloc.rect
-            ll, ur = r.bounding_box
-            ll, ur = scale(ll, scaling), scale(ur, scaling)
+            bb = r.bounding_box
+            ll, ur = scale(bb.ll, scaling), scale(bb.ur, scaling)
             a = rect_alloc.alloc
             color = (0, 0, 0, 128)
             for module, ratio in a.items():
@@ -308,9 +309,8 @@ def main(prog: str | None = None, args: list[str] | None = None) -> None:
     # Canvas
     alloc_die = Shape(0, 0)
     if allocation is not None:
-        r = allocation.bounding_box
-        ll, ur = r.bounding_box
-        alloc_die = Shape(ur.x, ur.y)
+        bb = allocation.bounding_box.bounding_box
+        alloc_die = Shape(bb.ur.x, bb.ur.y)
 
     die_file = options['die']
     if die_file is not None:

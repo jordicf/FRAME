@@ -289,11 +289,11 @@ class Allocation:
         """
         xmin, xmax, ymin, ymax = math.inf, -math.inf, math.inf, -math.inf
         for rect_alloc in self.allocations:
-            ll, ur = rect_alloc.rect.bounding_box
-            xmin = min(xmin, ll.x)
-            xmax = max(xmax, ur.x)
-            ymin = min(ymin, ll.y)
-            ymax = max(ymax, ur.y)
+            bb = rect_alloc.rect.bounding_box
+            xmin = min(xmin, bb.ll.x)
+            xmax = max(xmax, bb.ur.x)
+            ymin = min(ymin, bb.ll.y)
+            ymax = max(ymax, bb.ur.y)
         assert xmin >= 0 and ymin >= 0, "The allocation is not included in the positive quadrant"
         width = xmax - xmin
         height = ymax - ymin
