@@ -37,12 +37,12 @@ have one trunk and 0 branches, as shown in this picture:
 
 *2*-STOGs offer a rich variety of orthogons, as shown here:
 
-<img src="pict/two-stog.png" alt="2-STOGs" style="height: 80px;"/>
+<img src="pict/two-stog.png" alt="2-STOGs" style="width: 700px;"/>
 
 In case you have curiosity of knowing the associated partition of rectangles, the following picture
 shows the trunks (T) and branches of each case. The NSEW labels indicate the trunk edge adjacent to each branch.
 
-<img src="pict/two-stog-rectangles.png" alt="Rectangles of 2-STOGs" style="height: 80px;"/>
+<img src="pict/two-stog-rectangles.png" alt="Rectangles of 2-STOGs" style="width: 700px;"/>
 
 ### The structure of a STOG
 
