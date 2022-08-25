@@ -26,7 +26,7 @@ with the trunk.
 
 ### *k*-STOGs
 
-A $k$ STOG with $\sqrt{2}$ lines is a STOG with one trunk and *k* branches. Orthogonal rectangles are *0*-STOGs since they only
+A $k$-STOG with lines is a STOG with one trunk and $k$ branches. Orthogonal rectangles are $0$-STOGs since they only
 have one trunk and 0 branches, as shown in this picture:
 
 <img src="pict/zero-stog.png" alt="0-STOG" style="height: 80px;"/>
