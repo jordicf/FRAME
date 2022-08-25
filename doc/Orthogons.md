@@ -22,27 +22,27 @@ of the other rectangles (left and right) are branches of the trunk, since they f
 with the trunk. However, the bottom rectangle is not a branch, since the common edge is not fully shared
 with the trunk.
 
-<img src="pict/trunk_branch.png" alt="Rectilinear floorplan" style="height: 120px;"/>
+<img src="pict/trunk_branch.png" alt="Trunk and branches" style="height: 120px;"/>
 
 ### *k*-STOGs
 
 A *k*-STOG is a STOG with one trunk and *k* branches. Orthogonal rectangles are *0*-STOGs since they only
 have one trunk and 0 branches, as shown in this picture:
 
-<img src="pict/zero-stog.png" alt="Rectilinear floorplan" style="height: 80px;"/>
+<img src="pict/zero-stog.png" alt="0-STOG" style="height: 80px;"/>
 
 *1*-STOGs include all the L- and T-shaped orthogons. Here are two examples:
 
-<img src="pict/one-stog.png" alt="Rectilinear floorplan" style="height: 80px;"/>
+<img src="pict/one-stog.png" alt="1-STOGs" style="height: 80px;"/>
 
 *2*-STOGs offer a rich variety of orthogons, as shown here:
 
-<img src="pict/two-stog.png" alt="Rectilinear floorplan" style="height: 80px;"/>
+<img src="pict/two-stog.png" alt="2-STOGs" style="height: 80px;"/>
 
 In case you have curiosity of knowing the associated partition of rectangles, the following picture
 shows the trunks (T) and branches of each case. The NSEW labels indicate the trunk edge adjacent to each branch.
 
-<img src="pict/two-stog-rectangles.png" alt="Rectilinear floorplan" style="height: 95.5px;"/>
+<img src="pict/two-stog-rectangles.png" alt="Rectangles of 2-STOGs" style="height: 80px;"/>
 
 ### The structure of a STOG
 
