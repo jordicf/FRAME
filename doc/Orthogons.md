@@ -27,11 +27,11 @@ with the trunk.
 ### *k*-STOGs
 
 A $k$-STOG with lines is a STOG with one trunk and $k$ branches. Orthogonal rectangles are $0$-STOGs since they only
-have one trunk and 0 branches, as shown in this picture:
+have one trunk and $0$ branches, as shown in this picture:
 
 <img src="pict/zero-stog.png" alt="0-STOG" style="height: 80px;"/>
 
-$1$-STOGs include all the L- and T-shaped orthogons. Here are two examples:
+Hi $1$-STOGs include all the L- and T-shaped orthogons. Here are two examples:
 
 <img src="pict/one-stog.png" alt="1-STOGs" style="height: 80px;"/>
 
