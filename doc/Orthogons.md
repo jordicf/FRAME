@@ -26,9 +26,9 @@ with the trunk.
 
 <img src="pict/trunk_branch.png" alt="Rectilinear floorplan" style="height: 120px;"/>
 
-### $k$-STOG
+### $k$-STOGs
 
-A $`k`$-STOG is a STOG with one trunk and $k$ branches. Orthogonal rectangles are $0$-STOGs since they only
+A $k$-STOG is a STOG with one trunk and $k$ branches. Orthogonal rectangles are $0$-STOGs since they only
 have one trunk and 0 branches, as shown in this picture:
 
 <img src="pict/zero-stog.png" alt="Rectilinear floorplan" style="height: 80px;"/>
@@ -59,5 +59,18 @@ Some of the `FRAME` stages are based on non-convex optimization models, which ty
 for finding local minima. It is convenient that the constraints of these models can be represented
 by differentiable functions. 
 
+#### Example
+
+Let us assume that a rectangle is represented by the coordinates of its center $(x,y)$, its width ($w$) and height
+($h$). Let us consider a STOG with a trunk ($T$) and an $E$-branch ($B$). Then, the relative position of the branch
+with regard to the trunk can be modeled with three constraints (one equality and two inequalities):
+
+$$
+\begin{eqnarray*}
+x_B & = & x_T + \frac{w_T + w_B}{2} \\
+y_B + \frac{h_B}{2} & \leq & y_T + \frac{h_T}{2} \\
+y_B - \frac{h_B}{2} & \geq & y_T - \frac{h_T}{2}
+\end{eqnarray*}
+$$
 
 
