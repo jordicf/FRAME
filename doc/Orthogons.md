@@ -49,7 +49,8 @@ shows the trunks (T) and branches of each case. The NSEW labels indicate the tru
 The structure of a STOG is characterized by the relative location of its branches, e.g., *0*-STOGs can only have one
 structure (orthogonal rectangles), *1*-STOGs can have 4 different structures depending on the location of the branch
 (*N*, *S*, *E*, *W*), *2*-STOGs can have 10 different structures (*NN*, *NS*, *NE*, *NW*, *SS*, *SE*, ...). In general,
-the number of possible structures of a *k*-STOG is 
+the number of possible structures of a *k*-STOG is (subsets with repetitions):
+
 $$\binom{k+3}{k}$$
 
 ### Why STOGs?
