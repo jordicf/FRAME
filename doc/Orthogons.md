@@ -14,10 +14,8 @@ We are interested in a particular subclass of orthogons that we call *Single-Tru
 ## STOG
 
 A STOG is an orthogon that can be decomposed into a set of disjoint rectangles with the following property:
-such that one of them is
-called the *trunk* and the others are called *branches*, with the following property:
 * One rectangle is called the trunk and the others are called the branches
-* Each branch fully shares one of its edges with the trunk.
+* Each branch is adjacent to the trunk and fully shares one of its edges with the trunk
 
 The following picture shows an orthogon that is not a STOG. Assuming that the blue rectangle is the trunk, two
 of the other rectangles (left and right) are branches of the trunk, since they fully share one of the edges
@@ -51,15 +49,14 @@ shows the trunks (T) and branches of each case. The NSEW labels indicate the tru
 The structure of a STOG is characterized by the relative location of its branches, e.g., *0*-STOGs can only have one
 structure (orthogonal rectangles), *1*-STOGs can have 4 different structures depending on the location of the branch
 (*N*, *S*, *E*, *W*), *2*-STOGs can have 10 different structures (*NN*, *NS*, *NE*, *NW*, *SS*, *SE*, ...). In general,
-*k*-STOGs can have up to 
+the number of possible structures of a *k*-STOG is 
 $$\binom{k+3}{k}$$
-structures.
 
 ### Why STOGs?
 
 Some of the `FRAME` stages are based on non-convex optimization models, which typically use gradient-descent algorithms
-for finding local minima. It is convenient that the constraints of these models can be represented
-by differentiable functions. 
+for finding local minima. It is convenient that the constraints used to characterize the structure of a STOG
+can be modeled by differentiable functions. 
 
 #### Example
 
@@ -69,10 +66,14 @@ with regard to the trunk can be modeled with three constraints (one equality and
 
 $$
 \begin{eqnarray*}
-x_B & = & x_T + \frac{w_T + w_B}{2} \\
-y_B + \frac{h_B}{2} & \leq & y_T + \frac{h_T}{2} \\
-y_B - \frac{h_B}{2} & \geq & y_T - \frac{h_T}{2}
+x_B - x_T & = & \frac{w_T + w_B}{2} \\
+y_B - y_T & \leq & \frac{h_T-h_B}{2} \\
+y_T - y_B & \leq &  \frac{h_T+h_B}{2}
 \end{eqnarray*}
 $$
+
+In case two branches share the same edge, a simple linear constraint may be used to avoid their overlap by
+assuming an ordering on the edge, e.g.,
+$$y_B_1-y_B_2 \geq y_B_2+\frac{h_B_2-h_B_1}{2}$$
 
 
