@@ -24,9 +24,9 @@ with the trunk.
 
 <img src="pict/trunk_branch.png" alt="Trunk and branches" style="height: 120px;"/>
 
-### $k$-STOGs
+### *k*-STOGs
 
-A $k$ STOG is a STOG with one trunk and *k* branches. Orthogonal rectangles are *0*-STOGs since they only
+A $k$ STOG with $\sqrt{2}$ lines is a STOG with one trunk and *k* branches. Orthogonal rectangles are *0*-STOGs since they only
 have one trunk and 0 branches, as shown in this picture:
 
 <img src="pict/zero-stog.png" alt="0-STOG" style="height: 80px;"/>
