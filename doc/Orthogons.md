@@ -66,7 +66,7 @@ with regard to the trunk can be modeled with three constraints (one equality and
 
 $$
 \begin{eqnarray*}
-x_B & = & x+T + \frac{w_T + w_B}{2} \\
+x_B & = & x_T + \frac{w_T + w_B}{2} \\
 y_B & \leq & y_T + \frac{h_T-h_B}{2} \\ 
 y_B & \geq &  y_T + \frac{h_B-h_T}{2}
 \end{eqnarray*}
@@ -75,6 +75,6 @@ $$
 In case two branches share the same edge, a simple linear constraint may be used to avoid their overlap by
 assuming an ordering on the edge, e.g.,
 
-$$y_{B_1}-y_{B_2} \geq \frac{h_{B_2}-h_{B_1}}{2}$$
+$$y_{B_1}-y_{B_2} \geq \frac{h_{B_2}+h_{B_1}}{2}$$
 
 
