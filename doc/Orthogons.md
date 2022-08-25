@@ -24,32 +24,32 @@ with the trunk.
 
 <img src="pict/trunk_branch.png" alt="Trunk and branches" style="height: 120px;"/>
 
-$k$-STOGs
+### *k*-STOGs
 
-A $k$-STOG with lines is a STOG with one trunk and $k$ branches. Orthogonal rectangles are $0$-STOGs since they only
-have one trunk and $0$ branches, as shown in this picture:
+A *k*-STOG with lines is a STOG with one trunk and *k* branches. Orthogonal rectangles are *0*-STOGs since they only
+have one trunk and *0* branches, as shown in this picture:
 
 <img src="pict/zero-stog.png" alt="0-STOG" style="height: 80px;"/>
 
-$1$-STOGs include all the L- and T-shaped orthogons. Here are two examples:
+*1*-STOGs include all the L- and T-shaped orthogons. Here are two examples:
 
 <img src="pict/one-stog.png" alt="1-STOGs" style="height: 80px;"/>
 
-$2$-STOGs offer a rich variety of orthogons, as shown here:
+*2*-STOGs offer a rich variety of orthogons, as shown here:
 
 <img src="pict/two-stog.png" alt="2-STOGs" style="width: 700px;"/>
 
 In case you have curiosity of knowing the associated partition of rectangles, the following picture
-shows the trunks ($T$) and branches of each case. The NSEW labels indicate the trunk edge adjacent to each branch.
+shows the trunks (*T*) and branches of each case. The NSEW labels indicate the trunk edge adjacent to each branch.
 
 <img src="pict/two-stog-rectangles.png" alt="Rectangles of 2-STOGs" style="width: 700px;"/>
 
 ### The structure of a STOG
 
-The structure of a STOG is characterized by the relative location of its branches, e.g., $0$-STOGs can only have one
-structure (orthogonal rectangles), $1$-STOGs can have 4 different structures depending on the location of the branch
-($N$, $S$, $E$, $W$), $2$-STOGs can have 10 different structures ($NN$, $NS$, $NE$, $NW$, $SS$, $SE$, ...). In general,
-the number of possible structures of a $k$-STOG is (subsets with repetitions):
+The structure of a STOG is characterized by the relative location of its branches, e.g., *0*-STOGs can only have one
+structure (orthogonal rectangles), *1*-STOGs can have 4 different structures depending on the location of the branch
+(*N*, *S*, *E*, *W*), *2*-STOGs can have 10 different structures (*NN*, *NS*, *NE*, *NW*, *SS*, *SE*, ...). In general,
+the number of possible structures of a *k*-STOG is (subsets with repetitions):
 
 $$\binom{k+3}{k}$$
 
@@ -61,7 +61,7 @@ can be modeled by differentiable functions.
 
 #### Example
 
-Let us assume that a rectangle is represented by the coordinates of its center $(x,y)$, width ($w$) and height
+Let us assume that a rectangle is represented by the coordinates of its center *(x,y)*, width (*w*) and height
 (*h*). Let us consider a STOG with a trunk (*T*) and an *East*-branch (*B*). Then, the relative position of the branch
 with regard to the trunk can be modeled with three linear constraints (one equality and two inequalities), as follows:
 
