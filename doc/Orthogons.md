@@ -60,9 +60,9 @@ can be modeled by differentiable functions.
 
 #### Example
 
-Let us assume that a rectangle is represented by the coordinates of its center *(x,y)*, its width (*w*) and height
+Let us assume that a rectangle is represented by the coordinates of its center *(x,y)*, width (*w*) and height
 (*h*). Let us consider a STOG with a trunk (*T*) and an *East*-branch (*B*). Then, the relative position of the branch
-with regard to the trunk can be modeled with three constraints (one equality and two inequalities):
+with regard to the trunk can be modeled with three linear constraints (one equality and two inequalities), as follows:
 
 $$
 \begin{eqnarray*}
@@ -76,5 +76,8 @@ In case two branches share the same edge, a simple linear constraint may be used
 assuming an ordering on the edge, e.g.,
 
 $$y_{B_1}-y_{B_2} \geq \frac{h_{B_2}+h_{B_1}}{2}$$
+
+**Note:** the fact that STOGs can be modeled with linear constraints does not mean that the complete model is linear.
+Unfortunately, some other constraints of the same model may not be linear.
 
 
