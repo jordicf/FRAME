@@ -62,3 +62,5 @@ build/lib.win-amd64-3.10/frame/die/__init__.py
 build/lib.win-amd64-3.10/frame/allocation/allocation.py
 build/lib.win-amd64-3.10/frame/allocation/__init__.py
 build/lib.win-amd64-3.10/frame/__init__.py
+doc/.ipynb_checkpoints/FloorplanOptimization-checkpoint.ipynb
+doc/.ipynb_checkpoints/flopt_experiment-checkpoint.ipynb
