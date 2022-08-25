@@ -75,6 +75,6 @@ $$
 In case two branches share the same edge, a simple linear constraint may be used to avoid their overlap by
 assuming an ordering on the edge, e.g.,
 
-$$y_B_1-y_B_2 \geq y_B_2+\frac{h_B_2-h_B_1}{2}$$
+$$y_{B_1}-y_{B_2} \geq \frac{h_{B_2}-h_{B_1}}{2}$$
 
 
