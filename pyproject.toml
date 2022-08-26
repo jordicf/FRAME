@@ -14,7 +14,8 @@ dependencies = [
     "matplotlib",
     "distinctipy",
     "Pillow",
-    "python-sat"
+    "python-sat",
+    "ipycanvas"
 ]
 
 [project.optional-dependencies]
