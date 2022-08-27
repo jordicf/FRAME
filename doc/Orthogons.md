@@ -1,4 +1,11 @@
+<img src="pict/Frame.png" alt="drawing" style="height: 35px;"/>
+
 # Orthogonal polygons
+**Author:** [Jordi Cortadella](https://www.cs.upc.edu/~jordicf)
+
+**Date:** August 25th, 2022
+
+---
 
 `FRAME` can deal with rectilinear modules that are represented by
 [Rectilinear Polygons](https://en.wikipedia.org/wiki/Rectilinear_polygon), 
