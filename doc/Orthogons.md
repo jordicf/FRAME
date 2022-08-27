@@ -64,7 +64,7 @@ can be modeled by differentiable functions.
 Let us assume that a rectangle is represented by the coordinates of its center *(x,y)*, width (*w*) and height
 (*h*). Let us consider a STOG with a trunk (*T*) and an *East*-branch (*B*). 
 
-<img src="pict/stog-constraints.png" alt="STOG constraints" style="width: 300px;"/>
+<img src="pict/stog-constraints.png" alt="STOG constraints" style="width: 350px;"/>
 
 The relative position of the branch
 with regard to the trunk can be modeled with three linear constraints (one equality and two inequalities), as follows:
