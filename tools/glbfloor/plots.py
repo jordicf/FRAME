@@ -12,6 +12,31 @@ from frame.die.die import Die
 from frame.allocation.allocation import Allocation
 
 
+class PlottingOptions:
+    """Plotting options"""
+    def __init__(self, name: str | None = None,
+                 joint_plot: bool = False, separated_plot: bool = False, visualize: bool = False):
+        """
+        :param name: name of the plot to be produced in each optimization. The optimization number, the plot type, and
+        the file extension are added automatically
+        :param joint_plot: if True, produce an image at each iteration showing a joint floorplan plot
+        :param separated_plot: if True, produce an image at each iteration showing a separated floorplan plot
+        :param visualize: if True, produce an animation to visualize the complete optimization process
+        """
+        self.name = name
+        self.joint_plot = joint_plot
+        self.separated_plot = separated_plot
+        self.visualize = visualize
+        self._check_options()
+
+    def _check_options(self):
+        assert not self.visualize or (self.joint_plot or self.separated_plot), \
+            "joint_plot or separated_plot must be True if visualize is True"
+        assert not self.joint_plot or self.name, "plot name is required if joint_plot is True"
+        assert not self.separated_plot or self.name, "plot name is required if separated_plot is True"
+        assert not self.visualize or self.name, "plot name is required if visualize is True"
+
+
 @dataclass()
 class Scaling:
     """Auxiliary class to scale points to image coordinates"""
@@ -38,10 +63,11 @@ def get_color(ratio: float, color_map: str) -> tuple[int, int, int, int]:
     return color[0], color[1], color[2], color[3]
 
 
-def get_grid_image(die: Die, allocation: Allocation,
-                   dispersions: dict[str, tuple[float, float]] | None = None,
-                   alpha: float | None = None, suptitle: str = "",
-                   draw_borders: bool = True, draw_ratios: bool = True, draw_text: bool = True) -> Image.Image:
+def get_separated_floorplan_plot(die: Die, allocation: Allocation,
+                                 dispersions: dict[str, tuple[float, float]] | None = None, alpha: float | None = None,
+                                 suptitle: str = "",
+                                 draw_borders: bool = True, draw_ratios: bool = True, draw_text: bool = False) \
+        -> Image.Image:
     """
     Return a PIL Image containing a floorplan plot, given the netlist and allocation of each module in each cell, and
     additional information for annotations.
@@ -132,18 +158,3 @@ def get_grid_image(die: Die, allocation: Allocation,
         draw.text((img.width / 2, 0), suptitle, anchor="ma", font=large_font, fill="Black")
 
     return img
-
-
-def plot_grid(die: Die, allocation: Allocation,
-              dispersions: dict[str, tuple[float, float]] | None = None, alpha: float | None = None, suptitle: str = "",
-              draw_borders: bool = True, draw_ratios: bool = True, draw_text: bool = True,
-              filename: str | None = None) -> None:
-    """
-    Plot the grid to a file given all the required parameters, or show it if no filename is given.
-    See get_grid_image function documentation for more information.
-    """
-    img = get_grid_image(die, allocation, dispersions, alpha, suptitle, draw_borders, draw_ratios, draw_text)
-    if filename is None:
-        img.show()
-    else:
-        img.save(filename)

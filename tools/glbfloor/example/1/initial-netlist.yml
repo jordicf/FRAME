@@ -1,5 +1,3 @@
-# Generated with "frame netgen --type grid --size 3 2 -o initial-netlist.yml --die 2x3 --add-centers"
-
 Modules:
   M0_0:
     area: 1

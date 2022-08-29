@@ -10,7 +10,8 @@ from frame.die.die import Die
 from frame.netlist.module import Module
 from frame.allocation.allocation import AllocDescriptor, Alloc, Allocation, create_initial_allocation
 
-from tools.glbfloor.plots import plot_grid, get_grid_image
+from tools.draw.draw import get_floorplan_plot as get_joint_floorplan_plot
+from tools.glbfloor.plots import PlottingOptions, get_separated_floorplan_plot
 
 
 class Model:
@@ -120,8 +121,8 @@ def extract_solution(model: Model, die: Die, cells: list[Rectangle], threshold: 
 
 
 def solve_and_extract_solution(model: Model, die: Die, cells: list[Rectangle], threshold: float, max_iter: int = 100,
-                               verbose: bool = False, visualize: bool = False) \
-        -> tuple[Die, Allocation, dict[str, tuple[float, float]], list[Image.Image]]:
+                               verbose: bool = False, plotting_options: PlottingOptions | None = None) \
+        -> tuple[Die, Allocation, dict[str, tuple[float, float]], tuple[list[Image.Image], list[Image.Image]]]:
     """
     Solves the model's optimization problem, extracts the solution from it, and returns it
     :param model: the model
@@ -130,16 +131,18 @@ def solve_and_extract_solution(model: Model, die: Die, cells: list[Rectangle], t
     :param threshold: hyperparameter between 0 and 1 to decide if allocations can be fixed
     :param max_iter: maximum number of iterations for GEKKO
     :param verbose: if True, the GEKKO optimization log is displayed (not supported if visualize is True)
-    :param visualize: if True, a list of PIL images is returned visualizing the optimization
+    :param plotting_options: plotting options
     :return:
     - die - die with netlist with the centroids of the modules updated
     - dispersions - a dictionary from module name to float pair which indicates the dispersion of each module
-    - vis_imgs - if visualize is True, a list of images visualizing the optimization, otherwise, an empty list
+    - vis_imgs - a tuple of two lists of images visualizing the optimization containing joint and separated plots,
+    respectively. If those options are False, the respective list is empty. If visualize is False, a tuple of two empty
+    lists is returned.
     """
     allocation = None
     dispersions = None
-    vis_imgs = []
-    if not visualize:
+    vis_imgs: tuple[list[Image.Image], list[Image.Image]] = ([], [])
+    if plotting_options is None or not plotting_options.visualize:  # if not visualize
         model.gekko.options.MAX_ITER = max_iter
         model.gekko.solve(disp=verbose)
         die, allocation, dispersions = extract_solution(model, die, cells, threshold)
@@ -152,7 +155,12 @@ def solve_and_extract_solution(model: Model, die: Die, cells: list[Rectangle], t
             model.gekko.solve(disp=False, debug=0)
 
             die, allocation, dispersions = extract_solution(model, die, cells, threshold)
-            vis_imgs.append(get_grid_image(die, allocation, draw_text=False))
+            assert die.netlist is not None, "No netlist associated to the die"  # Assertion to suppress Mypy error
+
+            if plotting_options.separated_plot:
+                vis_imgs[0].append(get_joint_floorplan_plot(die.netlist, allocation, die.bounding_box.shape))
+            if plotting_options.joint_plot:
+                vis_imgs[1].append(get_separated_floorplan_plot(die, allocation))
             print(i, end=" ", flush=True)
 
             if model.gekko.options.APPSTATUS == 1:
@@ -168,8 +176,9 @@ def solve_and_extract_solution(model: Model, die: Die, cells: list[Rectangle], t
 
 
 def optimize_allocation(die: Die, allocation: Allocation, dispersions: dict[str, tuple[float, float]],
-                        threshold: float, alpha: float, verbose: bool = False, visualize: bool = False) \
-        -> tuple[Die, Allocation, dict[str, tuple[float, float]], list[Image.Image]]:
+                        threshold: float, alpha: float, verbose: bool = False,
+                        plotting_options: PlottingOptions | None = None) \
+        -> tuple[Die, Allocation, dict[str, tuple[float, float]], tuple[list[Image.Image], list[Image.Image]]]:
     """
     Optimizes the given allocation to minimize the dispersion and the wire length of the floor plan
     :param die: die with netlist containing the modules with centroids initialized
@@ -180,7 +189,7 @@ def optimize_allocation(die: Die, allocation: Allocation, dispersions: dict[str,
     :param alpha: hyperparameter between 0 and 1 to control the balance between dispersion and wire length.
     Smaller values will reduce the dispersion and increase the wire length, and greater ones the other way around
     :param verbose: if True, the GEKKO optimization log is displayed
-    :param visualize: if True, a list of PIL images is returned visualizing the optimization
+    :param plotting_options: plotting options
     :return: the optimal solution found:
     - die - die with netlist with the centroids of the modules updated
     - allocation - optimized allocation
@@ -294,14 +303,13 @@ def optimize_allocation(die: Die, allocation: Allocation, dispersions: dict[str,
     # Total dispersion
     g.Minimize((1 - alpha) * g.sum([model.dx[m] + model.dy[m] for m in range(die.netlist.num_modules)]))
 
-    die, allocation, dispersions, vis_imgs = solve_and_extract_solution(model, die, cells, threshold,
-                                                                        verbose=verbose, visualize=visualize)
+    die, allocation, dispersions, vis_imgs = solve_and_extract_solution(model, die, cells, threshold, verbose=verbose,
+                                                                        plotting_options=plotting_options)
     return die, allocation, dispersions, vis_imgs
 
 
-def glbfloor(die: Die, threshold: float, alpha: float,
-             max_iter: int | None = None, plot_name: str | None = None,
-             verbose: bool = False, visualize: bool = False) -> tuple[Die, Allocation]:
+def glbfloor(die: Die, threshold: float, alpha: float, max_iter: int | None = None, verbose: bool = False,
+             plotting_options: PlottingOptions | None = None) -> tuple[Die, Allocation]:
     """
     Calculates the initial allocation and optimizes it to minimize the dispersion and the wire length of the floor plan.
     Afterwards, the allocation is repeatedly refined and optimized until it cannot be further refined or the maximum
@@ -312,17 +320,16 @@ def glbfloor(die: Die, threshold: float, alpha: float,
     Smaller values will reduce the dispersion and increase the wire length, and greater ones the other way around
     :param max_iter: maximum number of optimization iterations performed, or None to stop when no more refinements
     can be performed
-    :param plot_name: name of the plot to be produced in each iteration. The iteration number and the PNG extension
-    are added automatically. If None, no plots are produced
-    :param verbose: If True, the GEKKO optimization log and iteration numbers are displayed
-    :param visualize: If True, produce a GIF to visualize the complete optimization process
+    :param verbose: if True, the GEKKO optimization log and iteration numbers are displayed
+    :param plotting_options: plotting options
     :return: the optimal solution found:
     - netlist - Netlist with the centroids of the modules updated.
     - allocation - Refined allocation with the ratio of each module in each cell of the grid.
     """
     assert die.netlist is not None, "No netlist associated to the die"
 
-    all_vis_imgs = []
+    joint_vis_imgs = []
+    separated_vis_imgs = []
     durations = []
 
     allocation = create_initial_allocation(die)
@@ -330,8 +337,14 @@ def glbfloor(die: Die, threshold: float, alpha: float,
 
     n_iter = 0
 
-    if plot_name is not None:
-        plot_grid(die, allocation, dispersions, alpha, filename=f"{plot_name}-{n_iter}.png")
+    if plotting_options is not None:
+        if plotting_options.joint_plot:
+            get_joint_floorplan_plot(die.netlist, allocation, die.bounding_box.shape).save(
+                f"{plotting_options.name}-joint-{n_iter}.png")
+
+        if plotting_options.separated_plot:
+            get_separated_floorplan_plot(die, allocation, dispersions, alpha, draw_text=True).save(
+                f"{plotting_options.name}-separated-{n_iter}.png")
 
     n_iter += 1
     while max_iter is None or n_iter <= max_iter:
@@ -342,21 +355,35 @@ def glbfloor(die: Die, threshold: float, alpha: float,
                 break
 
         die, allocation, dispersions, vis_imgs = optimize_allocation(die, allocation, dispersions, threshold, alpha,
-                                                                     verbose, visualize)
+                                                                     verbose, plotting_options)
+        assert die.netlist is not None, "No netlist associated to the die"  # Assertion to suppress Mypy error
 
-        if visualize:
-            all_vis_imgs.extend(vis_imgs)
-            durations.extend([100] * (len(vis_imgs) - 1) + [1000])
+        if plotting_options is not None:
+            if plotting_options.visualize:
+                joint_vis_imgs.extend(vis_imgs[0])
+                separated_vis_imgs.extend(vis_imgs[1])
+                durations.extend([100] * (max(len(vis_imgs[0]), len(vis_imgs[1])) - 1) + [1000])
 
-        if plot_name is not None:
-            plot_grid(die, allocation, dispersions, alpha, filename=f"{plot_name}-{n_iter}.png")
+            if plotting_options.joint_plot:
+                get_joint_floorplan_plot(die.netlist, allocation, die.bounding_box.shape).save(
+                    f"{plotting_options.name}-joint-{n_iter}.png")
+
+            if plotting_options.separated_plot:
+                get_separated_floorplan_plot(die, allocation, dispersions, alpha, draw_text=True).save(
+                    f"{plotting_options.name}-separated-{n_iter}.png")
 
         if verbose:
             print(f"Iteration {n_iter} finished\n")
 
         n_iter += 1
 
-    if visualize:
-        all_vis_imgs[0].save(f"{plot_name}.gif", save_all=True, append_images=all_vis_imgs[1:], duration=durations)
+    if plotting_options is not None and plotting_options.visualize:
+        if plotting_options.joint_plot:
+            joint_vis_imgs[0].save(f"{plotting_options.name}-joint-visualization.gif",
+                                   save_all=True, append_images=joint_vis_imgs[1:], duration=durations)
+
+        if plotting_options.separated_plot:
+            separated_vis_imgs[0].save(f"{plotting_options.name}-separated-visualization.gif",
+                                       save_all=True, append_images=separated_vis_imgs[1:], duration=durations)
 
     return die, allocation

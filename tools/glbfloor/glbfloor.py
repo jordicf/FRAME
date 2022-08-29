@@ -12,6 +12,7 @@ from frame.die.die import Die
 from frame.netlist.netlist import Netlist
 
 from tools.glbfloor.optimization import glbfloor
+from tools.glbfloor.plots import PlottingOptions
 
 
 def parse_options(prog: str | None = None, args: list[str] | None = None) -> dict[str, Any]:
@@ -40,14 +41,19 @@ def parse_options(prog: str | None = None, args: list[str] | None = None) -> dic
                         help="threshold hyperparameter between 0 and 1 to decide if allocations must be refined. "
                              "Allocations with a greater occupancy will not be further refined")
     parser.add_argument("-i", "--max-iter", type=int,
-                        help="maximum number of optimizations performed (if not present, until no more refinements can "
-                             "be performed)")
-    parser.add_argument("-p", "--plot",
-                        help="plot name (if not present, no plots are produced)")
+                        help="maximum number of optimizations performed "
+                             "(if not present, until no more refinements can be performed)")
     parser.add_argument("-v", "--verbose", action="store_true",
-                        help="print the optimization logs and additional information")
+                        help="print the optimization logs, elapsed time, and some additional information")
+    parser.add_argument("--plot-name", default="plot",
+                        help="name to use for the output plot files")
+    parser.add_argument("--joint-plot", action="store_true",
+                        help="produce a joint floorplan plot at each optimization")
+    parser.add_argument("--separated-plot", action="store_true",
+                        help="produce a separated (by modules) floorplan plot at each optimization")
     parser.add_argument("--visualize", action="store_true",
-                        help="produce animations to visualize the optimizations (might take a long time to execute)")
+                        help="produce a GIF to visualize the full optimizations process "
+                             "(might take a long time to execute)")
     parser.add_argument("--out-netlist",
                         help="output netlist file (if not present, no file is produced)")
     parser.add_argument("--out-allocation",
@@ -90,16 +96,20 @@ def main(prog: str | None = None, args: list[str] | None = None):
     max_iter: int | None = options["max_iter"]
     assert max_iter is None or max_iter > 0, "The maximum number of iterations must be positive"
 
-    plot_name: str | None = options["plot"]
     verbose: bool = options["verbose"]
+    plot_name: str = options["plot_name"]
+    joint_plot: bool = options["joint_plot"]
+    separated_plot: bool = options["separated_plot"]
     visualize: bool = options["visualize"]
-    assert not visualize or visualize and plot_name, "--plot_name is required when using --visualize"
+    assert not visualize or (joint_plot or separated_plot), \
+        "plot type (--joint-plot or --separated-plot) must be specified when using --visualize"
+    plotting_options = PlottingOptions(plot_name, joint_plot, separated_plot, visualize)
 
     start_time = 0.0
     if verbose:
         start_time = time()
 
-    die, allocation = glbfloor(die, threshold, alpha, max_iter, plot_name, verbose, visualize)
+    die, allocation = glbfloor(die, threshold, alpha, max_iter, verbose, plotting_options)
 
     if verbose:
         print(f"Elapsed time: {time() - start_time:.3f} s")
