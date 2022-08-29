@@ -27,7 +27,7 @@ Automation is achieved by running efficient algorithms on mathematical models
 
 _Floorplanning_ is a process that evolves at different levels of abstraction.
 Modules can be seen as points, circles, squares or orthogonal polygons, depending
-on the level of detail at which pysical decisions are taken. When floorplanning
+on the level of detail at which physical decisions are taken. When floorplanning
 is automated, a pipeline of optimization tasks based on mathematical models is
 typically envisioned, using different abstract models, as shown in the 
 figure below.
