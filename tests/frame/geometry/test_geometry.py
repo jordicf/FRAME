@@ -53,9 +53,9 @@ class TestPoint(unittest.TestCase):
         self.assertEqual(self.p * self.q, self.q * self.p)
 
     def test_pow(self) -> None:
-        self.assertEqual(self.p ** 2, Point(1, 4))
-        self.assertEqual(self.q ** 2, Point(2.25, 0))
-        self.assertEqual(self.p ** 0, self.r + 1)
+        self.assertEqual(self.p**2, Point(1, 4))
+        self.assertEqual(self.q**2, Point(2.25, 0))
+        self.assertEqual(self.p**0, self.r + 1)
 
     def test_div(self) -> None:
         self.assertEqual(self.p / 2, Point(0.5, 1))
@@ -136,12 +136,12 @@ class TestRectangle(unittest.TestCase):
         self.assertEqual(r3.area_overlap(r4), 2)
 
         # Checkihng __mul__
-        self.assertIsNone(r1*r2)
-        self.assertIsNone(r1*r3)
-        self.assertIsNone(r1*r4)
-        self.assertIsNone(r2*r4)
-        r5 = r2*r3
-        r6 = r3*r4
+        self.assertIsNone(r1 * r2)
+        self.assertIsNone(r1 * r3)
+        self.assertIsNone(r1 * r4)
+        self.assertIsNone(r2 * r4)
+        r5 = r2 * r3
+        r6 = r3 * r4
         r5_inter = Rectangle(**{KW_CENTER: Point(6.5, 5.0), KW_SHAPE: Shape(1, 2)})
         r6_inter = Rectangle(**{KW_CENTER: Point(7, 2.5), KW_SHAPE: Shape(2, 1)})
         self.assertTrue(r5 == r5_inter)
@@ -160,9 +160,9 @@ class TestRectangle(unittest.TestCase):
         self.assertFalse(r3.is_inside(r1))
 
     def test_trunked_polygons(self):
-        r1 = Rectangle(center=Point(2,3.5), shape=Shape(2,3))
-        r2 = Rectangle(center=Point(4.5,4.5), shape=Shape(3,1))
-        r3 = Rectangle(center=Point(6,9.5), shape=Shape(2,3))
+        r1 = Rectangle(center=Point(2, 3.5), shape=Shape(2, 3))
+        r2 = Rectangle(center=Point(4.5, 4.5), shape=Shape(3, 1))
+        r3 = Rectangle(center=Point(6, 9.5), shape=Shape(2, 3))
         r4 = Rectangle(center=Point(7, 12), shape=Shape(2, 2))
         r5 = Rectangle(center=Point(9, 12), shape=Shape(2, 6))
         r6 = Rectangle(center=Point(9.5, 15.5), shape=Shape(1, 1))
@@ -185,9 +185,6 @@ class TestRectangle(unittest.TestCase):
         self.assertEqual(r8.location, Rectangle.Location.EAST)
         self.assertEqual(r9.location, Rectangle.Location.SOUTH)
         self.assertEqual(r4.location, Rectangle.Location.WEST)
-
-
-
 
 
 if __name__ == '__main__':

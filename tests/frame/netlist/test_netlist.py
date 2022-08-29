@@ -45,8 +45,5 @@ class TestNetlist(unittest.TestCase):
         self.assertAlmostEqual(self.netlist.wire_length, 5 + 42.6733 + 3.66439, places=4)
 
 
-
-
-
 if __name__ == '__main__':
     unittest.main()
