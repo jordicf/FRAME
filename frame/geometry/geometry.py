@@ -321,13 +321,15 @@ class Rectangle:
         return bb_self.ll.x <= bb_r.ur.x + epsilon and bb_r.ll.x <= bb_self.ur.x + epsilon \
             and bb_self.ll.y <= bb_r.ur.y + epsilon and bb_r.ll.y <= bb_self.ur.y + epsilon
 
-    def overlap(self, r: 'Rectangle') -> bool:
+    def overlap(self, r: 'Rectangle', epsilon: float = 1e-12) -> bool:
         """
-        Checks whether two rectangles overlap. They are considered not to overlap if they touch each other
-        :param r: the other rectangle.
-        :return: True if they overlap, and False otherwise.
+        Checks whether two rectangles overlap. They are considered not to overlap if they touch each other.
+        If the overlapping area is smaller than epsilon, they are considered not to overlap
+        :param r: the other rectangle
+        :param epsilon: tolerance for area overlap
+        :return: True if they overlap, and False otherwise
         """
-        return self.area_overlap(r) > 0
+        return self.area_overlap(r) > epsilon
 
     def area_overlap(self, r: 'Rectangle') -> float:
         """
