@@ -80,6 +80,7 @@ class TestYaml(unittest.TestCase):
     def read_write_netlist(self, yaml_netlist: str) -> None:
         n1 = Netlist(yaml_netlist)
         n1_yaml = n1.write_yaml()
+        assert n1_yaml is not None  # Assertion to suppress Mypy error
         n2 = Netlist(n1_yaml)
         n2_yaml = n2.write_yaml()
         diffs = [x for x in yaml_diff(n1_yaml, n2_yaml)]
