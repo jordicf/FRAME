@@ -46,10 +46,11 @@ including only the FRAME code can be helpful to speed up the inspection and not 
 third-party code.
 
 ```
-file[FRAME]:examples//*.py
 file[FRAME]:frame//*.py
+file[FRAME]:frame//*.ipynb
 file[FRAME]:tests//*.py
 file[FRAME]:tools//*.py
+file[FRAME]:tests//*.ipynb
 file:setup.py
 ```
 
