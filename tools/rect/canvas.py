@@ -51,9 +51,27 @@ class Canvas:
         self.y1: float = float(height)
         self.width: float = float(width)
         self.height: float = float(height)
-        self.canvas: Image.Image = Image.new("RGB", (width, height))
+        self.canvas: Image.Image = Image.new("RGBA", (width, height))
         self.context: ImageDraw.ImageDraw = ImageDraw.Draw(self.canvas)
         self.clear()
+
+    @staticmethod
+    def hex_breakdown(col: str | None) -> tuple[int, int, int, int] | None:
+        if col is None:
+            return None
+        if col[0] == "#":
+            col = col[1:]
+        if len(col) == 3:
+            color = int(col[0], 16) * 16, int(col[1], 16) * 16, int(col[2], 16) * 16, 255
+        elif len(col) == 4:
+            color = int(col[0], 16) * 16, int(col[1], 16) * 16, int(col[2], 16) * 16, int(col[3], 16) * 16
+        elif len(col) == 6:
+            color = int(col[0:2], 16), int(col[2:4], 16), int(col[4:6], 16), 255
+        elif len(col) == 8:
+            color = int(col[0:2], 16), int(col[2:4], 16), int(col[4:6], 16), int(col[6:8], 16)
+        else:
+            raise Exception("Unknown hex color " + col)
+        return color
 
     def setcoords(self, x0: float, y0: float, x1: float, y1: float) -> None:
         """
@@ -81,7 +99,7 @@ class Canvas:
         return x3, y3
 
     def drawbox(self, box: tuple[tuple[float, float], tuple[float, float]],
-                col: str = "#FFFFFF", out: str = "#000000") -> None:
+                col: str = "#FFFFFF", out: str | None = None) -> None:
         """
         Draws a box into the image
         :param box: The coordinates of the top left and the bottom right corners of the box in virtual space
@@ -91,7 +109,9 @@ class Canvas:
         (t1, b1) = box
         t2, b2 = self.interpolate(t1), self.interpolate(b1)
         shape = (t2[0], t2[1], b2[0], b2[1])
-        self.context.rectangle(shape, fill=col, outline=out)
+        color = self.hex_breakdown(col)
+        outline = self.hex_breakdown(out)
+        self.context.rectangle(shape, fill=color, outline=outline)
 
     def clear(self, col: str = "#FFFFFF") -> None:
         """
@@ -99,7 +119,8 @@ class Canvas:
         :param col: The background color
         """
         shape = (0, 0, self.width, self.height)
-        self.context.rectangle(shape, fill=col, outline=col)
+        color = self.hex_breakdown(col)
+        self.context.rectangle(shape, fill=color, outline=color)
 
     def show(self) -> None:
         """

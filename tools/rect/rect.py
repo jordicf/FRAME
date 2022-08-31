@@ -60,7 +60,8 @@ def parse_options(prog: str | None = None, args: list[str] | None = None) -> dic
     :param args: command-line arguments
     :return: a dictionary with the arguments
     """
-    parser = ArgumentParser(prog=prog, description="An example generation tool", usage='%(prog)s [options]')
+    parser = ArgumentParser(prog=prog, description="A package for normalizing fuzzy module assignments",
+                            usage='%(prog)s [options]')
     parser.add_argument("filename", type=str,                 help="Input file (.yaml)")
     parser.add_argument("--minarea", dest='f', const=0.89, default=2.00, action='store_const',
                         help="Minimizes the total area while guaranteeing a minimum coverage of the original")
