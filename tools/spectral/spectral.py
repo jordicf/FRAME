@@ -47,7 +47,7 @@ class Spectral(Netlist):
         # Find the fixed modules
         self._fixed_coord = [[-1.0] * nnodes, [-1.0] * nnodes]
         for i, m in enumerate(self.modules):
-            if m.fixed:
+            if m.is_fixed:
                 assert m.center is not None
                 self._fixed_coord[0][i], self._fixed_coord[1][i] = m.center
 

@@ -266,7 +266,7 @@ class Allocation:
         :param netlist: The netlist
         :return: a list of tuples (rectangle, module name) for all fixed rectangles
         """
-        fixed_modules = [m for m in netlist.modules if m.fixed]
+        fixed_modules = [m for m in netlist.modules if m.is_fixed]
         eps = 1e-6  # tolerance for comparisons with floats
         num_rect = {m.name: 0 for m in fixed_modules}
         fixed_rects: list[tuple[Rectangle, str]] = []

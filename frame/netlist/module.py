@@ -106,12 +106,16 @@ class Module:
         self._min_shape = shape
 
     @property
-    def hard(self) -> bool:
+    def is_hard(self) -> bool:
         return self._hard
 
     @property
-    def fixed(self) -> bool:
+    def is_fixed(self) -> bool:
         return self._fixed
+
+    @property
+    def is_soft(self) -> bool:
+        return not self._hard
 
     @property
     def flip(self) -> bool:
@@ -191,16 +195,16 @@ class Module:
         overlap. The first rectangle of hard blocks must be the trunk
         """
 
-        assert not (self.fixed and not self.hard),\
+        assert not (self.is_fixed and not self.is_hard),\
             f"Inconsistent fixed module {self.name}. It should be also hard."
 
-        assert not(self.flip and self.fixed), f"Fixed module {self.name} cannot be flipped."
-        assert not(self.flip and not self.hard), f"Soft module {self.name} cannot be flipped."
+        assert not(self.flip and self.is_fixed), f"Fixed module {self.name} cannot be flipped."
+        assert not(self.flip and not self.is_hard), f"Soft module {self.name} cannot be flipped."
 
         area_defined = len(self.area_regions) > 0
-        assert self.hard or area_defined, f"No area defined for a soft module {self.name}."
+        assert self.is_hard or area_defined, f"No area defined for a soft module {self.name}."
 
-        if self.hard:
+        if self.is_hard:
             # Check that neither area, nor center nor min_shape are defined.
             # It also checks that at least has one rectangle
             assert not area_defined, f"Inconsistent hard module {self.name}: cannot specify area."
@@ -219,7 +223,8 @@ class Module:
             self._area_regions = {KW_GROUND: area}
             self._total_area = area
 
-    def is_stog(self) -> bool:
+    @property
+    def has_stog(self) -> bool:
         """
         Determines whether a module is a STOG
         :return: True if it has an associate STOG, and False otherwise

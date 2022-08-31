@@ -245,7 +245,7 @@ def optimize_allocation(die: Die, allocation: Allocation, dispersions: dict[str,
     # are also fixed in the model.
     for m, module in enumerate(die.netlist.modules):
         const_module = True
-        if not module.fixed:
+        if not module.is_fixed:
             for c in range(n_cells):
                 a_mc_val = get_value(model.a[m][c])
                 if a_mc_val > threshold and all(get_value(model.a[m][d]) > threshold for d in neigh_cells[c]) or \

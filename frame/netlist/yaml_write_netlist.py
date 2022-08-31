@@ -37,7 +37,7 @@ def dump_yaml_module(module: Module) -> dict:
     """
     info: dict[str, float | bool | list | dict] = {}
 
-    if not module.hard:
+    if not module.is_hard:
         if len(module.area_regions) == 1 and KW_GROUND in module.area_regions:
             info[KW_AREA] = module.area(KW_GROUND)
         else:
@@ -49,9 +49,9 @@ def dump_yaml_module(module: Module) -> dict:
         if module.min_shape is not None:
             info[KW_MIN_SHAPE] = [module.min_shape.w, module.min_shape.h]
 
-    if module.fixed:
+    if module.is_fixed:
         info[KW_FIXED] = True
-    elif module.hard:
+    elif module.is_hard:
         info[KW_HARD] = True
 
     if len(module.rectangles) > 0:
