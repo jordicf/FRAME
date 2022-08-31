@@ -54,7 +54,7 @@ class Die:
         self._epsilon = min(self.width, self.height) * 10e-12
         Rectangle.set_epsilon(self._epsilon)
 
-        # Selectec blockages from the other regions
+        # Selected blockages from the other regions
         self._specialized_regions, self._blockages = [], []
         for r in regions:
             self._blockages.append(r) if r.region == KW_BLOCKAGE else self._specialized_regions.append(r)
