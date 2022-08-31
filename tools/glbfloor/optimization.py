@@ -350,7 +350,7 @@ def glbfloor(die: Die, threshold: float, alpha: float,
 
             if plotting_options.joint_plot:
                 get_joint_floorplan_plot(die.netlist, allocation, die.bounding_box.shape).\
-                    save(f"{plotting_options.name}-joint-{n_iter}.png")
+                    save(f"{plotting_options.name}-joint-{n_iter}.gif")
 
             if plotting_options.separated_plot:
                 get_separated_floorplan_plot(die, allocation, dispersions, dispersion_function, alpha, draw_text=True).\
