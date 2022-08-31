@@ -5,6 +5,7 @@ Module to represent points, shapes and rectangles
 from collections import deque
 from enum import Enum
 import heapq
+import math
 from typing import Any, Union, Sequence, Optional
 from dataclasses import dataclass, field
 
@@ -164,6 +165,9 @@ class Rectangle:
         WEST = 5
         NO_POLYGON = 6
 
+    _distance_epsilon: float = 1e-12  # epsilon used for distances
+    _area_epsilon: float = math.sqrt(_distance_epsilon)  # epsilon used for area
+
     def __init__(self, **kwargs: Any):
         """
         Constructor
@@ -205,6 +209,26 @@ class Rectangle:
                 self._name = value
             else:
                 assert False  # Should never happen
+
+    @staticmethod
+    def set_epsilon(distance_epsilon: float, area_epsilon: float = -1) -> None:
+        """
+        Defines the epsilons for float comparisons in distance an area
+        :param distance_epsilon: epsilon used for distances
+        :param area_epsilon: epsilon used for area. If negative, sqrt(distance_epsilon) is taken
+        """
+        Rectangle._distance_epsilon = distance_epsilon
+        Rectangle._area_epsilon = area_epsilon if area_epsilon >= 0 else math.sqrt(distance_epsilon)
+
+    @staticmethod
+    def distance_epsilon() -> float:
+        """Returns the epsilon used for distances"""
+        return Rectangle._distance_epsilon
+
+    @staticmethod
+    def area_epsilon() -> float:
+        """Returns the epsilon used for area"""
+        return Rectangle._area_epsilon
 
     # Getter and setter for center
     @property
@@ -311,17 +335,19 @@ class Rectangle:
         bbr = r.bounding_box
         return bb.ll.x >= bbr.ll.x and bb.ll.y >= bbr.ll.y and bb.ur.x <= bbr.ur.x and bb.ur.y <= bbr.ur.y
 
-    def touches(self, r: 'Rectangle', epsilon: float = 1e-12) -> bool:
+    def touches(self, r: 'Rectangle', epsilon: float = -1) -> bool:
         """Checks whether the two rectangles touch each other according to some distance tolerance
         :param r: the other rectangle
         :param epsilon: tolerance for distance measurements
         :return: True if they touch each other, and False otherwise
         """
         bb_self, bb_r = self.bounding_box, r.bounding_box
+        if epsilon > 0:
+            epsilon = Rectangle.distance_epsilon()
         return bb_self.ll.x <= bb_r.ur.x + epsilon and bb_r.ll.x <= bb_self.ur.x + epsilon \
             and bb_self.ll.y <= bb_r.ur.y + epsilon and bb_r.ll.y <= bb_self.ur.y + epsilon
 
-    def overlap(self, r: 'Rectangle', epsilon: float = 1e-12) -> bool:
+    def overlap(self, r: 'Rectangle', epsilon: float = -1) -> bool:
         """
         Checks whether two rectangles overlap. They are considered not to overlap if they touch each other.
         If the overlapping area is smaller than epsilon, they are considered not to overlap
@@ -329,7 +355,7 @@ class Rectangle:
         :param epsilon: tolerance for area overlap
         :return: True if they overlap, and False otherwise
         """
-        return self.area_overlap(r) > epsilon
+        return self.area_overlap(r) > (epsilon if epsilon >= 0 else Rectangle.area_epsilon())
 
     def area_overlap(self, r: 'Rectangle') -> float:
         """
@@ -349,15 +375,19 @@ class Rectangle:
             return 0.0
         return (maxx - minx) * (maxy - miny)
 
-    def find_location(self, r: 'Rectangle', epsilon: float = 10e-12) -> Location:
+    def find_location(self, r: 'Rectangle', epsilon: float = -1) -> Location:
         """Defines the location of a rectangle with regard to the trunk (self)
         :param r: the rectangle that must be located
         :param epsilon: tolerance for comparisons with floats
         :return: the location
         """
+
         # If they overlap, it cannot be a branch
-        if self.area_overlap(r) > epsilon:
+        if self.area_overlap(r) > (epsilon if epsilon >= 0 else Rectangle.area_epsilon()):
             return Rectangle.Location.NO_POLYGON
+
+        if epsilon < 0:
+            epsilon = Rectangle.distance_epsilon()
 
         bb_self = self.bounding_box
         bb_r = r.bounding_box
@@ -561,13 +591,15 @@ def parse_yaml_rectangle(r: Sequence[float | int | str],
     return Rectangle(**kwargs)
 
 
-def gather_boundaries(rectangles: list[Rectangle], epsilon: float = 1e-12) -> tuple[list[float], list[float]]:
+def gather_boundaries(rectangles: list[Rectangle], epsilon: float = -1) -> tuple[list[float], list[float]]:
     """
     Gathers the x and y coordinates of the sides of a list of rectangles
     :param rectangles: list of rectangles
     :param epsilon: minimum distance between two adjacent coordinates
     :return: the list of x and y coordinates, sorted in ascending order
     """
+    if epsilon < 0:
+        epsilon = Rectangle.distance_epsilon()
     x, y = [], []
     for r in rectangles:
         bb = r.bounding_box
@@ -632,7 +664,7 @@ def split_rectangles(rectangles: list[Rectangle], aspect_ratio: float, n: int) -
     return [prio_rect.rect for prio_rect in heap]
 
 
-def trunked_rectilinear_polygon(rectangles: list[Rectangle], epsilon: float = 1e-12) -> bool:
+def trunked_rectilinear_polygon(rectangles: list[Rectangle], epsilon: float = -1) -> bool:
     """
     Identifies the rectangles of a trunked rectilinear polygon. At the end of the function, the location of
     each rectangle is defined (in case the trunked polygon has been identifed). In case more than one rectangle
