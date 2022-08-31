@@ -14,6 +14,7 @@ from frame.allocation.allocation import Allocation
 
 class PlottingOptions:
     """Plotting options"""
+
     def __init__(self, name: str | None = None,
                  joint_plot: bool = False, separated_plot: bool = False, visualize: bool = False):
         """
@@ -63,9 +64,8 @@ def get_color(ratio: float, color_map: str) -> tuple[int, int, int, int]:
     return color[0], color[1], color[2], color[3]
 
 
-def get_separated_floorplan_plot(die: Die, allocation: Allocation,
-                                 dispersions: dict[str, tuple[float, float]] | None = None, alpha: float | None = None,
-                                 suptitle: str = "",
+def get_separated_floorplan_plot(die: Die, allocation: Allocation, dispersions: dict[str, float] | None = None,
+                                 alpha: float | None = None, suptitle: str = "",
                                  draw_borders: bool = True, draw_ratios: bool = True, draw_text: bool = False) \
         -> Image.Image:
     """
@@ -139,7 +139,7 @@ def get_separated_floorplan_plot(die: Die, allocation: Allocation,
         if draw_text:
             assert dispersions is not None, "dispersions is required if draw_text is True"
             draw.text((s.x_offset, s.y_offset + grid_height + margin / 2),
-                      f"{module.name}| A = {module.area():.2f} | D = {sum(dispersions[module.name]):.2f}",
+                      f"{module.name}| A = {module.area():.2f} | D = {dispersions[module.name]:.2f}",
                       anchor="ls", font=medium_font, fill="Black")
 
         s.x_offset += grid_width + margin
@@ -151,7 +151,7 @@ def get_separated_floorplan_plot(die: Die, allocation: Allocation,
         if len(suptitle) > 0:
             suptitle += " | "
         total_wire_length = die.netlist.wire_length
-        total_dispersion = sum(sum(d) for d in dispersions.values())
+        total_dispersion = sum(dispersions.values())
         suptitle += f"alpha = {alpha:.2f} | " \
                     f"Wire length = {total_wire_length:.2f} | Total dispersion = {total_dispersion:.2f} | " \
                     f"Result = {(alpha * total_wire_length + (1 - alpha) * total_dispersion):.2f}"
