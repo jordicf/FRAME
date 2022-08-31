@@ -219,10 +219,10 @@ class Module:
             self._area_regions = {KW_GROUND: area}
             self._total_area = area
 
-    def has_polygon(self) -> bool:
+    def is_stog(self) -> bool:
         """
-        Determines whether a module has a polygon
-        :return: True if it has an associate polygon, and False otherwise
+        Determines whether a module is a STOG
+        :return: True if it has an associate STOG, and False otherwise
         """
         return self.num_rectangles > 0 and self.rectangles[0].location == Rectangle.StogLocation.TRUNK
 
