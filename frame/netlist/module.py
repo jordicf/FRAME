@@ -237,15 +237,14 @@ class Module:
         self._rectangles = []
         self.add_rectangle(Rectangle(**{KW_CENTER: self.center, KW_SHAPE: Shape(side, side)}))
 
-    def create_trunked_polygon(self, epsilon: float = 1e-12) -> bool:
+    def create_trunked_polygon(self) -> bool:
         """
         Defines the locations of the rectangles in a trunked polygon. It returns true if the module
         can be represented as a trunked polygon of the rectangles. It also defines the locations of
         the rectangles in the trunked polygon. If no polygon is found, all rectangles have the NO_POLYGON location
-        :param epsilon: tolerance in measurement of distances
         :return: True if a trunked polygon has been identified, and False otherwise
         """
-        return trunked_rectilinear_polygon(self.rectangles, epsilon)
+        return trunked_rectilinear_polygon(self.rectangles)
 
     def calculate_center_from_rectangles(self) -> Point:
         """

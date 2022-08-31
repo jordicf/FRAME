@@ -52,6 +52,7 @@ class Die:
         self._netlist = netlist
         self._die, regions = parse_yaml_die(stream)
         self._epsilon = min(self.width, self.height) * 10e-12
+        Rectangle.set_epsilon(self._epsilon)
 
         # Selectec blockages from the other regions
         self._specialized_regions, self._blockages = [], []
@@ -62,7 +63,7 @@ class Die:
         self._fixed = [] if netlist is None else netlist.fixed_rectangles()
 
         self._x, self._y = gather_boundaries(self.specialized_regions + self.blockages +
-                                             self.fixed_regions + [self.bounding_box], self._epsilon)
+                                             self.fixed_regions + [self.bounding_box])
         self._calculate_cell_matrix()
         self._calculate_ground_rectangles()
         self._check_rectangles()
