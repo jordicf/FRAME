@@ -1,16 +1,15 @@
 """This file contains the code for optimizing the floor plans"""
-
-from typing import Any, Callable
+from typing import Any
 
 from PIL import Image
 from gekko import GEKKO
 
 from frame.geometry.geometry import Point, Rectangle
 from frame.die.die import Die
-from frame.netlist.module import Module
 from frame.allocation.allocation import AllocDescriptor, Alloc, Allocation, create_initial_allocation
 
 from tools.draw.draw import get_floorplan_plot as get_joint_floorplan_plot
+from tools.glbfloor.dispersions import DispersionFunction, calculate_dispersions
 from tools.glbfloor.plots import PlottingOptions, get_separated_floorplan_plot
 
 
@@ -47,29 +46,6 @@ def get_value(v) -> float:
         except TypeError:
             raise ValueError(f"Could not get value of {v} (type: {type(v)}")
     return v
-
-
-def calculate_dispersions(modules: list[Module], allocation: Allocation,
-                          dispersion_function: Callable[[float, float], float]) -> dict[str, tuple[float, float]]:
-    """
-    Calculate the dispersions of the modules
-    :param modules: modules with centroids initialized
-    :param allocation: the allocation of the modules
-    :param dispersion_function: the function to use to calculate the dispersion of each module
-    :return: a dictionary from module name to float pair which indicates the dispersion of each module in the
-    given netlist and allocation
-    """
-    dispersions = {}
-    for module in modules:
-        assert module.center is not None
-        dx, dy = 0.0, 0.0
-        for module_alloc in allocation.allocation_module(module.name):
-            cell = allocation.allocation_rectangle(module_alloc.rect_index).rect
-            area = cell.area * module_alloc.area_ratio
-            dx += area * dispersion_function(module.center.x, cell.center.x)
-            dy += area * dispersion_function(module.center.y, cell.center.y)
-        dispersions[module.name] = dx, dy
-    return dispersions
 
 
 def get_neighbouring_cells(allocation: Allocation, cell_index: int) -> list[int]:
@@ -178,8 +154,7 @@ def solve_and_extract_solution(model: Model, die: Die, cells: list[Rectangle], t
 
 
 def optimize_allocation(die: Die, allocation: Allocation, dispersions: dict[str, tuple[float, float]],
-                        threshold: float, alpha: float,
-                        dispersion_function: Callable[[Any, Any], Any] = lambda a, b: (a - b)**2,
+                        threshold: float, alpha: float, dispersion_function: DispersionFunction,
                         verbose: bool = False, plotting_options: PlottingOptions | None = None) \
         -> tuple[Die, Allocation, dict[str, tuple[float, float]], tuple[list[Image.Image], list[Image.Image]]]:
     """
@@ -282,9 +257,9 @@ def optimize_allocation(die: Die, allocation: Allocation, dispersions: dict[str,
                                        for c in range(n_cells)]) == model.y[m])
 
         # Dispersion of modules
-        g.Equation(g.sum([cells[c].area * model.a[m][c] * dispersion_function(model.x[m], cells[c].center.x)
+        g.Equation(g.sum([cells[c].area * model.a[m][c] * dispersion_function.f1(model.x[m], cells[c].center.x)
                           for c in range(n_cells)]) == model.dx[m])
-        g.Equation(g.sum([cells[c].area * model.a[m][c] * dispersion_function(model.y[m], cells[c].center.y)
+        g.Equation(g.sum([cells[c].area * model.a[m][c] * dispersion_function.f1(model.y[m], cells[c].center.y)
                           for c in range(n_cells)]) == model.dy[m])
 
     # Objective function: alpha * total wire length + (1 - alpha) * total dispersion
@@ -305,7 +280,8 @@ def optimize_allocation(die: Die, allocation: Allocation, dispersions: dict[str,
                 g.Minimize(alpha * e.weight * ((ex - model.x[m])**2 + (ey - model.y[m])**2))
 
     # Total dispersion
-    g.Minimize((1 - alpha) * g.sum([model.dx[m] + model.dy[m] for m in range(die.netlist.num_modules)]))
+    g.Minimize((1 - alpha) *
+               g.sum([dispersion_function.f2(model.dx[m], model.dy[m]) for m in range(die.netlist.num_modules)]))
 
     die, allocation, dispersions, vis_imgs = solve_and_extract_solution(model, die, cells, threshold, verbose=verbose,
                                                                         plotting_options=plotting_options)
@@ -313,9 +289,10 @@ def optimize_allocation(die: Die, allocation: Allocation, dispersions: dict[str,
 
 
 def glbfloor(die: Die, threshold: float, alpha: float,
-             dispersion_function: Callable[[Any, Any], Any] = lambda a, b: (a - b)**2,  # Any to allow GEKKO variables
-             max_iter: int | None = None, verbose: bool = False,
-             plotting_options: PlottingOptions | None = None) -> tuple[Die, Allocation]:
+             dispersion_function: DispersionFunction =
+             DispersionFunction(lambda a, b: (a - b)**2, lambda dx, dy: dx + dy),
+             max_iter: int | None = None, verbose: bool = False, plotting_options: PlottingOptions | None = None) \
+        -> tuple[Die, Allocation]:
     """
     Calculates the initial allocation and optimizes it to minimize the dispersion and the wire length of the floor plan.
     Afterwards, the allocation is repeatedly refined and optimized until it cannot be further refined or the maximum
@@ -346,12 +323,12 @@ def glbfloor(die: Die, threshold: float, alpha: float,
 
     if plotting_options is not None:
         if plotting_options.joint_plot:
-            get_joint_floorplan_plot(die.netlist, allocation, die.bounding_box.shape).save(
-                f"{plotting_options.name}-joint-{n_iter}.gif")
+            get_joint_floorplan_plot(die.netlist, allocation, die.bounding_box.shape).\
+                save(f"{plotting_options.name}-joint-{n_iter}.gif")
 
         if plotting_options.separated_plot:
-            get_separated_floorplan_plot(die, allocation, dispersions, alpha, draw_text=True).save(
-                f"{plotting_options.name}-separated-{n_iter}.png")
+            get_separated_floorplan_plot(die, allocation, dispersions, dispersion_function, alpha, draw_text=True).\
+                save(f"{plotting_options.name}-separated-{n_iter}.png")
 
     n_iter += 1
     while max_iter is None or n_iter <= max_iter:
@@ -362,7 +339,7 @@ def glbfloor(die: Die, threshold: float, alpha: float,
                 break
 
         die, allocation, dispersions, vis_imgs = optimize_allocation(die, allocation, dispersions, threshold, alpha,
-                                                                     verbose=verbose, plotting_options=plotting_options)
+                                                                     dispersion_function, verbose, plotting_options)
         assert die.netlist is not None, "No netlist associated to the die"  # Assertion to suppress Mypy error
 
         if plotting_options is not None:
@@ -372,12 +349,12 @@ def glbfloor(die: Die, threshold: float, alpha: float,
                 durations.extend([100] * (max(len(vis_imgs[0]), len(vis_imgs[1])) - 1) + [1000])
 
             if plotting_options.joint_plot:
-                get_joint_floorplan_plot(die.netlist, allocation, die.bounding_box.shape).save(
-                    f"{plotting_options.name}-joint-{n_iter}.png")
+                get_joint_floorplan_plot(die.netlist, allocation, die.bounding_box.shape).\
+                    save(f"{plotting_options.name}-joint-{n_iter}.png")
 
             if plotting_options.separated_plot:
-                get_separated_floorplan_plot(die, allocation, dispersions, alpha, draw_text=True).save(
-                    f"{plotting_options.name}-separated-{n_iter}.png")
+                get_separated_floorplan_plot(die, allocation, dispersions, dispersion_function, alpha, draw_text=True).\
+                    save(f"{plotting_options.name}-separated-{n_iter}.png")
 
         if verbose:
             print(f"Iteration {n_iter} finished\n")
