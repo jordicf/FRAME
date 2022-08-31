@@ -10,7 +10,6 @@ from matplotlib import cm
 from frame.geometry.geometry import Point
 from frame.die.die import Die
 from frame.allocation.allocation import Allocation
-from tools.glbfloor.dispersions import DispersionFunction
 
 
 class PlottingOptions:
@@ -65,9 +64,7 @@ def get_color(ratio: float, color_map: str) -> tuple[int, int, int, int]:
     return color[0], color[1], color[2], color[3]
 
 
-def get_separated_floorplan_plot(die: Die, allocation: Allocation,
-                                 dispersions: dict[str, tuple[float, float]] | None = None,
-                                 dispersion_function: DispersionFunction = None,
+def get_separated_floorplan_plot(die: Die, allocation: Allocation, dispersions: dict[str, float] | None = None,
                                  alpha: float | None = None, suptitle: str = "",
                                  draw_borders: bool = True, draw_ratios: bool = True, draw_text: bool = False) \
         -> Image.Image:
@@ -101,12 +98,6 @@ def get_separated_floorplan_plot(die: Die, allocation: Allocation,
     s = Scaling(scale_factor, margin, margin, grid_width, grid_height)
 
     refinable, fixed = die.floorplanning_rectangles()
-
-    total_dispersions = {}
-    if draw_text:
-        assert dispersions is not None and dispersion_function is not None, \
-            "dispersions and dispersion_function are required if draw_text is True"
-        total_dispersions = {name: dispersion_function.f2(d[0], d[1]) for name, d in dispersions.items()}
 
     for module in die.netlist.modules:
         for rect in refinable + fixed:
@@ -146,19 +137,21 @@ def get_separated_floorplan_plot(die: Die, allocation: Allocation,
 
         # Draw module subtitles
         if draw_text:
+            assert dispersions is not None, "dispersions is required if draw_text is True"
             draw.text((s.x_offset, s.y_offset + grid_height + margin / 2),
-                      f"{module.name}| A = {module.area():.2f} | D = {total_dispersions[module.name]:.2f}",
+                      f"{module.name}| A = {module.area():.2f} | D = {dispersions[module.name]:.2f}",
                       anchor="ls", font=medium_font, fill="Black")
 
         s.x_offset += grid_width + margin
 
     # Draw main title
     if draw_text:
+        assert dispersions is not None, "dispersions is required if draw_text is True"
         assert alpha is not None, "alpha is required if draw_text is True"
         if len(suptitle) > 0:
             suptitle += " | "
         total_wire_length = die.netlist.wire_length
-        total_dispersion = sum(total_dispersions.values())
+        total_dispersion = sum(dispersions.values())
         suptitle += f"alpha = {alpha:.2f} | " \
                     f"Wire length = {total_wire_length:.2f} | Total dispersion = {total_dispersion:.2f} | " \
                     f"Result = {(alpha * total_wire_length + (1 - alpha) * total_dispersion):.2f}"
