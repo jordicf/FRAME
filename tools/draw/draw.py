@@ -194,27 +194,6 @@ def draw_geometry(im: Image.Image, bb: BoundingBox, color, scaling: Scaling,
     im.paste(Image.alpha_composite(im, transp))
 
 
-def parse_options(prog: str | None = None, args: list[str] | None = None) -> dict[str, Any]:
-    """
-    Parse the command-line arguments for the tool
-    :param prog: tool name
-    :param args: command-line arguments
-    :return: a dictionary with the arguments
-    """
-    parser = ArgumentParser(prog=prog, description="A floorplan drawing tool.", usage='%(prog)s [options]')
-    parser.add_argument("netlist", help="input file (netlist)")
-    parser.add_argument("-d", "--die", metavar="<WIDTH>x<HEIGHT> or FILENAME",
-                        help="size of the die (width x height) or name of the file")
-    parser.add_argument("--alloc", metavar="FILENAME",
-                        help="allocation file of modules to rectangles", )
-    parser.add_argument("-o", "--outfile", help="output file (gif)")
-    parser.add_argument("--width", type=int, default=0, help="width of the picture (in pixels)")
-    parser.add_argument("--height", type=int, default=0, help="height of the picture (in pixels)")
-    parser.add_argument("--frame", type=int, default=40, help="frame around the die (in pixels). Default: 40")
-    parser.add_argument("--fontsize", type=int, default=20, help="text font size. Default: 20")
-    return vars(parser.parse_args(args))
-
-
 def get_floorplan_plot(netlist: Netlist, allocation: Allocation | None, die_shape: Shape,
                        width: int = 0, height: int = 0, frame: int = 20, fontsize: int = 20) -> Image.Image:
     """
@@ -291,6 +270,27 @@ def get_floorplan_plot(netlist: Netlist, allocation: Allocation | None, die_shap
                             outline=COLOR_WHITE, width=3)
 
     return im
+
+
+def parse_options(prog: str | None = None, args: list[str] | None = None) -> dict[str, Any]:
+    """
+    Parse the command-line arguments for the tool
+    :param prog: tool name
+    :param args: command-line arguments
+    :return: a dictionary with the arguments
+    """
+    parser = ArgumentParser(prog=prog, description="A floorplan drawing tool.", usage='%(prog)s [options]')
+    parser.add_argument("netlist", help="input file (netlist)")
+    parser.add_argument("-d", "--die", metavar="<WIDTH>x<HEIGHT> or FILENAME",
+                        help="size of the die (width x height) or name of the file")
+    parser.add_argument("--alloc", metavar="FILENAME",
+                        help="allocation file of modules to rectangles", )
+    parser.add_argument("-o", "--outfile", help="output file (gif)")
+    parser.add_argument("--width", type=int, default=0, help="width of the picture (in pixels)")
+    parser.add_argument("--height", type=int, default=0, help="height of the picture (in pixels)")
+    parser.add_argument("--frame", type=int, default=40, help="frame around the die (in pixels). Default: 40")
+    parser.add_argument("--fontsize", type=int, default=20, help="text font size. Default: 20")
+    return vars(parser.parse_args(args))
 
 
 def main(prog: str | None = None, args: list[str] | None = None) -> None:
