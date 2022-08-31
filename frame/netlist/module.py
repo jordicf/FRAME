@@ -1,7 +1,7 @@
 import math
 from itertools import combinations
 
-from frame.geometry.geometry import Point, Shape, Rectangle, trunked_rectilinear_polygon
+from frame.geometry.geometry import Point, Shape, Rectangle, create_stog
 from frame.utils.keywords import KW_CENTER, KW_SHAPE, KW_MIN_SHAPE, KW_AREA, KW_FIXED, KW_HARD, KW_FLIP,\
     KW_GROUND, KW_RECTANGLES
 from frame.utils.utils import valid_identifier, is_number
@@ -224,7 +224,7 @@ class Module:
         Determines whether a module has a polygon
         :return: True if it has an associate polygon, and False otherwise
         """
-        return self.num_rectangles > 0 and self.rectangles[0].location == Rectangle.Location.TRUNK
+        return self.num_rectangles > 0 and self.rectangles[0].location == Rectangle.StogLocation.TRUNK
 
     def create_square(self) -> None:
         """
@@ -237,14 +237,14 @@ class Module:
         self._rectangles = []
         self.add_rectangle(Rectangle(**{KW_CENTER: self.center, KW_SHAPE: Shape(side, side)}))
 
-    def create_trunked_polygon(self) -> bool:
+    def create_stog(self) -> bool:
         """
-        Defines the locations of the rectangles in a trunked polygon. It returns true if the module
-        can be represented as a trunked polygon of the rectangles. It also defines the locations of
-        the rectangles in the trunked polygon. If no polygon is found, all rectangles have the NO_POLYGON location
-        :return: True if a trunked polygon has been identified, and False otherwise
+        Defines the locations of the rectangles in a Single-Trunk Orthogon (STOG). It returns true if the module
+        can be represented as a STOG of the rectangles. It also defines the locations of
+        the rectangles in the STOG. If no polygon is found, all rectangles have the NO_POLYGON location
+        :return: True if a STOG has been identified, and False otherwise
         """
-        return trunked_rectilinear_polygon(self.rectangles)
+        return create_stog(self.rectangles)
 
     def calculate_center_from_rectangles(self) -> Point:
         """

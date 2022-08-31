@@ -1,6 +1,6 @@
 import unittest
 
-from frame.geometry.geometry import Point, Shape, Rectangle, BoundingBox, trunked_rectilinear_polygon
+from frame.geometry.geometry import Point, Shape, Rectangle, BoundingBox, create_stog
 from frame.utils.keywords import KW_CENTER, KW_SHAPE
 
 
@@ -170,21 +170,21 @@ class TestRectangle(unittest.TestCase):
         r8 = Rectangle(center=Point(10.5, 9.5), shape=Shape(1, 1))
         r9 = Rectangle(center=Point(9, 8), shape=Shape(1, 2))
 
-        self.assertTrue(trunked_rectilinear_polygon([r1]))
-        self.assertTrue(trunked_rectilinear_polygon([r5]))
-        self.assertTrue(trunked_rectilinear_polygon([r2, r1]))
-        self.assertFalse(trunked_rectilinear_polygon([r2, r3]))
-        self.assertFalse(trunked_rectilinear_polygon([r3, r4]))
-        self.assertTrue(trunked_rectilinear_polygon([r4, r5]))
+        self.assertTrue(create_stog([r1]))
+        self.assertTrue(create_stog([r5]))
+        self.assertTrue(create_stog([r2, r1]))
+        self.assertFalse(create_stog([r2, r3]))
+        self.assertFalse(create_stog([r3, r4]))
+        self.assertTrue(create_stog([r4, r5]))
         polygon = [r7, r8, r9, r5, r6, r4]
-        self.assertTrue(trunked_rectilinear_polygon(polygon))
+        self.assertTrue(create_stog(polygon))
         self.assertEqual(polygon[0], r5)
-        self.assertEqual(r5.location, Rectangle.Location.TRUNK)
-        self.assertEqual(r6.location, Rectangle.Location.NORTH)
-        self.assertEqual(r7.location, Rectangle.Location.EAST)
-        self.assertEqual(r8.location, Rectangle.Location.EAST)
-        self.assertEqual(r9.location, Rectangle.Location.SOUTH)
-        self.assertEqual(r4.location, Rectangle.Location.WEST)
+        self.assertEqual(r5.location, Rectangle.StogLocation.TRUNK)
+        self.assertEqual(r6.location, Rectangle.StogLocation.NORTH)
+        self.assertEqual(r7.location, Rectangle.StogLocation.EAST)
+        self.assertEqual(r8.location, Rectangle.StogLocation.EAST)
+        self.assertEqual(r9.location, Rectangle.StogLocation.SOUTH)
+        self.assertEqual(r4.location, Rectangle.StogLocation.WEST)
 
 
 if __name__ == '__main__':

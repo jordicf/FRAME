@@ -154,10 +154,10 @@ class Rectangle:
     A class to represent a rectilinear rectangle
     """
 
-    class Location(Enum):
-        """Class to represent the location of a rectangle in a trunked rectilinear polygon.
+    class StogLocation(Enum):
+        """Class to represent the location of a rectangle in a Single-Trunk Orthogon (STOG).
         The values NSEW represent the location with regard to the trunk. If a rectangle is not
-        in a trunked rectilinear polygon, the value NO_POLYGON is assigned"""
+        in a STOG, the value NO_POLYGON is assigned"""
         TRUNK = 1
         NORTH = 2
         SOUTH = 3
@@ -180,7 +180,7 @@ class Rectangle:
         self._fixed: bool = False  # Is the rectangle fixed?
         self._hard: bool = False  # Is the rectangle hard?
         self._region: str = KW_GROUND  # Region of the layout to which the rectangle belongs to
-        self._location: Rectangle.Location = Rectangle.Location.NO_POLYGON
+        self._location: Rectangle.StogLocation = Rectangle.StogLocation.NO_POLYGON
 
         # Reading parameters and type checking
         for key, value in kwargs.items():
@@ -283,11 +283,11 @@ class Rectangle:
         return ar
 
     @property
-    def location(self) -> Location:
+    def location(self) -> StogLocation:
         return self._location
 
     @location.setter
-    def location(self, loc: Location) -> None:
+    def location(self, loc: StogLocation) -> None:
         self._location = loc
 
     def duplicate(self) -> 'Rectangle':
@@ -374,16 +374,15 @@ class Rectangle:
             return 0.0
         return (maxx - minx) * (maxy - miny)
 
-    def find_location(self, r: 'Rectangle') -> Location:
+    def find_location(self, r: 'Rectangle') -> StogLocation:
         """Defines the location of a rectangle with regard to the trunk (self)
         :param r: the rectangle that must be located
-        :param epsilon: tolerance for comparisons with floats
         :return: the location
         """
 
         # If they overlap, it cannot be a branch
         if self.area_overlap(r) > Rectangle.area_epsilon():
-            return Rectangle.Location.NO_POLYGON
+            return Rectangle.StogLocation.NO_POLYGON
 
         epsilon = Rectangle.distance_epsilon()
 
@@ -392,24 +391,24 @@ class Rectangle:
 
         # Let us first find the common side and then check the interval
         if almost_eq(bb_self.ur.y, bb_r.ll.y, epsilon):
-            loc = Rectangle.Location.NORTH
+            loc = Rectangle.StogLocation.NORTH
         elif almost_eq(bb_self.ll.y, bb_r.ur.y, epsilon):
-            loc = Rectangle.Location.SOUTH
+            loc = Rectangle.StogLocation.SOUTH
         elif almost_eq(bb_self.ur.x, bb_r.ll.x, epsilon):
-            loc = Rectangle.Location.EAST
+            loc = Rectangle.StogLocation.EAST
         elif almost_eq(bb_self.ll.x, bb_r.ur.x, epsilon):
-            loc = Rectangle.Location.WEST
+            loc = Rectangle.StogLocation.WEST
         else:
-            return Rectangle.Location.NO_POLYGON
+            return Rectangle.StogLocation.NO_POLYGON
 
         # Check the intervals
-        if loc in [Rectangle.Location.NORTH, Rectangle.Location.SOUTH]:
+        if loc in [Rectangle.StogLocation.NORTH, Rectangle.StogLocation.SOUTH]:
             return loc if bb_r.ll.x > bb_self.ll.x - epsilon and bb_r.ur.x < bb_self.ur.x + epsilon \
-                else Rectangle.Location.NO_POLYGON
+                else Rectangle.StogLocation.NO_POLYGON
 
         # West or East
         return loc if bb_r.ll.y > bb_self.ll.y - epsilon and bb_r.ur.y < bb_self.ur.y + epsilon \
-            else Rectangle.Location.NO_POLYGON
+            else Rectangle.StogLocation.NO_POLYGON
 
     def split_horizontal(self, x: float = -1) -> tuple['Rectangle', 'Rectangle']:
         """
@@ -660,30 +659,30 @@ def split_rectangles(rectangles: list[Rectangle], aspect_ratio: float, n: int) -
     return [prio_rect.rect for prio_rect in heap]
 
 
-def trunked_rectilinear_polygon(rectangles: list[Rectangle]) -> bool:
+def create_stog(rectangles: list[Rectangle]) -> bool:
     """
-    Identifies the rectangles of a trunked rectilinear polygon. At the end of the function, the location of
-    each rectangle is defined (in case the trunked polygon has been identifed). In case more than one rectangle
+    Identifies the rectangles of a Single-Trunk Orthogon. At the end of the function, the location of
+    each rectangle is defined (in case the STOG has been identifed). In case more than one rectangle
     can be a trunk, the one with the largest area is selected. The selected trunk is put at the front of the list.
-    If no trunked polygon can be identified, it returns False
+    If no STOG can be identified, it returns False
     :param rectangles: list of rectangles of the polygon
-    :return: True if the trunked polygon is identifed, and False otherwise
+    :return: True if the STOG is identifed, and False otherwise
     """
     assert len(rectangles) > 0
 
     if len(rectangles) == 1:
-        rectangles[0].location = Rectangle.Location.TRUNK
+        rectangles[0].location = Rectangle.StogLocation.TRUNK
         return True
 
     for r in rectangles:
-        r.location = Rectangle.Location.NO_POLYGON
+        r.location = Rectangle.StogLocation.NO_POLYGON
 
     best_trunk = -1
     for i, trunk in enumerate(rectangles):
         # Check if it is a good candidate
         if best_trunk >= 0 and trunk.area <= rectangles[best_trunk].area:
             break
-        if all(r == trunk or trunk.find_location(r) != Rectangle.Location.NO_POLYGON for r in rectangles):
+        if all(r == trunk or trunk.find_location(r) != Rectangle.StogLocation.NO_POLYGON for r in rectangles):
             best_trunk = i
 
     if best_trunk < 0:
@@ -691,7 +690,7 @@ def trunked_rectilinear_polygon(rectangles: list[Rectangle]) -> bool:
 
     # swap to put the trunk in front of the list
     rectangles[0], rectangles[best_trunk] = rectangles[best_trunk], rectangles[0]
-    rectangles[0].location = Rectangle.Location.TRUNK
+    rectangles[0].location = Rectangle.StogLocation.TRUNK
     # Define the location for the rest of rectangles
     for i in range(1, len(rectangles)):
         rectangles[i].location = rectangles[0].find_location(rectangles[i])

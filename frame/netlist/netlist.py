@@ -109,14 +109,14 @@ class Netlist:
                 modules.append(m)
         return modules
 
-    def create_trunked_polygons(self) -> None:
+    def create_stogs(self) -> None:
         """
-        Creates the trunked polygons for each module (if they can be identified as trunked polygons).
-        The location of the rectangles of each module a labelled according to their role. If no trunked polygon
+        Creates the Single-Trunk Orthogons (STOGs) for each module (if they can be identified as STOGs).
+        The location of the rectangles of each module a labelled according to their role. If no STOG
         can be identified, the rectangles are labelled as NO_POLYGON
         """
         for m in self.modules:
-            m.create_trunked_polygon()
+            m.create_stog()
 
     def assign_rectangles(self, m2r: Module2Rectangles) -> None:
         """
