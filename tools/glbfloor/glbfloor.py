@@ -109,7 +109,8 @@ def main(prog: str | None = None, args: list[str] | None = None):
     if verbose:
         start_time = time()
 
-    die, allocation = glbfloor(die, threshold, alpha, max_iter, verbose, plotting_options)
+    die, allocation = glbfloor(die, threshold, alpha, max_iter=max_iter,
+                               verbose=verbose, plotting_options=plotting_options)
 
     if verbose:
         print(f"Elapsed time: {time() - start_time:.3f} s")
