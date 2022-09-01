@@ -4,6 +4,9 @@ from gekko import GEKKO
 from gekko.gk_variable import GKVariable
 from gekko.gk_operators import GK_Value
 
+from frame.die.die import Die
+from frame.netlist.netlist import Netlist
+from frame.geometry.geometry import Rectangle
 from tools.rect.canvas import Canvas
 from argparse import ArgumentParser
 
@@ -11,8 +14,8 @@ BoxType = tuple[float, float, float, float]
 InputModule = tuple[BoxType, list[BoxType], list[BoxType], list[BoxType], list[BoxType]]
 OptionalList = dict[int, float]
 OptionalMatrix = dict[int, OptionalList]
-Hyperedge = tuple[float, list[int]]
-Hypergraph = list[Hyperedge]
+HyperEdge = tuple[float, list[int]]
+HyperGraph = list[HyperEdge]
 GekkoType = Union[float, GKVariable]
 # Think of GekkoType as either a constant, a variable or an expression.
 # Aka. Something that evaluates to a number
@@ -39,9 +42,14 @@ def parse_options(prog: str | None = None, args: list[str] | None = None) -> dic
     :return: a dictionary with the arguments
     """
     parser = ArgumentParser(prog=prog, description="A tool for module legalization", usage='%(prog)s [options]')
-    parser.add_argument("filename", type=str, help="Input file (.yaml)")
+    parser.add_argument("netlist", type=str, help="Input netlist (.yaml)")
+    parser.add_argument("die", type=str, help="Input die (.yaml)")
     parser.add_argument("--max_ratio", type=float, dest='max_ratio', default=2.00,
                         help="The maximum allowable ratio for a rectangle")
+    parser.add_argument("--plot", dest="plot", const=True, default=False, action="store_const",
+                        help="Plots the problem together with the solutions found")
+    parser.add_argument("--verbose", dest="verbose", const=True, default=False, action="store_const",
+                        help="Shows additional debug information")
     return vars(parser.parse_args(args))
 
 
@@ -113,7 +121,7 @@ class ModelModule:
                  die_width: float,
                  die_height: float,
                  max_ratio: float,
-                 nmods: int):
+                 n_mods: int):
         self.N: list[int] = []
         self.S: list[int] = []
         self.E: list[int] = []
@@ -123,14 +131,19 @@ class ModelModule:
         self.w: list[GekkoType] = w
         self.h: list[GekkoType] = h
         self.c: int = 0
-        self.id: int = nmods
+        self.id: int = n_mods
         self.dw: float = die_width
         self.dh: float = die_height
         self.area: GekkoType = 0
-        self.xsum: GekkoType = 0
-        self.ysum: GekkoType = 0
+        self.x_sum: GekkoType = 0
+        self.y_sum: GekkoType = 0
         self.max_ratio: float = max_ratio
+        self.degree = 0  # 0 = soft, 1 = hard, 2 = fixed. Just required for output purposes
         self.set_trunk(gekko, trunk)
+
+    def set_degree(self, degree: int):
+        if degree > self.degree:
+            self.degree = degree
 
     def set_trunk(self, gekko: GEKKO, trunk: BoxType) -> None:
         assert self.c == 0, "!"
@@ -204,8 +217,8 @@ class ModelModule:
         self.h.append(var_h)
 
         self.area += var_w * var_h
-        self.xsum += var_x * var_w * var_h
-        self.ysum += var_y * var_w * var_h
+        self.x_sum += var_x * var_w * var_h
+        self.y_sum += var_y * var_w * var_h
 
         # The box must stay inside the dice
         gekko.Equation(var_x - 0.5 * var_w >= 0)
@@ -267,28 +280,39 @@ class Model:
             xl: OptionalList | None,
             yl: OptionalList | None,
             wl: OptionalList | None,
-            hl: OptionalList | None):
-        if optional_get(xl, 0) is not None:
-            self.gekko.Equation(self.M[m].x[0] == optional_get(xl, 0))
-        if optional_get(yl, 0) is not None:
-            self.gekko.Equation(self.M[m].y[0] == optional_get(yl, 0))
-        if optional_get(wl, 0) is not None:
-            self.gekko.Equation(self.M[m].w[0] == optional_get(wl, 0))
-        if optional_get(hl, 0) is not None:
-            self.gekko.Equation(self.M[m].h[0] == optional_get(hl, 0))
-        for i in range(1, self.M[m].c):
-            xget = optional_get(xl, i)
-            yget = optional_get(yl, i)
-            wget = optional_get(wl, i)
-            hget = optional_get(hl, i)
-            if xget is GekkoType:
-                self.gekko.Equation(self.M[m].x[i] == self.M[m].x[0] + xget)
-            if yget is GekkoType:
-                self.gekko.Equation(self.M[m].y[i] == self.M[m].y[0] + yget)
-            if wget is GekkoType:
-                self.gekko.Equation(self.M[m].w[i] == wget)
-            if hget is GekkoType:
-                self.gekko.Equation(self.M[m].h[i] == hget)
+            hl: OptionalList | None) -> None:
+        for i in range(0, self.M[m].c):
+            x_get: float | None = optional_get(xl, i)
+            y_get: float | None = optional_get(yl, i)
+            w_get: float | None = optional_get(wl, i)
+            h_get: float | None = optional_get(hl, i)
+            x_const: GekkoType
+            y_const: GekkoType
+            w_const: GekkoType
+            h_const: GekkoType
+            x_const, y_const, w_const, h_const = 0, 0, 0, 0
+            if x_get is not None:
+                x_const += x_get
+            if y_get is not None:
+                y_const += y_get
+            if w_get is not None:
+                w_const += w_get
+            if h_get is not None:
+                h_const += h_get
+            if i != 0 and isinstance(x_get, float):
+                x_const += self.M[m].x[0]
+                y_const += self.M[m].y[0]
+            elif x_get is not None:
+                self.M[m].set_degree(2)
+            if x_get is not None:
+                self.gekko.Equation(self.M[m].x[i] == x_const)
+            if y_get is not None:
+                self.gekko.Equation(self.M[m].y[i] == y_const)
+            if w_get is not None:
+                self.M[m].set_degree(1)
+                self.gekko.Equation(self.M[m].w[i] == w_const)
+            if h_get is not None:
+                self.gekko.Equation(self.M[m].h[i] == h_const)
 
     def __init__(self,
                  ml: list[InputModule],
@@ -299,8 +323,9 @@ class Model:
                  hl: OptionalMatrix,
                  die_width: float,
                  die_height: float,
-                 hyper: Hypergraph,
-                 max_ratio: float):
+                 hyper: HyperGraph,
+                 max_ratio: float,
+                 og_names: list[str]):
         assert len(ml) == len(al), "M and A need to have the same length!"
 
         self.M: list[ModelModule] = []
@@ -311,6 +336,9 @@ class Model:
         self.dw: float = die_width
         self.dh: float = die_height
         self.max_ratio: float = max_ratio
+        self.og_names: list[str] = og_names
+        self.og_area: list[float] = al
+        self.hyper = hyper
 
         """Constructs the GEKKO object and initializes the model"""
         self.gekko = GEKKO(remote=False)
@@ -381,17 +409,17 @@ class Model:
             centroid_x: Any = 0.0
             centroid_y: Any = 0.0
             for i in Set:
-                centroid_x += self.M[i].xsum / self.M[i].area
-                centroid_y += self.M[i].ysum / self.M[i].area
+                centroid_x += self.M[i].x_sum / self.M[i].area
+                centroid_y += self.M[i].y_sum / self.M[i].area
             centroid_x = 1.0 / len(Set) * centroid_x
             centroid_y = 1.0 / len(Set) * centroid_y
             for i in Set:
                 module = self.M[i]
-                obj += weight * weight * ((module.xsum / module.area - centroid_x) ** 2 +
-                                          (module.ysum / module.area - centroid_y) ** 2)
+                obj += weight * weight * ((module.x_sum / module.area - centroid_x) ** 2 +
+                                          (module.y_sum / module.area - centroid_y) ** 2)
         self.gekko.Obj(obj + self.tau)
 
-    def interactive_draw(self, canvas_width=500, canvas_height=500):
+    def interactive_draw(self, canvas_width=500, canvas_height=500) -> None:
         canvas = Canvas(width=canvas_width, height=canvas_height)
         canvas.clear(col="#000000")
         canvas.setcoords(-1, -1, self.dw+1, self.dh+1)
@@ -400,42 +428,138 @@ class Model:
             m = self.M[i]
             hue = i / len(self.M)
             for j in range(0, len(m.x)):
-                a = m.x[j][0] - 0.5 * m.w[j][0]
-                b = m.y[j][0] - 0.5 * m.h[j][0]
-                c = m.x[j][0] + 0.5 * m.w[j][0]
-                d = m.y[j][0] + 0.5 * m.h[j][0]
+                a = value_of(m.x[j]) - 0.5 * value_of(m.w[j])
+                b = value_of(m.y[j]) - 0.5 * value_of(m.h[j])
+                c = value_of(m.x[j]) + 0.5 * value_of(m.w[j])
+                d = value_of(m.y[j]) + 0.5 * value_of(m.h[j])
 
                 canvas.drawbox(((a, b), (c, d)), col=hsv_to_str(hue) + "90")
         canvas.show()
 
-    def solve(self):
-        self.gekko.solve(disp=True)
+    def solve(self, verbose=False) -> None:
+        self.gekko.solve(disp=verbose)
+
+    def get_netlist(self) -> Netlist:
+        yaml = "Modules: {\n"
+        for i in range(0, len(self.M)):
+            if i != 0:
+                yaml += ",\n"
+            yaml += "  " + self.og_names[i] + ": {\n"
+            if self.M[i].degree == 0:
+                yaml += "    area: " + str(self.og_area[i]) + ",\n"
+            elif self.M[i].degree == 1:
+                yaml += "    hard: true,\n"
+            else:
+                yaml += "    fixed: true,\n"
+            yaml += "    rectangles: ["
+            for j in range(0, len(self.M[i].x)):
+                rect = [value_of(self.M[i].x[j]),
+                        value_of(self.M[i].y[j]),
+                        value_of(self.M[i].w[j]),
+                        value_of(self.M[i].h[j])]
+                if j != 0:
+                    yaml += ", "
+                yaml += str(rect)
+            yaml += "]\n  }"
+        yaml += "\n}\nNets: [\n  ["
+        for i in range(0, len(self.hyper)):
+            if i != 0:
+                yaml += ",\n  ["
+            for j in range(0, len(self.hyper[i][1])):
+                if j != 0:
+                    yaml += ", "
+                m = self.hyper[i][1][j]
+                if m < len(self.og_names):
+                    yaml += self.og_names[m]
+                else:
+                    yaml += "__fixed_region_" + str(m - len(self.og_names))
+            yaml += "]"
+        yaml += "\n]\n"
+        print(yaml)
+        return Netlist(yaml)
 
 
-def compute_options(options) -> tuple[list[InputModule],
-                                      list[float],
-                                      OptionalMatrix,
-                                      OptionalMatrix,
-                                      OptionalMatrix,
-                                      OptionalMatrix,
-                                      float,
-                                      float,
-                                      Hypergraph,
-                                      float]:
-    b1: InputModule = ((3, 4, 3, 4), [], [(2.5, 1.5, 2, 1)], [], [(1, 5.5, 1, 1), (1, 4.5, 1, 1)])
-    b2: InputModule = ((2, 2, 4, 3), [], [], [], [])
-
-    ml: list[InputModule] = [b1, b2]
-    al: list[float] = [16.0, 12.0]
-    xl: OptionalMatrix = {1: {0: 2.0}}
-    yl: OptionalMatrix = {1: {0: 2.0}}
-    wl: OptionalMatrix = {1: {0: 4.0}}
-    hl: OptionalMatrix = {1: {0: 3.0}}
-    die_width: float = 7.0
-    die_height: float = 7.0
-    hyper: Hypergraph = [(1, [0, 1])]
+def compute_options(options) -> tuple[list[InputModule],  # Module list
+                                      list[float],  # Area list
+                                      OptionalMatrix,  # X coords
+                                      OptionalMatrix,  # Y coords
+                                      OptionalMatrix,  # widths
+                                      OptionalMatrix,  # heights
+                                      float,  # Die width
+                                      float,  # Die height
+                                      HyperGraph,  # Hypergraph
+                                      float,  # Max ratio
+                                      list[str]]:  # Original manes
     max_ratio: float = options['max_ratio']
-    return ml, al, xl, yl, wl, hl, die_width, die_height, hyper, max_ratio
+
+    die = Die(options['die'])
+    die_width: float = die.width
+    die_height: float = die.height
+
+    netlist = Netlist(options['netlist'])
+    mod_map: dict[str, int] = {}
+    og_names = []
+
+    ml: list[InputModule] = []
+    al: list[float] = []
+    xl: OptionalMatrix = {}
+    yl: OptionalMatrix = {}
+    wl: OptionalMatrix = {}
+    hl: OptionalMatrix = {}
+    for module in netlist.modules:
+        mod_map[module.name] = len(ml)
+        og_names.append(module.name)
+        b: InputModule = ((0, 0, 0, 0), [], [], [], [])
+        trunk_defined = False
+        for rect in module.rectangles:
+            r = (rect.center.x, rect.center.y, rect.shape.w, rect.shape.h)
+            if rect.location == Rectangle.StogLocation.TRUNK:
+                b = (r, b[1], b[2], b[3], b[4])
+                trunk_defined = True
+            elif rect.location == Rectangle.StogLocation.NORTH:
+                b[1].append(r)
+            elif rect.location == Rectangle.StogLocation.SOUTH:
+                b[2].append(r)
+            elif rect.location == Rectangle.StogLocation.EAST:
+                b[3].append(r)
+            elif rect.location == Rectangle.StogLocation.WEST:
+                b[4].append(r)
+            elif not trunk_defined:
+                b = (r, b[1], b[2], b[3], b[4])
+                trunk_defined = True
+            else:
+                b[1].append(r)
+        if module.is_hard:
+            xl[len(ml)] = {}
+            yl[len(ml)] = {}
+            wl[len(ml)] = {}
+            hl[len(ml)] = {}
+        if module.is_fixed:
+            xl[len(ml)][0] = b[0][0]
+            yl[len(ml)][0] = b[0][1]
+        if module.is_hard:
+            wl[len(ml)][0] = b[0][2]
+            hl[len(ml)][0] = b[0][3]
+            i = 1
+            for q in range(1, 5):
+                bq = b[q]
+                if isinstance(bq, list):
+                    for (x, y, w, h) in bq:
+                        xl[len(ml)][i] = x
+                        yl[len(ml)][i] = y
+                        wl[len(ml)][i] = w
+                        hl[len(ml)][i] = h
+                        i = i + 1
+        ml.append(b)
+        al.append(module.area())
+
+    hyper: HyperGraph = []
+    for edge in netlist.edges:
+        connection = list(map(lambda e_mod: mod_map[e_mod.name], edge.modules))
+        weight = edge.weight
+        hyper.append((weight, connection))
+
+    return ml, al, xl, yl, wl, hl, die_width, die_height, hyper, max_ratio, og_names
 
 
 def main(prog: str | None = None, args: list[str] | None = None) -> int:
@@ -443,11 +567,14 @@ def main(prog: str | None = None, args: list[str] | None = None) -> int:
     Main function.
     """
     options = parse_options(prog, args)
-    ml, al, xl, yl, wl, hl, die_width, die_height, hyper, max_ratio = compute_options(options)
-    m = Model(ml, al, xl, yl, wl, hl, die_width, die_height, hyper, max_ratio)
-    m.interactive_draw()
-    m.solve()
-    m.interactive_draw()
+    ml, al, xl, yl, wl, hl, die_width, die_height, hyper, max_ratio, og_names = compute_options(options)
+    m = Model(ml, al, xl, yl, wl, hl, die_width, die_height, hyper, max_ratio, og_names)
+    if options['plot']:
+        m.interactive_draw()
+    m.solve(options['verbose'])
+    if options['plot']:
+        m.interactive_draw()
+    m.get_netlist()
     return 0
 
 
