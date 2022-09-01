@@ -226,9 +226,8 @@ def optimize_allocation(die: Die, allocation: Allocation, dispersions: dict[str,
 
     # Set initial values
     for m, module in enumerate(die.netlist.modules):
-        center = module.center
-        assert center is not None
-        model.x[m].value, model.y[m].value = center
+        assert module.center is not None
+        model.x[m].value, model.y[m].value = module.center
         model.d[m].value = dispersions[module.name]
 
     for c, rect_alloc in enumerate(allocation.allocations):
@@ -266,32 +265,33 @@ def optimize_allocation(die: Die, allocation: Allocation, dispersions: dict[str,
         g.Equation(g.sum([model.a[m][c] for m in range(n_modules)]) <= 1)
 
     # Module constraints
-    for m in range(n_modules):
-        m_area = die.netlist.modules[m].area()
-
+    for m, module in enumerate(die.netlist.modules):
         # Modules must have sufficient area
-        g.Equation(g.sum([cells[c].area * model.a[m][c] for c in range(n_cells)]) >= m_area)
+        g.Equation(g.sum([cells[c].area * model.a[m][c] for c in range(n_cells)]) >= module.area())
 
         # Centroid of modules
-        g.Equation(1 / m_area * g.sum([cells[c].area * cells[c].center.x * model.a[m][c]
-                                       for c in range(n_cells)]) == model.x[m])
-        g.Equation(1 / m_area * g.sum([cells[c].area * cells[c].center.y * model.a[m][c]
-                                       for c in range(n_cells)]) == model.y[m])
+        g.Equation(1 / module.area() * g.sum([cells[c].area * cells[c].center.x * model.a[m][c]
+                                              for c in range(n_cells)]) == model.x[m])
+        g.Equation(1 / module.area() * g.sum([cells[c].area * cells[c].center.y * model.a[m][c]
+                                              for c in range(n_cells)]) == model.y[m])
 
-        # Dispersion of modules
-        g.Equation(g.sum([cells[c].area * model.a[m][c] *
-                          dispersion_function(model.x[m] - cells[c].center.x, model.y[m] - cells[c].center.y)
-                          for c in range(n_cells)]) == model.d[m])
+        if not module.is_hard or module.is_fixed:
+            # Dispersion of soft and fixed modules
+            g.Equation(g.sum([cells[c].area * model.a[m][c] *
+                              dispersion_function(model.x[m] - cells[c].center.x, model.y[m] - cells[c].center.y)
+                              for c in range(n_cells)]) == model.d[m])
+        else:  # Non-fixed hard modules
+            raise NotImplementedError  # TODO: implement support for non-fixed hard modules
 
     # Objective function: alpha * total wire length + (1 - alpha) * total dispersion
 
     # Total wire length
     for e in die.netlist.edges:
-        if len(e.modules) == 2:
+        if len(e.modules) == 2:  # Regular edges (we can avoid using extra variables)
             m0 = module2m[e.modules[0].name]
             m1 = module2m[e.modules[1].name]
             g.Minimize(alpha * e.weight * ((model.x[m0] - model.x[m1])**2 + (model.y[m0] - model.y[m1])**2) / 2)
-        else:
+        else:  # Hyperedges
             ex = g.Var(lb=0)
             g.Equation(g.sum([model.x[module2m[module.name]] for module in e.modules]) / len(e.modules) == ex)
             ey = g.Var(lb=0)
