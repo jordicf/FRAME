@@ -301,7 +301,7 @@ def optimize_allocation(die: Die, allocation: Allocation, dispersions: dict[str,
                 g.Minimize(alpha * e.weight * ((ex - model.x[m])**2 + (ey - model.y[m])**2))
 
     # Total dispersion
-    g.Minimize((1 - alpha) * g.sum([model.d[m] for m in range(die.netlist.num_modules)]))
+    g.Minimize((1 - alpha) * g.sum(model.d))
 
     die, allocation, dispersions, vis_imgs = solve_and_extract_solution(model, die, cells, threshold, verbose=verbose,
                                                                         plotting_options=plotting_options)
