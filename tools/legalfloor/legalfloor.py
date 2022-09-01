@@ -4,6 +4,9 @@ from gekko import GEKKO
 from gekko.gk_variable import GKVariable
 from gekko.gk_operators import GK_Value
 
+from frame.die.die import Die
+from frame.netlist.netlist import Netlist
+from frame.geometry.geometry import Rectangle
 from tools.rect.canvas import Canvas
 from argparse import ArgumentParser
 
@@ -39,9 +42,12 @@ def parse_options(prog: str | None = None, args: list[str] | None = None) -> dic
     :return: a dictionary with the arguments
     """
     parser = ArgumentParser(prog=prog, description="A tool for module legalization", usage='%(prog)s [options]')
-    parser.add_argument("filename", type=str, help="Input file (.yaml)")
+    parser.add_argument("netlist", type=str, help="Input netlist (.yaml)")
+    parser.add_argument("die", type=str, help="Input die (.yaml)")
     parser.add_argument("--max_ratio", type=float, dest='max_ratio', default=2.00,
                         help="The maximum allowable ratio for a rectangle")
+    parser.add_argument("--plot", dest="plot", const=True, default=False, action="store_const",
+                        help="Plots the problem together with the solutions found")
     return vars(parser.parse_args(args))
 
 
@@ -412,29 +418,83 @@ class Model:
         self.gekko.solve(disp=True)
 
 
-def compute_options(options) -> tuple[list[InputModule],
-                                      list[float],
-                                      OptionalMatrix,
-                                      OptionalMatrix,
-                                      OptionalMatrix,
-                                      OptionalMatrix,
-                                      float,
-                                      float,
-                                      Hypergraph,
-                                      float]:
-    b1: InputModule = ((3, 4, 3, 4), [], [(2.5, 1.5, 2, 1)], [], [(1, 5.5, 1, 1), (1, 4.5, 1, 1)])
-    b2: InputModule = ((2, 2, 4, 3), [], [], [], [])
-
-    ml: list[InputModule] = [b1, b2]
-    al: list[float] = [16.0, 12.0]
-    xl: OptionalMatrix = {1: {0: 2.0}}
-    yl: OptionalMatrix = {1: {0: 2.0}}
-    wl: OptionalMatrix = {1: {0: 4.0}}
-    hl: OptionalMatrix = {1: {0: 3.0}}
-    die_width: float = 7.0
-    die_height: float = 7.0
-    hyper: Hypergraph = [(1, [0, 1])]
+def compute_options(options) -> tuple[list[InputModule],  # Module list
+                                      list[float],        # Area list
+                                      OptionalMatrix,     # X coords
+                                      OptionalMatrix,     # Y coords
+                                      OptionalMatrix,     # widths
+                                      OptionalMatrix,     # heights
+                                      float,              # Die width
+                                      float,              # Die height
+                                      Hypergraph,         # Hypergraph
+                                      float]:             # Max ratio
     max_ratio: float = options['max_ratio']
+
+    die = Die(options['die'])
+    die_width: float = die.width
+    die_height: float = die.height
+
+    netlist = Netlist(options['netlist'])
+    modmap: dict[str, int] = {}
+
+    ml: list[InputModule] = []
+    al: list[float] = []
+    xl: OptionalMatrix = {}
+    yl: OptionalMatrix = {}
+    wl: OptionalMatrix = {}
+    hl: OptionalMatrix = {}
+    for module in netlist.modules:
+        modmap[module.name] = len(ml)
+        b: InputModule = ((0, 0, 0, 0), [], [], [], [])
+        trunk_defined = False
+        for rect in module.rectangles:
+            r = (rect.center.x, rect.center.y, rect.shape.w, rect.shape.h)
+            if rect.location == Rectangle.StogLocation.TRUNK:
+                b = (r, b[1], b[2], b[3], b[4])
+                trunk_defined = True
+            elif rect.location == Rectangle.StogLocation.NORTH:
+                b[1].append(r)
+            elif rect.location == Rectangle.StogLocation.SOUTH:
+                b[2].append(r)
+            elif rect.location == Rectangle.StogLocation.EAST:
+                b[3].append(r)
+            elif rect.location == Rectangle.StogLocation.WEST:
+                b[4].append(r)
+            elif not trunk_defined:
+                b = (r, b[1], b[2], b[3], b[4])
+                trunk_defined = True
+            else:
+                b[1].append(r)
+        if module.is_hard:
+            xl[len(ml)] = {}
+            yl[len(ml)] = {}
+            wl[len(ml)] = {}
+            hl[len(ml)] = {}
+        if module.is_fixed:
+            xl[len(ml)][0] = b[0][0]
+            yl[len(ml)][0] = b[0][1]
+        if module.is_hard:
+            wl[len(ml)][0] = b[0][2]
+            hl[len(ml)][0] = b[0][3]
+            i = 1
+            for q in range(1, 5):
+                bq = b[q]
+                if isinstance(bq, list):
+                    for (x, y, w, h) in bq:
+                        xl[len(ml)][i] = x
+                        yl[len(ml)][i] = y
+                        wl[len(ml)][i] = w
+                        hl[len(ml)][i] = h
+                        i = i + 1
+        ml.append(b)
+        al.append(module.area())
+
+    hyper: Hypergraph = []
+    for edge in netlist.edges:
+        connection = list(map(lambda x: modmap[x.name], edge.modules))
+        weight = edge.weight
+        hyper.append((weight, connection))
+    
     return ml, al, xl, yl, wl, hl, die_width, die_height, hyper, max_ratio
 
 
@@ -445,9 +505,11 @@ def main(prog: str | None = None, args: list[str] | None = None) -> int:
     options = parse_options(prog, args)
     ml, al, xl, yl, wl, hl, die_width, die_height, hyper, max_ratio = compute_options(options)
     m = Model(ml, al, xl, yl, wl, hl, die_width, die_height, hyper, max_ratio)
-    m.interactive_draw()
+    if options['plot']:
+        m.interactive_draw()
     m.solve()
-    m.interactive_draw()
+    if options['plot']:
+        m.interactive_draw()
     return 0
 
 
