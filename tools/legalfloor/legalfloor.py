@@ -549,7 +549,7 @@ def compute_options(options) -> tuple[list[InputModule],  # Module list
                         yl[len(ml)][i] = y
                         wl[len(ml)][i] = w
                         hl[len(ml)][i] = h
-                        i = i + 1
+                        i += 1
         ml.append(b)
         al.append(module.area())
 

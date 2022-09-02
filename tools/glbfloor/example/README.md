@@ -83,6 +83,6 @@ After one optimization, the floorplan cannot be further refined so no more optim
 
 Full optimization animation:
 
-|              Module-by-module               |                Joint                |
-|:-------------------------------------------:|:-----------------------------------:|
+|            Module-by-module             |                Joint                |
+|:---------------------------------------:|:-----------------------------------:|
 | ![](2/plot-separated-visualization.gif) | ![](2/plot-joint-visualization.gif) |
