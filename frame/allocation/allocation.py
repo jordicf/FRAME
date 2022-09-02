@@ -51,7 +51,8 @@ class Allocation:
         self._parse_yaml_tree(read_yaml(stream))
         self._calculate_bounding_box()
         bb = self.bounding_box.shape
-        Rectangle.set_epsilon(1e-12*min(bb.w, bb.h))
+        if not Rectangle.epsilon_defined():
+            Rectangle.set_epsilon(1e-12*min(bb.w, bb.h))
         self._check_no_overlap()
         self._calculate_areas_and_centers()
 

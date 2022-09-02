@@ -211,6 +211,11 @@ class Rectangle:
                 assert False  # Should never happen
 
     @staticmethod
+    def epsilon_defined() -> bool:
+        """Indicates whether epsilon has been defined for the class"""
+        return Rectangle._distance_epsilon >= 0
+
+    @staticmethod
     def set_epsilon(distance_epsilon: float, area_epsilon: float = -1) -> None:
         """
         Defines the epsilons for float comparisons in distance an area

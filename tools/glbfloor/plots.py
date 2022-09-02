@@ -18,6 +18,7 @@ class PlottingOptions:
     def __init__(self, name: str | None = None,
                  joint_plot: bool = False, separated_plot: bool = False, visualize: bool = False):
         """
+        Constructor
         :param name: name of the plot to be produced in each optimization. The optimization number, the plot type, and
         the file extension are added automatically
         :param joint_plot: if True, produce an image at each iteration showing a joint floorplan plot

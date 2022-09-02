@@ -52,7 +52,8 @@ class Die:
         self._netlist = netlist
         self._die, regions = parse_yaml_die(stream)
         self._epsilon = min(self.width, self.height) * 10e-12
-        Rectangle.set_epsilon(self._epsilon)
+        if not Rectangle.epsilon_defined():
+            Rectangle.set_epsilon(self._epsilon)
 
         # Selected blockages from the other regions
         self._specialized_regions, self._blockages = [], []

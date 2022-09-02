@@ -297,8 +297,6 @@ def main(prog: str | None = None, args: list[str] | None = None) -> None:
     """Main function."""
     options = parse_options(prog, args)
 
-    Rectangle.set_epsilon(1e-12)
-
     infile = options['netlist']
     netlist = Netlist(infile)
 
@@ -322,8 +320,6 @@ def main(prog: str | None = None, args: list[str] | None = None) -> None:
         die_shape = alloc_die
     else:
         die_shape = calculate_bbox(netlist)
-
-    Rectangle.set_epsilon(min(die_shape.w, die_shape.h) * 1e-12)
 
     assert alloc_die.w <= die_shape.w and alloc_die.h <= die_shape.h
 

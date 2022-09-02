@@ -2,6 +2,7 @@
 Module to represent netlists
 """
 
+import math
 from frame.netlist.module import Module
 from frame.netlist.netlist_types import HyperEdge
 from frame.netlist.yaml_read_netlist import parse_yaml_netlist
@@ -162,9 +163,10 @@ class Netlist:
     def _create_rectangles(self) -> None:
         """
         Creates the list of rectangles of the netlist. For fixed nodes without rectangles,
-        it creates a square.
+        it creates a square. It also defined epsilon, in case it was not defined
         """
         # Check that all fixed nodes have either a center or a rectangle
+        smallest_distance = math.inf
         for m in self.modules:
             assert not m.is_fixed or m.center is not None or m.num_rectangles > 0,\
                 f'Module {m.name} is fixed and has neither center nor rectangles'
@@ -172,5 +174,17 @@ class Netlist:
                 m.create_square()
             if m.num_rectangles > 0:
                 m.calculate_center_from_rectangles()
-                m.create_stog()
         self._rectangles = [r for b in self.modules for r in b.rectangles]
+
+        if not Rectangle.epsilon_defined():
+            for r in self.rectangles:
+                smallest_distance = min(smallest_distance, r.shape.w, r.shape.h)
+            for m in self.modules:
+                a = m.area()
+                if a > 0:
+                    smallest_distance = min(smallest_distance, math.sqrt(a))
+            Rectangle.set_epsilon(smallest_distance*1e-12)
+
+        for m in self.modules:
+            if m.num_rectangles > 0:
+                m.create_stog()
