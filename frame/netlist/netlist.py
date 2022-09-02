@@ -121,7 +121,7 @@ class Netlist:
 
     def all_soft_modules_have_stogs(self) -> bool:
         """Indicates whether all soft modules have Single-Trunk Orthogons"""
-        return all(m.is_fixed or m.has_stog for m in self.modules)
+        return all(m.is_hard or m.has_stog for m in self.modules)
 
     def assign_rectangles(self, m2r: Module2Rectangles) -> None:
         """
@@ -162,15 +162,15 @@ class Netlist:
 
     def _create_rectangles(self) -> None:
         """
-        Creates the list of rectangles of the netlist. For fixed nodes without rectangles,
-        it creates a square. It also defined epsilon, in case it was not defined
+        Creates the list of rectangles of the netlist. For hard nodes without rectangles,
+        it creates a square. It also defines epsilon, in case it was not defined
         """
         # Check that all fixed nodes have either a center or a rectangle
         smallest_distance = math.inf
         for m in self.modules:
-            assert not m.is_fixed or m.center is not None or m.num_rectangles > 0,\
+            assert not m.is_hard or m.center is not None or m.num_rectangles > 0,\
                 f'Module {m.name} is fixed and has neither center nor rectangles'
-            if m.is_fixed and m.num_rectangles == 0:
+            if m.is_hard and m.num_rectangles == 0:
                 m.create_square()
             if m.num_rectangles > 0:
                 m.calculate_center_from_rectangles()
@@ -188,3 +188,5 @@ class Netlist:
         for m in self.modules:
             if m.num_rectangles > 0:
                 m.create_stog()
+
+        assert all(not m.flip or m.has_stog for m in self.modules), "Not all flip modules have a STOG"
