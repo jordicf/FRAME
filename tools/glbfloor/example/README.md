@@ -10,7 +10,7 @@ frame netgen --type grid --size 3 2 -o initial-netlist.yml --die 2x3 --add-cente
 frame draw --die 2x3 initial-netlist.yml -o initial.gif
 ```
 
-<img src="1/initial.gif" style="width: 200px;"/>
+<img src="1/initial.gif" style="width: 200px;" alt="initial"/>
 
 ## Example 1.1
 
@@ -70,7 +70,7 @@ This example includes a die blockage and a fixed block.
 frame draw --die die.yml initial-netlist.yml -o initial.gif
 ```
 
-<img src="2/initial.gif" style="width: 200px;"/>
+<img src="2/initial.gif" style="width: 200px;" alt="initial"/>
 
 ```
 frame glbfloor --netlist initial-netlist.yml --die die.yml -r 2 -n 16 -a 0.3 -i 10 --out-netlist final-netlist.yml --out-allocation final-alloc.yml --verbose --separated-plot --joint-plot --visualize

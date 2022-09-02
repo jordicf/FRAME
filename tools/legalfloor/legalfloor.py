@@ -54,7 +54,7 @@ def parse_options(prog: str | None = None, args: list[str] | None = None) -> dic
 
 
 def hsv_to_rgb(h: float, s: float = 0.7, v: float = 1.0) -> tuple[float, float, float]:
-    h = h % 1.0
+    h %= 1.0
     r = max(0.0, min(1.0, abs(6.0 * h - 3.0) - 1.0))
     g = max(0.0, min(1.0, 2.0 - abs(6.0 * h - 2.0)))
     b = max(0.0, min(1.0, 2.0 - abs(6.0 * h - 4.0)))
@@ -411,8 +411,8 @@ class Model:
             for i in Set:
                 centroid_x += self.M[i].x_sum / self.M[i].area
                 centroid_y += self.M[i].y_sum / self.M[i].area
-            centroid_x = 1.0 / len(Set) * centroid_x
-            centroid_y = 1.0 / len(Set) * centroid_y
+            centroid_x /= len(Set)
+            centroid_y /= len(Set)
             for i in Set:
                 module = self.M[i]
                 obj += weight * weight * ((module.x_sum / module.area - centroid_x) ** 2 +
