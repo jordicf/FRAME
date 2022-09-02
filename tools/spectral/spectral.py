@@ -97,6 +97,14 @@ class Spectral(Netlist):
         for i, m in enumerate(self.modules):
             m.center = Point(best_coord[0][i] + shape.w / 2, best_coord[1][i] + shape.h / 2)
 
+        # Reallocate the rectangles of hard modules and remove the center of hard and fixed modules
+        for m in self.modules:
+            if m.is_hard:
+                if not m.is_fixed:  # it is a hard module (movable)
+                    m.recenter_rectangles()
+                # Remove the center of the hard block
+                m.center = None
+
         return 0
 
 

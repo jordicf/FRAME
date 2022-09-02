@@ -165,6 +165,18 @@ class Module:
         self.rectangles.append(r)
         self._area_rectangles = -1
 
+    def recenter_rectangles(self) -> None:
+        """Recenters the rectangles of a hard module according to its center"""
+        # Calculate current center
+        assert self.is_hard and not self.is_fixed and self.center is not None
+        area = sum(r.area for r in self.rectangles)
+        x = sum(r.center.x*r.area for r in self.rectangles)/area
+        y = sum(r.center.y*r.area for r in self.rectangles)/area
+        inc_x, inc_y = self.center.x - x, self.center.y - y
+        for r in self.rectangles:
+            r.center.x += inc_x
+            r.center.y += inc_y
+
     @staticmethod
     def _read_region_area(area: float | dict[str, float]) -> dict[str, float]:
         """Treats the area of a module as a float or as a dictionary of {region: float},

@@ -226,7 +226,7 @@ class Rectangle:
         Rectangle._area_epsilon = area_epsilon if area_epsilon >= 0 else math.sqrt(distance_epsilon)
 
     @staticmethod
-    def undefine_epsilon() -> bool:
+    def undefine_epsilon() -> None:
         """Undefines epsilon for the class"""
         Rectangle._distance_epsilon = Rectangle._area_epsilon = -1.0
 
