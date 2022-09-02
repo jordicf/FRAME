@@ -3,6 +3,7 @@ Module to represent netlists
 """
 
 import math
+from itertools import combinations
 from frame.netlist.module import Module
 from frame.netlist.netlist_types import HyperEdge
 from frame.netlist.yaml_read_netlist import parse_yaml_netlist
@@ -36,7 +37,7 @@ class Netlist:
 
         self._modules, _named_edges = parse_yaml_netlist(stream)
         self._name2module = {b.name: b for b in self._modules}
-        self._rectangles = None
+        self._create_rectangles()
 
         # Edges
         self._edges = []
@@ -48,7 +49,7 @@ class Netlist:
             assert e.weight > 0, f'Incorrect edge weight {e.weight}'
             self._edges.append(HyperEdge(modules, e.weight))
 
-        self._create_rectangles()
+
 
     @property
     def num_modules(self) -> int:
@@ -165,6 +166,7 @@ class Netlist:
         Creates the list of rectangles of the netlist. For hard nodes without rectangles,
         it creates a square. It also defines epsilon, in case it was not defined
         """
+        self._clean_rectangles()
         # Check that all fixed nodes have either a center or a rectangle
         smallest_distance = math.inf
         for m in self.modules:
@@ -185,6 +187,13 @@ class Netlist:
                     smallest_distance = min(smallest_distance, math.sqrt(a))
             Rectangle.set_epsilon(smallest_distance*1e-12)
 
+        # Check that hard modules have non-overlapping rectangles.
+        for m in self.modules:
+            if m.is_hard:
+                for r1, r2 in combinations(m.rectangles, 2):
+                    assert not r1.overlap(r2), f"Inconsistent hard module {m.name}: overlapping rectangles."
+
+        # Create stogs
         for m in self.modules:
             if m.num_rectangles > 0:
                 m.create_stog()

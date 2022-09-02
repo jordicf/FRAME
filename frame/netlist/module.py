@@ -1,6 +1,4 @@
 import math
-from itertools import combinations
-
 from frame.geometry.geometry import Point, Shape, Rectangle, create_stog
 from frame.utils.keywords import KW_CENTER, KW_SHAPE, KW_MIN_SHAPE, KW_AREA, KW_FIXED, KW_HARD, KW_FLIP,\
     KW_GROUND, KW_RECTANGLES
@@ -214,11 +212,7 @@ class Module:
             assert self.num_rectangles > 0, \
                 f"Inconsistent hard module {self.name}: must have at least one rectangle."
 
-            # Check that the rectangles of hard modules do not overlap
             # Calculate the area of hard modules
-
-            for r1, r2 in combinations(self.rectangles, 2):
-                assert not r1.overlap(r2), f"Inconsistent hard module {self.name}: overlapping rectangles."
             area = sum(r.area for r in self.rectangles)
             self._area_regions = {KW_GROUND: area}
             self._total_area = area

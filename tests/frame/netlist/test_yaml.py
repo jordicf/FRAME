@@ -1,6 +1,7 @@
 import unittest
 
 from frame.netlist.netlist import Netlist
+from frame.geometry.geometry import Rectangle
 
 
 def getkey(i):
@@ -92,6 +93,11 @@ class TestYaml(unittest.TestCase):
         self.read_write_netlist(netlist1)
         self.read_write_netlist(netlist2)
 
+    def test_epsilon(self):
+        Rectangle.undefine_epsilon()
+        n = Netlist(netlist3)
+
+
 
 if __name__ == '__main__':
     unittest.main()
@@ -144,4 +150,15 @@ Nets: [
   [B2, B3, B4, 10],
   [B4, B1, B2]
 ]
+"""
+
+netlist3 = """
+Modules:
+  M0:
+    rectangles: [
+      [1, 1, 1, 1],
+      [1, 2, 2, 1]
+    ]
+    hard: true
+Nets: []
 """
