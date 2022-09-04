@@ -1,8 +1,9 @@
 """This file contains the code for optimizing the floor plans"""
-from typing import Any, Callable
+from typing import Callable, Union
 
 from PIL import Image
 from gekko import GEKKO
+from gekko.gk_variable import GKVariable
 
 from frame.geometry.geometry import Point, Rectangle
 from frame.die.die import Die
@@ -12,21 +13,26 @@ from frame.netlist.module import Module
 from tools.draw.draw import get_floorplan_plot as get_joint_floorplan_plot
 from tools.glbfloor.plots import PlottingOptions, get_separated_floorplan_plot
 
+GEKKOType = Union[float, GKVariable]
+
 
 class Model:
     """GEKKO model with variables"""
     gekko: GEKKO
 
     # Model variables
-    # (without accurate type hints because GEKKO does not have type hints yet)
-    x: Any
-    y: Any
-    d: Any
-    a: Any
+    x: dict[str, GEKKOType]
+    y: dict[str, GEKKOType]
+    d: dict[str, GEKKOType]
+    a: dict[str, dict[int, GEKKOType]]
 
     def __init__(self):
         """Constructs the GEKKO object"""
         self.gekko = GEKKO(remote=False)
+        self.x = {}
+        self.y = {}
+        self.d = {}
+        self.a = {}
 
 
 def get_value(v) -> float:
@@ -62,13 +68,14 @@ def calculate_dispersions(modules: list[Module], allocation: Allocation, dispers
     """
     dispersions = {}
     for module in modules:
+        m = module.name
         assert module.center is not None
-        dispersions[module.name] = 0.0
-        for module_alloc in allocation.allocation_module(module.name):
+        dispersions[m] = 0.0
+        for module_alloc in allocation.allocation_module(m):
             cell = allocation.allocation_rectangle(module_alloc.rect_index).rect
             area = cell.area * module_alloc.area_ratio
-            dispersions[module.name] += area * dispersion_function(module.center.x - cell.center.x,
-                                                                   module.center.y - cell.center.y)
+            dispersions[m] += area * dispersion_function(module.center.x - cell.center.x,
+                                                         module.center.y - cell.center.y)
 
     return dispersions
 
@@ -107,18 +114,20 @@ def extract_solution(model: Model, die: Die, cells: list[Rectangle], threshold: 
     allocation_list: list[AllocDescriptor] = []
     for c, cell in enumerate(cells):
         alloc = Alloc()
-        for m, module in enumerate(die.netlist.modules):
+        for module in die.netlist.modules:
+            m = module.name
             a_mc_val = get_value(model.a[m][c])
             if a_mc_val > 1 - threshold:
-                alloc[module.name] = a_mc_val
+                alloc[m] = a_mc_val
         if alloc:  # add only if not empty
             allocation_list.append((cell, alloc, 0))
     allocation = Allocation(allocation_list)
 
     dispersions = {}
-    for m, module in enumerate(die.netlist.modules):
+    for module in die.netlist.modules:
+        m = module.name
         module.center = Point(get_value(model.x[m]), get_value(model.y[m]))
-        dispersions[module.name] = get_value(model.d[m])
+        dispersions[m] = get_value(model.d[m]) if m in model.d else 0.0
 
     return die, allocation, dispersions
 
@@ -178,6 +187,11 @@ def solve_and_extract_solution(model: Model, die: Die, cells: list[Rectangle], t
     return die, allocation, dispersions, vis_imgs
 
 
+def get_a(allocation: Allocation, module_name: str, cell_index: int) -> float:
+    return allocation.allocations[cell_index].alloc[module_name] \
+        if module_name in allocation.allocations[cell_index].alloc else 0.0
+
+
 def optimize_allocation(die: Die, allocation: Allocation, dispersions: dict[str, float],
                         threshold: float, alpha: float, dispersion_function: DispersionFunction,
                         verbose: bool = False, plotting_options: PlottingOptions | None = None) \
@@ -204,68 +218,50 @@ def optimize_allocation(die: Die, allocation: Allocation, dispersions: dict[str,
     n_cells = allocation.num_rectangles
     cells = [alloc.rect for alloc in allocation.allocations]
 
-    n_modules = die.netlist.num_modules
-    module2m = {}
-    for m, module in enumerate(die.netlist.modules):
-        module2m[module.name] = m
-
     bb = die.bounding_box.bounding_box
 
     model = Model()
     g = model.gekko  # Shortcut (reference)
 
-    # Centroid of modules
-    model.x = g.Array(g.Var, n_modules, lb=bb.ll.x, ub=bb.ur.x)
-    model.y = g.Array(g.Var, n_modules, lb=bb.ll.y, ub=bb.ur.y)
-
-    # Dispersion of modules
-    model.d = g.Array(g.Var, n_modules, lb=0)
-
-    # Ratios of area of c used by module m
-    model.a = g.Array(g.Var, (n_modules, n_cells), value=0, lb=0, ub=1)
-
-    # Set initial values
-    for m, module in enumerate(die.netlist.modules):
+    # Centroid and dispersion of modules
+    for module in die.netlist.modules:
+        m = module.name
         assert module.center is not None
-        model.x[m].value, model.y[m].value = module.center
-        model.d[m].value = dispersions[module.name]
-
-    for c, rect_alloc in enumerate(allocation.allocations):
-        for module_name, area_ratio in rect_alloc.alloc.items():
-            model.a[module2m[module_name]][c].value = area_ratio
+        if module.is_fixed:
+            model.x[m] = module.center.x
+            model.y[m] = module.center.y
+        else:
+            model.x[m] = g.Var(value=module.center.x, lb=bb.ll.x, ub=bb.ur.x)
+            model.y[m] = g.Var(value=module.center.y, lb=bb.ll.y, ub=bb.ur.y)
+            model.d[m] = g.Var(value=dispersions[m], lb=0)
 
     # Get neighbouring cells of all the cells
     neigh_cells: list[list[int]] = [[]] * n_cells
     for c in range(n_cells):
         neigh_cells[c] = get_neighbouring_cells(allocation, c)
 
-    # Fix (make constant) cells that have an allocation close to one (or zero) and are completely surrounded by cells
-    # that are also close to one (or zero). Modules with all the cells fixed, or with the fixed attribute set to True
-    # are also fixed in the model.
-    for m, module in enumerate(die.netlist.modules):
-        const_module = True
-        if not module.is_fixed:
-            for c in range(n_cells):
-                a_mc_val = get_value(model.a[m][c])
-                if a_mc_val > threshold and all(get_value(model.a[m][d]) > threshold for d in neigh_cells[c]) or \
-                   a_mc_val < 1 - threshold and all(get_value(model.a[m][d]) < 1 - threshold for d in neigh_cells[c]):
-                    model.a[m][c] = a_mc_val
-                elif const_module:
-                    const_module = False
-        if const_module:
-            model.x[m] = get_value(model.x[m])
-            model.y[m] = get_value(model.y[m])
-            model.d[m] = get_value(model.d[m])
-            for c in range(n_cells):
-                model.a[m][c] = get_value(model.a[m][c])
+    # Ratios of area of c used by module m
+    for module in die.netlist.modules:
+        m = module.name
+        model.a[m] = {}
+        for c in range(n_cells):
+            a_mc = get_a(allocation, m, c)
+            if module.is_fixed or \
+                    a_mc > threshold and all(get_a(allocation, m, d) > threshold for d in neigh_cells[c]) or \
+                    a_mc < 1 - threshold and all(get_a(allocation, m, d) < 1 - threshold for d in neigh_cells[c]):
+                model.a[m][c] = a_mc
+            else:
+                model.a[m][c] = g.Var(value=a_mc, lb=0, ub=1)
 
     # Cell constraints
     for c in range(n_cells):
         # Cells cannot be over-occupied
-        g.Equation(g.sum([model.a[m][c] for m in range(n_modules)]) <= 1)
+        g.Equation(g.sum([model.a[m][c] for m in model.a.keys()]) <= 1)
 
     # Module constraints
-    for m, module in enumerate(die.netlist.modules):
+    for module in die.netlist.modules:
+        m = module.name
+
         # Modules must have sufficient area
         g.Equation(g.sum([cells[c].area * model.a[m][c] for c in range(n_cells)]) >= module.area())
 
@@ -275,12 +271,12 @@ def optimize_allocation(die: Die, allocation: Allocation, dispersions: dict[str,
         g.Equation(1 / module.area() * g.sum([cells[c].area * cells[c].center.y * model.a[m][c]
                                               for c in range(n_cells)]) == model.y[m])
 
-        if not module.is_hard or module.is_fixed:
-            # Dispersion of soft and fixed modules
+        if not module.is_hard:  # Soft modules
+            # Dispersion of modules
             g.Equation(g.sum([cells[c].area * model.a[m][c] *
                               dispersion_function(model.x[m] - cells[c].center.x, model.y[m] - cells[c].center.y)
                               for c in range(n_cells)]) == model.d[m])
-        else:  # Non-fixed hard modules
+        elif not module.is_fixed:  # Non-fixed hard modules
             raise NotImplementedError  # TODO: implement support for non-fixed hard modules
 
     # Objective function: alpha * total wire length + (1 - alpha) * total dispersion
@@ -288,20 +284,20 @@ def optimize_allocation(die: Die, allocation: Allocation, dispersions: dict[str,
     # Total wire length
     for e in die.netlist.edges:
         if len(e.modules) == 2:  # Regular edges (we can avoid using extra variables)
-            m0 = module2m[e.modules[0].name]
-            m1 = module2m[e.modules[1].name]
+            m0 = e.modules[0].name
+            m1 = e.modules[1].name
             g.Minimize(alpha * e.weight * ((model.x[m0] - model.x[m1])**2 + (model.y[m0] - model.y[m1])**2) / 2)
         else:  # Hyperedges
             ex = g.Var(lb=0)
-            g.Equation(g.sum([model.x[module2m[module.name]] for module in e.modules]) / len(e.modules) == ex)
+            g.Equation(g.sum([model.x[module.name] for module in e.modules]) / len(e.modules) == ex)
             ey = g.Var(lb=0)
-            g.Equation(g.sum([model.y[module2m[module.name]] for module in e.modules]) / len(e.modules) == ey)
+            g.Equation(g.sum([model.y[module.name] for module in e.modules]) / len(e.modules) == ey)
             for module in e.modules:
-                m = module2m[module.name]
+                m = module.name
                 g.Minimize(alpha * e.weight * ((ex - model.x[m])**2 + (ey - model.y[m])**2))
 
     # Total dispersion
-    g.Minimize((1 - alpha) * g.sum(model.d))
+    g.Minimize((1 - alpha) * g.sum(list(model.d.values())))
 
     die, allocation, dispersions, vis_imgs = solve_and_extract_solution(model, die, cells, threshold, verbose=verbose,
                                                                         plotting_options=plotting_options)
@@ -342,11 +338,11 @@ def glbfloor(die: Die, threshold: float, alpha: float,
 
     if plotting_options is not None:
         if plotting_options.joint_plot:
-            get_joint_floorplan_plot(die.netlist, allocation, die.bounding_box.shape).\
+            get_joint_floorplan_plot(die.netlist, allocation, die.bounding_box.shape). \
                 save(f"{plotting_options.name}-joint-{n_iter}.gif")
 
         if plotting_options.separated_plot:
-            get_separated_floorplan_plot(die, allocation, dispersions, alpha, draw_text=True).\
+            get_separated_floorplan_plot(die, allocation, dispersions, alpha, draw_text=True). \
                 save(f"{plotting_options.name}-separated-{n_iter}.png")
 
     n_iter += 1
@@ -368,11 +364,11 @@ def glbfloor(die: Die, threshold: float, alpha: float,
                 durations.extend([100] * (max(len(vis_imgs[0]), len(vis_imgs[1])) - 1) + [1000])
 
             if plotting_options.joint_plot:
-                get_joint_floorplan_plot(die.netlist, allocation, die.bounding_box.shape).\
+                get_joint_floorplan_plot(die.netlist, allocation, die.bounding_box.shape). \
                     save(f"{plotting_options.name}-joint-{n_iter}.gif")
 
             if plotting_options.separated_plot:
-                get_separated_floorplan_plot(die, allocation, dispersions, alpha, draw_text=True).\
+                get_separated_floorplan_plot(die, allocation, dispersions, alpha, draw_text=True). \
                     save(f"{plotting_options.name}-separated-{n_iter}.png")
 
         if verbose:
