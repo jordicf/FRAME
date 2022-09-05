@@ -1,4 +1,11 @@
-# Keywords for YAML files and dictionary keys
+# (c) Jordi Cortadella 2022
+# For the FRAME Project.
+# Licensed under the MIT License (see https://github.com/jordicf/FRAME/blob/master/LICENSE.txt).
+
+"""
+Keywords for YAML files and dictionary keys
+"""
+
 KW_MODULES = "Modules"  # Modules of the netlist
 KW_NETS = "Nets"  # Edges (hyperedges) of the netlist
 KW_AREA = "area"  # Area (of a module, or rectangle)

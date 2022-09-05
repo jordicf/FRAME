@@ -1,3 +1,11 @@
+# (c) Jordi Cortadella 2022
+# For the FRAME Project.
+# Licensed under the MIT License (see https://github.com/jordicf/FRAME/blob/master/LICENSE.txt).
+
+"""
+Module to handle the die of a floorplan
+"""
+
 from collections import deque
 from itertools import combinations
 from typing import Set, Deque

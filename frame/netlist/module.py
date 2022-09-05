@@ -1,3 +1,11 @@
+# (c) Jordi Cortadella 2022
+# For the FRAME Project.
+# Licensed under the MIT License (see https://github.com/jordicf/FRAME/blob/master/LICENSE.txt).
+
+"""
+Modules of a netlist
+"""
+
 import math
 from frame.geometry.geometry import Point, Shape, Rectangle, create_stog
 from frame.utils.keywords import KW_CENTER, KW_SHAPE, KW_MIN_SHAPE, KW_AREA, KW_FIXED, KW_HARD, KW_FLIP,\

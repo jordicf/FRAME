@@ -1,3 +1,7 @@
+# (c) Jordi Cortadella 2022
+# For the FRAME Project.
+# Licensed under the MIT License (see https://github.com/jordicf/FRAME/blob/master/LICENSE.txt).
+
 from typing import Any
 from .module import Module
 from .netlist_types import HyperEdge

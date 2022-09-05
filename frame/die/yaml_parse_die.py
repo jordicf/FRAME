@@ -1,3 +1,7 @@
+# (c) Jordi Cortadella 2022
+# For the FRAME Project.
+# Licensed under the MIT License (see https://github.com/jordicf/FRAME/blob/master/LICENSE.txt).
+
 from frame.geometry.geometry import Point, Shape, Rectangle
 from frame.utils.keywords import KW_WIDTH, KW_HEIGHT, KW_REGION, KW_REGIONS, KW_GROUND,\
     KW_BLOCKAGE, KW_CENTER, KW_SHAPE

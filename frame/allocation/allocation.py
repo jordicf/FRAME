@@ -1,3 +1,12 @@
+# (c) Jordi Cortadella 2022
+# For the FRAME Project.
+# Licensed under the MIT License (see https://github.com/jordicf/FRAME/blob/master/LICENSE.txt).
+
+"""
+Module to handle allocation of modules in grids in a way that each module occupies a fraction of each cell
+of the grid
+"""
+
 import itertools
 import math
 
