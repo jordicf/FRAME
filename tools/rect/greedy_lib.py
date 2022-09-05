@@ -1,3 +1,9 @@
+"""
+(c) Víctor Franco Sanchez 2022
+For the FRAME Framework project.
+This code is licensed under MIT license (see LICENSE.txt on our git for details)
+"""
+
 from ctypes import *
 from typing import Type
 
@@ -13,7 +19,7 @@ class BOX(Structure):
 class GreedyManager:
 
     def __init__(self):
-        self.mylib = CDLL("rect_greedy.pyd")
+        self.mylib = CDLL("../../rect_greedy.pyd")
         self.mylib.find_best_box.restype = BOX
         self.mylib.find_best_box.argtypes = [POINTER(BOX), c_double, c_double, c_long, c_double]
 

@@ -1,6 +1,12 @@
+"""
+(c) Víctor Franco Sanchez 2022
+For the FRAME Framework project.
+This code is licensed under MIT license (see LICENSE.txt on our git for details)
+"""
+
 import typing
 from argparse import ArgumentParser
-from tools.rect.rect_io import get_ifile, getfile, selectbox
+from tools.rect.rect_io import get_alloc, getfile, select_box
 
 
 def parse_options(prog: str | None = None, args: list[str] | None = None) -> dict[str, typing.Any]:
@@ -25,7 +31,7 @@ def main(prog: str | None = None, args: list[str] | None = None) -> int:
     if file[-5:] != ".yaml":
         raise Exception("Input file name should end in .yaml")
     basefile = file.split(sep="/")[-1][:-5]
-    ifile = get_ifile(file)
+    ifile = get_alloc(file)
 
     module_names = set()
     for r in ifile['Rectangles']:
@@ -36,7 +42,7 @@ def main(prog: str | None = None, args: list[str] | None = None) -> int:
 
     counter = 10
     for mod in sorted(module_names, key=lambda x: int(x[1:])):
-        input_problem, selbox = selectbox(mod, ifile)
+        input_problem, selbox = select_box(mod, ifile)
         iofile = open(options["outdir"] + basefile + "." + mod + ".txt", "w")
         iofile.write(getfile(input_problem, ifile, 2.00))
         iofile.close()

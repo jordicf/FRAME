@@ -1,0 +1,119 @@
+Modules: {
+  M8: {
+    center: [3.5, 6.0],
+    area: 2
+  },
+  M13: {
+    center: [2.0, 1.0],
+    area: 5
+  },
+  M25: {
+    center: [0.5, 0.5],
+    area: 1
+  },
+  M15: {
+    rectangles: [[0.5, 8.5, 1.0, 1.0]],
+    fixed: true
+  },
+  M17: {
+    center: [1.5, 2.5],
+    area: 1
+  },
+  M19: {
+    center: [0.5, 2.5],
+    area: 1
+  },
+  M28: {
+    center: [3.5, 0.5],
+    area: 1
+  },
+  M9: {
+    rectangles: [[2.5, 4.0, 3.0, 2.0]],
+    hard: true
+  },
+  M11: {
+    center: [7.0, 0.5],
+    area: 7
+  },
+  M26: {
+    center: [0.5, 3.5],
+    area: 1
+  },
+  M10: {
+    center: [0.5, 5.0],
+    area: 3
+  },
+  M24: {
+    center: [4.5, 5.5],
+    area: 1
+  },
+  M1: {
+    center: [8.5, 7.0],
+    area: 17
+  },
+  M22: {
+    center: [1.5, 7.5],
+    area: 1
+  },
+  M0: {
+    center: [3.5, 9.5],
+    area: 10
+  },
+  M2: {
+    center: [1.5, 6.5],
+    area: 5
+  },
+  M5: {
+    center: [9.5, 1.5],
+    area: 2
+  },
+  M16: {
+    center: [8.5, 2.5],
+    area: 1
+  },
+  M20: {
+    center: [5.5, 8.0],
+    area: 3
+  },
+  M21: {
+    center: [3.5, 1.5],
+    area: 1
+  },
+  M4: {
+    center: [8.0, 3.5],
+    area: 2
+  },
+  M7: {
+    center: [4.5, 7.5],
+    area: 3
+  },
+  M14: {
+    center: [2.5, 2.5],
+    area: 1
+  },
+  M3: {
+    center: [6.5, 6.0],
+    area: 6
+  },
+  M23: {
+    center: [2.5, 7.5],
+    area: 1
+  },
+  M27: {
+    center: [9.5, 3.5],
+    area: 1
+  },
+  M12: {
+    center: [4.5, 2.5],
+    area: 4
+  },
+  M18: {
+    center: [7.5, 2.0],
+    area: 4
+  },
+  M6: {
+    center: [5.5, 3.0],
+    area: 3
+  }}
+
+Nets: []

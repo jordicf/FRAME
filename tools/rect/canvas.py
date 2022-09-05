@@ -1,3 +1,9 @@
+"""
+(c) Víctor Franco Sanchez 2022
+For the FRAME Framework project.
+This code is licensed under MIT license (see LICENSE.txt on our git for details)
+"""
+
 from PIL import Image, ImageDraw
 
 
@@ -52,7 +58,8 @@ class Canvas:
         self.width: float = float(width)
         self.height: float = float(height)
         self.canvas: Image.Image = Image.new("RGBA", (width, height))
-        self.context: ImageDraw.ImageDraw = ImageDraw.Draw(self.canvas)
+        self.overlay: Image.Image = Image.new("RGBA", (width, height))
+        self.context: ImageDraw.ImageDraw = ImageDraw.Draw(self.overlay)
         self.clear()
 
     @staticmethod
@@ -98,6 +105,10 @@ class Canvas:
         x3, y3 = x2 * (xo1 - xo0) + xo0, y2 * (yo1 - yo0) + yo0
         return x3, y3
 
+    def portray_changes(self):
+        self.canvas.paste(self.overlay, (0, 0), self.overlay)
+        self.context.rectangle((0, 0, self.width, self.height), fill=(0, 0, 0, 0), outline=None)
+
     def drawbox(self, box: tuple[tuple[float, float], tuple[float, float]],
                 col: str = "#FFFFFF", out: str | None = None) -> None:
         """
@@ -112,6 +123,7 @@ class Canvas:
         color = self.hex_breakdown(col)
         outline = self.hex_breakdown(out)
         self.context.rectangle(shape, fill=color, outline=outline)
+        self.portray_changes()
 
     def clear(self, col: str = "#FFFFFF") -> None:
         """
@@ -121,6 +133,7 @@ class Canvas:
         shape = (0, 0, self.width, self.height)
         color = self.hex_breakdown(col)
         self.context.rectangle(shape, fill=color, outline=color)
+        self.portray_changes()
 
     def show(self) -> None:
         """

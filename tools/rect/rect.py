@@ -1,18 +1,22 @@
 """
+(c) Víctor Franco Sanchez 2022
+For the FRAME Framework project.
+This code is licensed under MIT license (see LICENSE.txt on our git for details)
+"""
+
+"""
 Package to normalize a fuzzy configuration of
 modules in a non-uniform rectangular grid into
 adjacent rectangles.
 """
-
 from argparse import ArgumentParser
 
 import tools.rect.pseudobool as pseudobool
 import tools.rect.satmanager as satmanager
 import typing
-from tools.rect.rect_io import get_ifile, selectbox
+from tools.rect.rect_io import get_alloc, select_box, get_netlist, solution_to_netlist
 from tools.rect.greedy_lib import GreedyManager
 
-from frame.utils.utils import write_yaml
 from tools.rect.canvas import Canvas, colmix
 
 # Custom types
@@ -62,7 +66,10 @@ def parse_options(prog: str | None = None, args: list[str] | None = None) -> dic
     """
     parser = ArgumentParser(prog=prog, description="A package for normalizing fuzzy module assignments",
                             usage='%(prog)s [options]')
-    parser.add_argument("filename", type=str,                 help="Input file (.yaml)")
+    parser.add_argument("filename", type=str,
+                        help="Allocation input file (.yaml)")
+    parser.add_argument("--netlist", type=str, dest="netlist", default=None,
+                        help="Netlist input file (.yaml)")
     parser.add_argument("--minarea", dest='f', const=0.89, default=2.00, action='store_const',
                         help="Minimizes the total area while guaranteeing a minimum coverage of the original")
     parser.add_argument("--maxdiff", dest='f', const=3.00, default=2.00, action='store_const',
@@ -415,10 +422,16 @@ def main(prog: str | None = None, args: list[str] | None = None) -> int:
 
     f = options['f']
     file = options['filename']
+    netfile = options['netlist']
 
     carrier.factor = 10000
 
-    ifile = get_ifile(file)
+    ifile = get_alloc(file)
+    netlist = get_netlist(netfile, file)
+
+    name_to_index = {}
+    for i in range(0, len(netlist.modules)):
+        name_to_index[netlist.modules[i].name] = i
 
     canvas.setcoords(-1, -1, ifile['Width'] + 1, ifile['Height'] + 1)
 
@@ -432,9 +445,15 @@ def main(prog: str | None = None, args: list[str] | None = None) -> int:
     else:
         module_names.add(options['module'])
 
-    allboxes = {}
+    all_boxes: dict[str, list[SimpleBox]] = {}
     for mname in sorted(module_names):
-        carrier.input_problem, carrier.selbox = selectbox(mname, ifile)
+        if netlist.modules[name_to_index[mname]].is_hard:
+            print("Module " + mname + " is hard")
+            continue
+        elif netlist.modules[name_to_index[mname]].is_fixed:
+            print("Module " + mname + " is fixed")
+            continue
+        carrier.input_problem, carrier.selbox = select_box(mname, ifile)
         if options['plot']:
             drawinput(canvas, carrier.input_problem)
 
@@ -476,11 +495,13 @@ def main(prog: str | None = None, args: list[str] | None = None) -> int:
         for i in range(0, len(boxes)):
             (x1, y1, x2, y2) = boxes[i]
             boxes[i] = ((x1 + x2) / 2, (y1 + y2) / 2, x2 - x1, y2 - y1)
-        allboxes[mname] = boxes
+        all_boxes[mname] = boxes
     if options['file'] is not None:
-        write_yaml(allboxes, options['file'])
+        f = open(options['file'], "w")
+        f.write(solution_to_netlist(netlist, all_boxes))
+        f.close()
     else:
-        print(write_yaml(allboxes))
+        print(solution_to_netlist(netlist, all_boxes))
     return 1
 
 
