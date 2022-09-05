@@ -195,7 +195,6 @@ def get_a(allocation: Allocation, module: Module, cell_index: int) -> float:
     If not, but it has a single rectangle (this is useful for "fake" modules from non-fixed hard modules), then
     the allocation value is calculated.
     Else, 0.0 is returned
-
     :param allocation: the allocation
     :param module: the module
     :param cell_index: the index of the allocation rectangle
