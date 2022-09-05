@@ -231,9 +231,9 @@ def optimize_allocation(die: Die, allocation: Allocation, dispersions: dict[str,
             model.x[m] = module.center.x
             model.y[m] = module.center.y
         else:
-            model.x[m] = g.Var(value=module.center.x, lb=bb.ll.x, ub=bb.ur.x)
-            model.y[m] = g.Var(value=module.center.y, lb=bb.ll.y, ub=bb.ur.y)
-            model.d[m] = g.Var(value=dispersions[m], lb=0)
+            model.x[m] = g.Var(value=module.center.x, lb=bb.ll.x, ub=bb.ur.x, name=f"x_{m}")
+            model.y[m] = g.Var(value=module.center.y, lb=bb.ll.y, ub=bb.ur.y, name=f"y_{m}")
+            model.d[m] = g.Var(value=dispersions[m], lb=0, name=f"d_{m}")
 
     # Get neighbouring cells of all the cells
     neigh_cells: list[list[int]] = [[]] * n_cells
@@ -251,7 +251,7 @@ def optimize_allocation(die: Die, allocation: Allocation, dispersions: dict[str,
                     a_mc < 1 - threshold and all(get_a(allocation, m, d) < 1 - threshold for d in neigh_cells[c]):
                 model.a[m][c] = a_mc
             else:
-                model.a[m][c] = g.Var(value=a_mc, lb=0, ub=1)
+                model.a[m][c] = g.Var(value=a_mc, lb=0, ub=1, name=f"a_{m}_{c}")
 
     # Cell constraints
     for c in range(n_cells):
