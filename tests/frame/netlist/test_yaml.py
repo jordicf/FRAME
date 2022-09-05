@@ -95,8 +95,7 @@ class TestYaml(unittest.TestCase):
 
     def test_epsilon(self):
         Rectangle.undefine_epsilon()
-        n = Netlist(netlist3)
-
+        Netlist(netlist3)
 
 
 if __name__ == '__main__':
