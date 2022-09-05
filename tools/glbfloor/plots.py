@@ -87,7 +87,7 @@ def get_separated_floorplan_plot(die: Die, allocation: Allocation, dispersions: 
     large_font = ImageFont.truetype(font_name, round(scale_factor / 6))
     color_map = "Blues"
 
-    grid_width, grid_height = map(ceil, astuple(allocation.bounding_box.shape))
+    grid_width, grid_height = map(ceil, astuple(die.bounding_box.shape))
     grid_width *= scale_factor
     grid_height *= scale_factor
 
