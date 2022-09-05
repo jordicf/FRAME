@@ -53,7 +53,7 @@ def get_value(v) -> float:
     return v
 
 
-DispersionFunction = Callable[[float, float], float]
+DispersionFunction = Callable[[GEKKOType, GEKKOType], GEKKOType]
 
 
 def calculate_dispersions(modules: list[Module], allocation: Allocation, dispersion_function: DispersionFunction) \
