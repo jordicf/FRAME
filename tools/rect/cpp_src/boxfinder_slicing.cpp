@@ -1,6 +1,6 @@
 // (c) Víctor Franco Sanchez 2022
-// For the FRAME Framework project.
-// This code is licensed under MIT license (see LICENSE.txt on our git for details)
+// For the FRAME Project.
+// Licensed under the MIT License (see https://github.com/jordicf/FRAME/blob/master/LICENSE.txt).
 
 #ifndef SLICING_CPP
 #define SLICING_CPP
