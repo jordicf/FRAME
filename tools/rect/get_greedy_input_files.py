@@ -1,3 +1,9 @@
+"""
+(c) Víctor Franco Sanchez 2022
+For the FRAME Framework project.
+This code is licensed under MIT license (see LICENSE.txt on our git for details)
+"""
+
 import typing
 from argparse import ArgumentParser
 from tools.rect.rect_io import get_alloc, getfile, select_box

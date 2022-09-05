@@ -1,3 +1,7 @@
+// (c) Víctor Franco Sanchez 2022
+// For the FRAME Framework project.
+// This code is licensed under MIT license (see LICENSE.txt on our git for details)
+
 #ifndef COMPLETE_CPP
 #define COMPLETE_CPP
 

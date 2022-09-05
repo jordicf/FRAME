@@ -1,3 +1,9 @@
+"""
+(c) Víctor Franco Sanchez 2022
+For the FRAME Framework project.
+This code is licensed under MIT license (see LICENSE.txt on our git for details)
+"""
+
 from frame.allocation.allocation import RectAlloc, Allocation
 from frame.geometry.geometry import Point
 from frame.netlist.netlist import Netlist
