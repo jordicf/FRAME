@@ -169,9 +169,9 @@ def solve_and_extract_solution(model: Model, die: Die, cells: list[Rectangle], t
             die, allocation, dispersions = extract_solution(model, die, cells, threshold)
             assert die.netlist is not None, "No netlist associated to the die"  # Assertion to suppress Mypy error
 
-            if plotting_options.separated_plot:
-                vis_imgs[0].append(get_joint_floorplan_plot(die.netlist, allocation, die.bounding_box.shape))
             if plotting_options.joint_plot:
+                vis_imgs[0].append(get_joint_floorplan_plot(die.netlist, allocation, die.bounding_box.shape))
+            if plotting_options.separated_plot:
                 vis_imgs[1].append(get_separated_floorplan_plot(die, allocation))
             print(i, end=" ", flush=True)
 
