@@ -1,8 +1,6 @@
 # (c) Víctor Franco Sanchez 2022
 # For the FRAME Project.
 # Licensed under the MIT License (see https://github.com/jordicf/FRAME/blob/master/LICENSE.txt).
-
-
 from typing import Any, TypeVar, Callable, Union
 from enum import Enum
 from gekko import GEKKO
@@ -210,10 +208,11 @@ class ModelModule:
         return xv, yv, wv, hv
 
     def _define_vars(self, gekko: GEKKO, rect: BoxType) -> tuple[GekkoType, GekkoType, GekkoType, GekkoType]:
-        var_x = gekko.Var(lb=0, ub=self.dw, name="x" + str(self.id) + "i" + str(len(self.x)))
-        var_y = gekko.Var(lb=0, ub=self.dh, name="y" + str(self.id) + "i" + str(len(self.x)))
-        var_w = gekko.Var(lb=0.1, ub=self.dw, name="w" + str(self.id) + "i" + str(len(self.x)))
-        var_h = gekko.Var(lb=0.1, ub=self.dh, name="h" + str(self.id) + "i" + str(len(self.x)))
+        rect_id = len(self.x)
+        var_x = gekko.Var(lb=0, ub=self.dw, name="x" + str(self.id) + "i" + str(rect_id))
+        var_y = gekko.Var(lb=0, ub=self.dh, name="y" + str(self.id) + "i" + str(rect_id))
+        var_w = gekko.Var(lb=0.1, ub=self.dw, name="w" + str(self.id) + "i" + str(rect_id))
+        var_h = gekko.Var(lb=0.1, ub=self.dh, name="h" + str(self.id) + "i" + str(rect_id))
         var_x.value = [rect[0]]
         var_y.value = [rect[1]]
         var_w.value = [rect[2]]
@@ -352,7 +351,7 @@ class Model:
 
         # self.tau = self.gekko.Var(lb = 0, name="tau")
         # self.tau.value = [5]
-        self.tau = 0.1 * min(die_width, die_height)
+        self.tau = 0.01 * min(die_width, die_height) / len(ml)
 
         # Variable definition
         for (trunk, Nb, Sb, Eb, Wb) in ml:
@@ -380,12 +379,12 @@ class Model:
             nid.sort(key=lambda z: value_of(self.M[m].x[z]))
             for i in range(0, len(nid) - 1):
                 x, y = nid[i], nid[i + 1]
-                self.gekko.Equation(self.M[m].y[x] + 0.5 * self.M[m].h[x] <= self.M[m].y[y] - 0.5 * self.M[m].h[y])
+                self.gekko.Equation(self.M[m].x[x] + 0.5 * self.M[m].w[x] <= self.M[m].x[y] - 0.5 * self.M[m].w[y])
 
             sid.sort(key=lambda z: value_of(self.M[m].x[z]))
             for i in range(0, len(sid) - 1):
                 x, y = sid[i], sid[i + 1]
-                self.gekko.Equation(self.M[m].y[x] + 0.5 * self.M[m].h[x] <= self.M[m].y[y] - 0.5 * self.M[m].h[y])
+                self.gekko.Equation(self.M[m].x[x] + 0.5 * self.M[m].w[x] <= self.M[m].x[y] - 0.5 * self.M[m].w[y])
 
             eid.sort(key=lambda z: value_of(self.M[m].y[z]))
             for i in range(0, len(eid) - 1):
@@ -579,6 +578,8 @@ def main(prog: str | None = None, args: list[str] | None = None) -> int:
     options = parse_options(prog, args)
     ml, al, xl, yl, wl, hl, die_width, die_height, hyper, max_ratio, og_names = compute_options(options)
     m = Model(ml, al, xl, yl, wl, hl, die_width, die_height, hyper, max_ratio, og_names)
+    if options['verbose']:
+        m.gekko.open_folder()
     if options['plot']:
         m.interactive_draw()
     try:
