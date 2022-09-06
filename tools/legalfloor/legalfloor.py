@@ -22,6 +22,8 @@ OptionalMatrix = dict[int, OptionalList]
 HyperEdge = tuple[float, list[int]]
 HyperGraph = list[HyperEdge]
 GekkoType = Union[float, GKVariable]
+
+
 # Think of GekkoType as either a constant, a variable or an expression.
 # Aka. Something that evaluates to a number
 
@@ -427,7 +429,7 @@ class Model:
     def interactive_draw(self, canvas_width=500, canvas_height=500) -> None:
         canvas = Canvas(width=canvas_width, height=canvas_height)
         canvas.clear(col="#000000")
-        canvas.setcoords(-1, -1, self.dw+1, self.dh+1)
+        canvas.setcoords(-1, -1, self.dw + 1, self.dh + 1)
 
         for i in range(0, len(self.M)):
             m = self.M[i]
@@ -439,6 +441,7 @@ class Model:
                 d = value_of(m.y[j]) + 0.5 * value_of(m.h[j])
 
                 canvas.drawbox(((a, b), (c, d)), col=hsv_to_str(hue) + "90")
+        canvas.drawbox(((0, 0), (self.dw, self.dh)), "#00000000", "#FFFFFF")
         canvas.show()
 
     def solve(self, verbose=False) -> None:
@@ -466,10 +469,12 @@ class Model:
                     yaml += ", "
                 yaml += str(rect)
             yaml += "]\n  }"
-        yaml += "\n}\nNets: [\n  ["
+        yaml += "\n}\nNets: [\n  "
         for i in range(0, len(self.hyper)):
             if i != 0:
                 yaml += ",\n  ["
+            else:
+                yaml += "["
             for j in range(0, len(self.hyper[i][1])):
                 if j != 0:
                     yaml += ", "
@@ -576,7 +581,10 @@ def main(prog: str | None = None, args: list[str] | None = None) -> int:
     m = Model(ml, al, xl, yl, wl, hl, die_width, die_height, hyper, max_ratio, og_names)
     if options['plot']:
         m.interactive_draw()
-    m.solve(options['verbose'])
+    try:
+        m.solve(options['verbose'])
+    except Exception:  # Yes, "too broad of an exception clause", but it's what GEKKO throws.
+        print("No solution was found!")
     if options['plot']:
         m.interactive_draw()
     m.get_netlist()
