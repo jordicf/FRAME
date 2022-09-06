@@ -1,3 +1,10 @@
+# (c) Marçal Comajoan Cara 2022
+# For the FRAME Project.
+# Licensed under the MIT License (see https://github.com/jordicf/FRAME/blob/master/LICENSE.txt).
+
+"""This file is only used to set up C++ extension modules. The rest of the setup is done through
+the pyproject.toml file."""
+
 import sysconfig
 
 from setuptools import setup, Extension
