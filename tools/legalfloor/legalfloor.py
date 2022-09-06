@@ -1,6 +1,7 @@
 # (c) Víctor Franco Sanchez 2022
 # For the FRAME Project.
 # Licensed under the MIT License (see https://github.com/jordicf/FRAME/blob/master/LICENSE.txt).
+from random import randint
 from typing import Any, TypeVar, Callable, Union
 from enum import Enum
 from gekko import GEKKO
@@ -256,6 +257,9 @@ class Model:
 
     tau: float
 
+    # For visualization
+    hue_array: list[str]
+
     def define_module(self, trunk_box: BoxType) -> int:
         x: list[GekkoType] = []
         y: list[GekkoType] = []
@@ -348,6 +352,7 @@ class Model:
 
         """Constructs the GEKKO object and initializes the model"""
         self.gekko = GEKKO(remote=False)
+        self.hue_array = []
 
         # self.tau = self.gekko.Var(lb = 0, name="tau")
         # self.tau.value = [5]
@@ -430,16 +435,24 @@ class Model:
         canvas.clear(col="#000000")
         canvas.setcoords(-1, -1, self.dw + 1, self.dh + 1)
 
+        if len(self.hue_array) != len(self.M):
+            self.hue_array = []
+            for i in range(0, len(self.M)):
+                hue = i / len(self.M)
+                self.hue_array.append(hsv_to_str(hue) + "90")
+            for i in range(0, len(self.M)):
+                j = randint(i, len(self.M) - 1)
+                self.hue_array[i], self.hue_array[j] = self.hue_array[j], self.hue_array[i]
+
         for i in range(0, len(self.M)):
             m = self.M[i]
-            hue = i / len(self.M)
             for j in range(0, len(m.x)):
                 a = value_of(m.x[j]) - 0.5 * value_of(m.w[j])
                 b = value_of(m.y[j]) - 0.5 * value_of(m.h[j])
                 c = value_of(m.x[j]) + 0.5 * value_of(m.w[j])
                 d = value_of(m.y[j]) + 0.5 * value_of(m.h[j])
+                canvas.drawbox(((a, b), (c, d)), col=self.hue_array[i])
 
-                canvas.drawbox(((a, b), (c, d)), col=hsv_to_str(hue) + "90")
         canvas.drawbox(((0, 0), (self.dw, self.dh)), "#00000000", "#FFFFFF")
         canvas.show()
 
