@@ -131,7 +131,11 @@ def extract_solution(model: Model, die: Die, cells: list[Rectangle], threshold: 
     dispersions = {}
     for module in die.netlist.modules:
         m = module.name
+
         module.center = Point(get_value(model.x[m]), get_value(model.y[m]))
+        if module.is_hard and not module.is_fixed:
+            module.recenter_rectangles()
+
         dispersions[m] = get_value(model.d[m]) if m in model.d else 0.0
 
     return die, allocation, dispersions
