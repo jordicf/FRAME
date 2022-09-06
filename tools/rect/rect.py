@@ -214,8 +214,15 @@ def solve(carrier: Carrier,
     else:
         sm.pseudoboolencoding(obj >= dif[0])
 
+    # Enforce the module to have the correct shape
     for i in range(0, nboxes):
         enforce_bb(carrier, ifile, sm, "b" + str(i) + "_", "b" + str(0) + "_")
+
+    # Enforce no overlap between rectangles
+    for b in blocks:
+        dif = [sm.newvar("b" + str(t) + "_" + str(b), "") for t in range(0, nboxes)]
+        sm.heuleencoding(dif)
+
     if not sm.solve():
         print("Insat")
         return (0, 1), [], 0
