@@ -139,7 +139,7 @@ def extract_solution(model: Model, die: Die, cells: list[Rectangle], threshold: 
             for r in range(module.num_rectangles):
                 dispersions[m] += get_value(model.d[f"{m}_{r}"])
         else:
-            dispersions[m] = get_value(model.d[m])
+            dispersions[m] = get_value(model.d[m]) if not module.is_fixed else 0.0
 
     return die, allocation, dispersions
 
