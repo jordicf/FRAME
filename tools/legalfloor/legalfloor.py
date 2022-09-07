@@ -595,9 +595,10 @@ def main(prog: str | None = None, args: list[str] | None = None) -> int:
         m.gekko.open_folder()
     if options['plot']:
         m.interactive_draw()
+    # noinspection PyBroadException
     try:
         m.solve(options['verbose'])
-    except Exception:  # Yes, "too broad of an exception clause", but it's what GEKKO throws.
+    except Exception:
         print("No solution was found!")
     if options['plot']:
         m.interactive_draw()
