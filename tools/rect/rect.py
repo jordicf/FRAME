@@ -220,8 +220,8 @@ def solve(carrier: Carrier,
 
     # Enforce no overlap between rectangles
     for b in blocks:
-        dif = [sm.newvar("b" + str(t) + "_" + str(b), "") for t in range(0, nboxes)]
-        sm.heuleencoding(dif)
+        exclusive_literals = [sm.newvar("b" + str(t) + "_" + str(b), "") for t in range(0, nboxes)]
+        sm.heuleencoding(exclusive_literals)
 
     if not sm.solve():
         print("Insat")

@@ -415,13 +415,16 @@ class Model:
             self.fix(m, optional_get(xl, m), optional_get(yl, m), optional_get(wl, m), optional_get(hl, m))
 
         # Objective function
-        obj = 0
+        obj = 0.0
         for (weight, Set) in hyper:
             centroid_x: Any = 0.0
             centroid_y: Any = 0.0
             for i in Set:
                 centroid_x += self.M[i].x_sum / self.M[i].area
                 centroid_y += self.M[i].y_sum / self.M[i].area
+                for j in range(0, self.M[i].c):
+                    obj += weight * weight * ((self.M[i].x[j] - self.M[i].x_sum / self.M[i].area) ** 2 +
+                                              (self.M[i].y[j] - self.M[i].y_sum / self.M[i].area) ** 2)
             centroid_x /= len(Set)
             centroid_y /= len(Set)
             for i in Set:
@@ -595,9 +598,10 @@ def main(prog: str | None = None, args: list[str] | None = None) -> int:
         m.gekko.open_folder()
     if options['plot']:
         m.interactive_draw()
+    # noinspection PyBroadException
     try:
         m.solve(options['verbose'])
-    except Exception:  # Yes, "too broad of an exception clause", but it's what GEKKO throws.
+    except Exception:
         print("No solution was found!")
     if options['plot']:
         m.interactive_draw()
