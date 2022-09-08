@@ -140,7 +140,6 @@ class Canvas:
                           color: str = "#000000", width: int = 2) -> None:
         (b1, e1) = line
         b2, e2 = self.interpolate(b1), self.interpolate(e1)
-        print(b2, e2)
         self.context.line((b2, e2), fill=color, width=width)
         self.portray_changes()
 
