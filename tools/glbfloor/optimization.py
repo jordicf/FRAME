@@ -331,6 +331,14 @@ def optimize_allocation(die: Die, allocation: Allocation, dispersions: dict[str,
         model.x[m] = g.Var(value=module.center.x, lb=bb.ll.x, ub=bb.ur.x, name=f"x_{m}")
         model.y[m] = g.Var(value=module.center.y, lb=bb.ll.y, ub=bb.ur.y, name=f"y_{m}")
 
+        m0 = f"{m}_0"
+        if module.flip:
+            g.Equation((model.x[m] - model.x[m0])**2 == (module.center.x - module.rectangles[0].center.x)**2)
+            g.Equation((model.y[m] - model.y[m0])**2 == (module.center.y - module.rectangles[0].center.y)**2)
+        else:
+            g.Equation(model.x[m] - model.x[m0] == module.center.x - module.rectangles[0].center.x)
+            g.Equation(model.y[m] - model.y[m0] == module.center.y - module.rectangles[0].center.y)
+
         model.a[m] = {}
         for c in range(n_cells):
             model.a[m][c] = g.Var(value=get_a(allocation, module, c), lb=0, ub=1, name=f"a_{m}_{c}")
@@ -338,12 +346,15 @@ def optimize_allocation(die: Die, allocation: Allocation, dispersions: dict[str,
 
         for r, rectangle in enumerate(module.rectangles):
             mr = f"{m}_{r}"
-            if module.flip:
-                g.Equation((model.x[m] - model.x[mr])**2 == (module.center.x - rectangle.center.x)**2)
-                g.Equation((model.y[m] - model.y[mr])**2 == (module.center.y - rectangle.center.y)**2)
-            else:
-                g.Equation(model.x[m] - model.x[mr] == module.center.x - rectangle.center.x)
-                g.Equation(model.y[m] - model.y[mr] == module.center.y - rectangle.center.y)
+            for r_, rectangle_ in enumerate(module.rectangles):
+                if r < r_:
+                    mr_ = f"{m}_{r_}"
+                    if module.flip:
+                        g.Equation((model.x[mr] - model.x[mr_])**2 == (rectangle.center.x - rectangle_.center.x)**2)
+                        g.Equation((model.y[mr] - model.y[mr_])**2 == (rectangle.center.y - rectangle_.center.y)**2)
+                    else:
+                        g.Equation(model.x[mr] - model.x[mr_] == rectangle.center.x - rectangle_.center.x)
+                        g.Equation(model.y[mr] - model.y[mr_] == rectangle.center.y - rectangle_.center.y)
 
             w, h = astuple(rectangle.shape)
             g.Equation(12 / (w**3 + h**3) *
