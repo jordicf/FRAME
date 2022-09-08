@@ -20,7 +20,7 @@ def rgb(r: int, g: int, b: int) -> str:
     return "#" + rs + gs + bs
 
 
-def colmix(c1: tuple[int, int, int], c2: tuple[int, int, int], p: float) -> str:
+def color_mix(c1: tuple[int, int, int], c2: tuple[int, int, int], p: float) -> str:
     """
     Given two colors: c1 = (R1, G1, B1) and c2 = (R2, G2, B2) and a mixing factor p, returns p*c2 + (1-p)*c1 in hex.
     """
@@ -34,6 +34,35 @@ def colmix(c1: tuple[int, int, int], c2: tuple[int, int, int], p: float) -> str:
     g = round(g2 * p + g1 * (1 - p))
     b = round(b2 * p + b1 * (1 - p))
     return rgb(r, g, b)
+
+
+def cross_dot_implementation(self, point: tuple[float, float], color: str, radius: float):
+    width_ratio = (self.x1 - self.x0) / self.width
+    height_ratio = (self.y1 - self.y0) / self.height
+    (x0, y0) = point
+    x1, y1 = x0 - radius * width_ratio, y0 - radius * height_ratio
+    x2, y2 = x0 + radius * width_ratio, y0 + radius * height_ratio
+    x3, y3 = x0 - radius * width_ratio, y0 + radius * height_ratio
+    x4, y4 = x0 + radius * width_ratio, y0 - radius * height_ratio
+    self._draw_simple_line(((x1, y1), (x2, y2)), color=color)
+    self._draw_simple_line(((x3, y3), (x4, y4)), color=color)
+
+
+def thin_cross_dot_implementation(self, point: tuple[float, float], color: str, radius: float):
+    width_ratio = (self.x1 - self.x0) / self.width
+    height_ratio = (self.y1 - self.y0) / self.height
+    (x0, y0) = point
+    x1, y1 = x0 - radius * width_ratio, y0 - radius * height_ratio
+    x2, y2 = x0 + radius * width_ratio, y0 + radius * height_ratio
+    x3, y3 = x0 - radius * width_ratio, y0 + radius * height_ratio
+    x4, y4 = x0 + radius * width_ratio, y0 - radius * height_ratio
+    self._draw_simple_line(((x1, y1), (x2, y2)), color=color, width=1)
+    self._draw_simple_line(((x3, y3), (x4, y4)), color=color, width=1)
+
+
+def solid_line_implementation(self, line: tuple[tuple[float, float], tuple[float, float]], color: str,
+                              thickness: float):
+    self._draw_simple_line(line, color=color, width=thickness)
 
 
 class Canvas:
@@ -60,6 +89,9 @@ class Canvas:
         self.overlay: Image.Image = Image.new("RGBA", (width, height))
         self.context: ImageDraw.ImageDraw = ImageDraw.Draw(self.overlay)
         self.clear()
+        self.dot_implementations = {"cross": cross_dot_implementation,
+                                    "thin_cross": thin_cross_dot_implementation}
+        self.line_implementations = {"solid": solid_line_implementation}
 
     @staticmethod
     def hex_breakdown(col: str | None) -> tuple[int, int, int, int] | None:
@@ -79,7 +111,7 @@ class Canvas:
             raise Exception("Unknown hex color " + col)
         return color
 
-    def setcoords(self, x0: float, y0: float, x1: float, y1: float) -> None:
+    def set_coords(self, x0: float, y0: float, x1: float, y1: float) -> None:
         """
         Tells the class the coordinates for the top left and bottom right corners
         :param x0: The x coordinate of the upper left corner in virtual space
@@ -104,6 +136,13 @@ class Canvas:
         x3, y3 = x2 * (xo1 - xo0) + xo0, y2 * (yo1 - yo0) + yo0
         return x3, y3
 
+    def _draw_simple_line(self, line: tuple[tuple[float, float], tuple[float, float]],
+                          color: str = "#000000", width: int = 2) -> None:
+        (b1, e1) = line
+        b2, e2 = self.interpolate(b1), self.interpolate(e1)
+        self.context.line((b2, e2), fill=color, width=width)
+        self.portray_changes()
+
     def portray_changes(self):
         self.canvas.paste(self.overlay, (0, 0), self.overlay)
         self.context.rectangle((0, 0, self.width, self.height), fill=(0, 0, 0, 0), outline=None)
@@ -123,6 +162,20 @@ class Canvas:
         outline = self.hex_breakdown(out)
         self.context.rectangle(shape, fill=color, outline=outline)
         self.portray_changes()
+
+    def line(self, line: tuple[tuple[float, float], tuple[float, float]], color: str = "#000000", thickness: float = 2,
+             line_type: str = "solid"):
+        if line_type in self.line_implementations:
+            self.line_implementations[line_type](self, line, color, thickness)
+        else:
+            raise Exception("Line type unknown. Allowed types: " + ', '.join(list(self.line_implementations.keys())))
+
+    def dot(self, point: tuple[float, float], color: str = "#000000", radius: float = 5,
+            dot_type: str = "cross") -> None:
+        if dot_type in self.dot_implementations:
+            self.dot_implementations[dot_type](self, point, color, radius)
+        else:
+            raise Exception("Dot type unknown. Allowed types: " + ', '.join(list(self.dot_implementations.keys())))
 
     def clear(self, col: str = "#FFFFFF") -> None:
         """

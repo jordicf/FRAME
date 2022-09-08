@@ -436,7 +436,7 @@ class Model:
     def interactive_draw(self, canvas_width=500, canvas_height=500) -> None:
         canvas = Canvas(width=canvas_width, height=canvas_height)
         canvas.clear(col="#000000")
-        canvas.setcoords(-1, -1, self.dw + 1, self.dh + 1)
+        canvas.set_coords(-1, -1, self.dw + 1, self.dh + 1)
 
         if len(self.hue_array) != len(self.M):
             self.hue_array = []
@@ -457,6 +457,36 @@ class Model:
                 canvas.drawbox(((a, b), (c, d)), col=self.hue_array[i])
 
         canvas.drawbox(((0, 0), (self.dw, self.dh)), "#00000000", "#FFFFFF")
+
+        for hyper_edge in self.hyper:
+            modules = hyper_edge[1]
+            x_center = 0.0
+            y_center = 0.0
+            list_x = []
+            list_y = []
+            for module in modules:
+                x_sum = 0.0
+                y_sum = 0.0
+                area = 0.0
+                for rect_id in range(0, self.M[module].c):
+                    r_area = value_of(self.M[module].w[rect_id]) * value_of(self.M[module].h[rect_id])
+                    x_sum += value_of(self.M[module].x[rect_id]) * r_area
+                    y_sum += value_of(self.M[module].y[rect_id]) * r_area
+                    area += r_area
+                x, y = x_sum / area, y_sum / area
+                for rect_id in range(0, self.M[module].c):
+                    x_r = value_of(self.M[module].x[rect_id])
+                    y_r = value_of(self.M[module].y[rect_id])
+                    canvas.dot((x_r, y_r), color="#FFFFFF", dot_type="thin_cross")
+                    canvas.line(((x_r, y_r), (x, y)), color="#FFFFFF", thickness=1)
+                canvas.dot((x, y), color="#FFFFFF")
+                x_center += x / len(modules)
+                y_center += y / len(modules)
+                list_x.append(x)
+                list_y.append(y)
+            for i in range(0, len(list_x)):
+                canvas.line(((x_center, y_center), (list_x[i], list_y[i])), color="#FFFFFF")
+
         canvas.show()
 
     def solve(self, verbose=False) -> None:

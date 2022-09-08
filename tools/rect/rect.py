@@ -16,7 +16,7 @@ import typing
 from tools.rect.rect_io import get_alloc, select_box, get_netlist, solution_to_netlist
 from tools.rect.greedy_lib import GreedyManager
 
-from tools.rect.canvas import Canvas, colmix
+from tools.rect.canvas import Canvas, color_mix
 
 # Custom types
 SimpleBox = tuple[float, float, float, float]
@@ -397,7 +397,7 @@ def drawinput(canvas: Canvas, input_problem: InputProblem) -> None:
     canvas.clear()
     for box in input_problem:
         (a, b, c, d, p) = box
-        col = colmix((255, 255, 255), (255, 0, 0), p)
+        col = color_mix((255, 255, 255), (255, 0, 0), p)
         canvas.drawbox(((a, b), (c, d)), col)
     canvas.show()
 
@@ -439,7 +439,7 @@ def main(prog: str | None = None, args: list[str] | None = None) -> int:
     for i in range(0, len(netlist.modules)):
         name_to_index[netlist.modules[i].name] = i
 
-    canvas.setcoords(-1, -1, ifile['Width'] + 1, ifile['Height'] + 1)
+    canvas.set_coords(-1, -1, ifile['Width'] + 1, ifile['Height'] + 1)
 
     module_names = set()
     if options['module'] is None:
