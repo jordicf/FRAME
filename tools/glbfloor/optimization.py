@@ -338,8 +338,12 @@ def optimize_allocation(die: Die, allocation: Allocation, dispersions: dict[str,
 
         for r, rectangle in enumerate(module.rectangles):
             mr = f"{m}_{r}"
-            g.Equation(model.x[m] - model.x[mr] == module.center.x - rectangle.center.x)
-            g.Equation(model.y[m] - model.y[mr] == module.center.y - rectangle.center.y)
+            if module.flip:
+                g.Equation((model.x[m] - model.x[mr])**2 == (module.center.x - rectangle.center.x)**2)
+                g.Equation((model.y[m] - model.y[mr])**2 == (module.center.y - rectangle.center.y)**2)
+            else:
+                g.Equation(model.x[m] - model.x[mr] == module.center.x - rectangle.center.x)
+                g.Equation(model.y[m] - model.y[mr] == module.center.y - rectangle.center.y)
 
             w, h = astuple(rectangle.shape)
             g.Equation(12 / (w**3 + h**3) *
