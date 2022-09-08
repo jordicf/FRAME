@@ -1,7 +1,7 @@
 # (c) Víctor Franco Sanchez 2022
 # For the FRAME Project.
 # Licensed under the MIT License (see https://github.com/jordicf/FRAME/blob/master/LICENSE.txt).
-
+from math import sqrt
 
 from PIL import Image, ImageDraw
 
@@ -61,8 +61,83 @@ def thin_cross_dot_implementation(self, point: tuple[float, float], color: str, 
 
 
 def solid_line_implementation(self, line: tuple[tuple[float, float], tuple[float, float]], color: str,
-                              thickness: float):
+                              thickness: float) -> None:
     self._draw_simple_line(line, color=color, width=thickness)
+
+
+def dashed_line_implementation(self, line: tuple[tuple[float, float], tuple[float, float]], color: str,
+                               thickness: float) -> None:
+    ((x1, y1), (x2, y2)) = line
+    # If the line is just a point, don't bother.
+    if x1 == y1 and x2 == y2:
+        return
+
+    # Cohen-Sutherland Algorithm for line clipping
+    min_x = min(self.x0, self.x1)
+    max_x = max(self.x0, self.x1)
+    min_y = min(self.y0, self.y1)
+    max_y = max(self.y0, self.y1)
+    inside, left, right, bottom, top = 0, 1, 2, 4, 8
+
+    def compute_out_code(x_coord: float, y_coord: float):
+        code = inside
+        if x_coord < min_x:
+            code |= left
+        if x_coord > max_x:
+            code |= right
+        if y_coord < min_y:
+            code |= bottom
+        if y_coord > max_y:
+            code |= top
+        return code
+
+    out_code1 = compute_out_code(x1, y1)
+    out_code2 = compute_out_code(x2, y2)
+    while True:
+        if out_code1 == inside and out_code2 == inside:
+            # Both points are inside the drawing region
+            break
+        elif out_code1 & out_code2 > 0:
+            # Both points can be found on the same side outside
+            return
+        else:
+            out_code_out = max(out_code1, out_code2)
+            if out_code_out & top > 0:
+                x = x1 + (x2 - x1) * (max_y - y1) / (y2 - y1)
+                y = max_y
+            elif out_code_out & bottom > 0:
+                x = x1 + (x2 - x1) * (min_y - y1) / (y2 - y1)
+                y = min_y
+            elif out_code_out & right > 0:
+                y = y1 + (y2 - y1) * (max_x - x1) / (x2 - x1)
+                x = max_x
+            else:
+                y = y1 + (y2 - y1) * (min_x - x1) / (x2 - x1)
+                x = min_x
+
+            if out_code_out == out_code1:
+                x1 = x
+                y1 = y
+                out_code1 = compute_out_code(x1, y1)
+            else:
+                x2 = x
+                y2 = x
+                out_code2 = compute_out_code(x2, y2)
+
+    magnitude = sqrt((x2 - x1)**2 + (y2 - y1)**2)
+    if magnitude == 0:
+        return
+
+    # Draw dashed line
+    pos = 0.0
+    inc = (thickness * 0.1) / magnitude
+    print(magnitude)
+    while pos < 1:
+        next_pos = min(1.0, pos + inc)
+        point1 = (x1 + (x2 - x1) * pos, y1 + (y2 - y1) * pos)
+        point2 = (x1 + (x2 - x1) * next_pos, y1 + (y2 - y1) * next_pos)
+        self._draw_simple_line((point1, point2), color=color, width=thickness)
+        pos = min(1.0, next_pos + 2 * inc)
 
 
 class Canvas:
@@ -91,7 +166,8 @@ class Canvas:
         self.clear()
         self.dot_implementations = {"cross": cross_dot_implementation,
                                     "thin_cross": thin_cross_dot_implementation}
-        self.line_implementations = {"solid": solid_line_implementation}
+        self.line_implementations = {"solid": solid_line_implementation,
+                                     "dashed": dashed_line_implementation}
 
     @staticmethod
     def hex_breakdown(col: str | None) -> tuple[int, int, int, int] | None:
