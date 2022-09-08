@@ -320,7 +320,8 @@ def optimize_allocation(die: Die, allocation: Allocation, dispersions: dict[str,
 
         # Dispersion of soft modules
         if not module.is_hard:
-            g.Equation(g.sum([cells[c].area * model.a[m][c] *
+            g.Equation(6 / module.area()**(3 / 2) *
+                       g.sum([cells[c].area * model.a[m][c] *
                               dispersion_function(model.x[m] - cells[c].center.x, model.y[m] - cells[c].center.y)
                               for c in range(n_cells)]) == model.d[m])
 
@@ -341,7 +342,8 @@ def optimize_allocation(die: Die, allocation: Allocation, dispersions: dict[str,
             g.Equation(model.y[m] - model.y[mr] == module.center.y - rectangle.center.y)
 
             w, h = astuple(rectangle.shape)
-            g.Equation(g.sum([cells[c].area * model.a[mr][c] *
+            g.Equation(12 / (w**3 + h**3) *
+                       g.sum([cells[c].area * model.a[mr][c] *
                               (dispersion_function(h / w * (model.x[mr] - cells[c].center.x),
                                                    model.y[mr] - cells[c].center.y) if w < h
                                else dispersion_function(model.x[mr] - cells[c].center.x,
