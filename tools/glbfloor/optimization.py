@@ -334,7 +334,7 @@ def optimize_allocation(die: Die, allocation: Allocation, dispersions: dict[str,
         model.a[m] = {}
         for c in range(n_cells):
             model.a[m][c] = g.Var(value=get_a(allocation, module, c), lb=0, ub=1, name=f"a_{m}_{c}")
-            g.Equation(model.a[m][c] == g.sum([model.a[f"{m}_{r}"][c] for r in range(len(module.rectangles))]))
+            g.Equation(model.a[m][c] == g.sum([model.a[f"{m}_{r}"][c] for r in range(module.num_rectangles)]))
 
         for r, rectangle in enumerate(module.rectangles):
             mr = f"{m}_{r}"
