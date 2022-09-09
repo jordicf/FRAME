@@ -65,7 +65,7 @@ def parse_options(prog: str | None = None, args: list[str] | None = None) -> dic
     return vars(parser.parse_args(args))
 
 
-def main(prog: str | None = None, args: list[str] | None = None):
+def main(prog: str | None = None, args: list[str] | None = None) -> None:
     """Main function."""
 
     options = parse_options(prog, args)

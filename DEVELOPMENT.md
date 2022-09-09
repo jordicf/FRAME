@@ -93,7 +93,7 @@ code of the new tool. In particular, the main function of the tool should have t
 signature:
 
 ```python
-main(prog: str | None = None, args: list[str] | None = None)
+main(prog: str | None = None, args: list[str] | None = None) -> None
 ```
 
 where `prog` will be the name of the tool to be used in the command-line, and `args` is the list
