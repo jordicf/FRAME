@@ -131,7 +131,6 @@ def dashed_line_implementation(self, line: tuple[tuple[float, float], tuple[floa
     # Draw dashed line
     pos = 0.0
     inc = (thickness * 0.1) / magnitude
-    print(magnitude)
     while pos < 1:
         next_pos = min(1.0, pos + inc)
         point1 = (x1 + (x2 - x1) * pos, y1 + (y2 - y1) * pos)

@@ -2,6 +2,7 @@
 # For the FRAME Project.
 # Licensed under the MIT License (see https://github.com/jordicf/FRAME/blob/master/LICENSE.txt).
 from random import randint
+from time import time
 from typing import Any, TypeVar, Callable, Union
 from enum import Enum
 from gekko import GEKKO
@@ -324,6 +325,58 @@ class Model:
             if h_get is not None:
                 self.gekko.Equation(self.M[m].h[i] == h_const)
 
+    def objective(self, numerical=False):
+        obj = 0.0
+        x_sum = {}
+        y_sum = {}
+        a_sum = {}
+        for (weight, Set) in self.hyper:
+            centroid_x: Any = 0.0
+            centroid_y: Any = 0.0
+            for i in Set:
+                if numerical:
+                    if i not in x_sum:
+                        x_sum[i] = 0
+                        y_sum[i] = 0
+                        a_sum[i] = 0
+                        for r in range(0, self.M[i].c):
+                            x_sum[i] += value_of(self.M[i].x[r]) * value_of(self.M[i].w[r]) * value_of(self.M[i].h[r])
+                            y_sum[i] += value_of(self.M[i].y[r]) * value_of(self.M[i].w[r]) * value_of(self.M[i].h[r])
+                            a_sum[i] += value_of(self.M[i].w[r]) * value_of(self.M[i].h[r])
+                    centroid_x += x_sum[i] / a_sum[i]
+                    centroid_y += y_sum[i] / a_sum[i]
+                else:
+                    centroid_x += self.M[i].x_sum / self.M[i].area
+                    centroid_y += self.M[i].y_sum / self.M[i].area
+                for j in range(0, self.M[i].c):
+                    if numerical:
+                        obj += weight * weight * (
+                            (value_of(self.M[i].x[j]) - x_sum[i] / a_sum[i]) ** 2 +
+                            (value_of(self.M[i].y[j]) - y_sum[i] / a_sum[i]) ** 2
+                        )
+                    else:
+                        aux_var = self.gekko.Var()
+                        self.gekko.Equation(aux_var == weight * weight * (
+                                (self.M[i].x[j] - self.M[i].x_sum / self.M[i].area) ** 2 +
+                                (self.M[i].y[j] - self.M[i].y_sum / self.M[i].area) ** 2))
+                        obj += aux_var
+            centroid_x /= len(Set)
+            centroid_y /= len(Set)
+            for i in Set:
+                module = self.M[i]
+                if numerical:
+                    obj += weight * weight * (
+                        (x_sum[i] / a_sum[i] - centroid_x) ** 2 +
+                        (y_sum[i] / a_sum[i] - centroid_y) ** 2
+                    )
+                else:
+                    aux_var = self.gekko.Var()
+                    self.gekko.Equation(aux_var == weight * weight * (
+                            (module.x_sum / module.area - centroid_x) ** 2 +
+                            (module.y_sum / module.area - centroid_y) ** 2))
+                    obj += aux_var
+        return obj
+
     def __init__(self,
                  ml: list[InputModule],
                  al: list[float],
@@ -415,23 +468,7 @@ class Model:
             self.fix(m, optional_get(xl, m), optional_get(yl, m), optional_get(wl, m), optional_get(hl, m))
 
         # Objective function
-        obj = 0.0
-        for (weight, Set) in hyper:
-            centroid_x: Any = 0.0
-            centroid_y: Any = 0.0
-            for i in Set:
-                centroid_x += self.M[i].x_sum / self.M[i].area
-                centroid_y += self.M[i].y_sum / self.M[i].area
-                for j in range(0, self.M[i].c):
-                    obj += weight * weight * ((self.M[i].x[j] - self.M[i].x_sum / self.M[i].area) ** 2 +
-                                              (self.M[i].y[j] - self.M[i].y_sum / self.M[i].area) ** 2)
-            centroid_x /= len(Set)
-            centroid_y /= len(Set)
-            for i in Set:
-                module = self.M[i]
-                obj += weight * weight * ((module.x_sum / module.area - centroid_x) ** 2 +
-                                          (module.y_sum / module.area - centroid_y) ** 2)
-        self.gekko.Obj(obj + self.tau)
+        self.gekko.Obj(self.objective() + self.tau)
 
     def interactive_draw(self, canvas_width=500, canvas_height=500) -> None:
         canvas = Canvas(width=canvas_width, height=canvas_height)
@@ -624,17 +661,29 @@ def main(prog: str | None = None, args: list[str] | None = None) -> int:
     options = parse_options(prog, args)
     ml, al, xl, yl, wl, hl, die_width, die_height, hyper, max_ratio, og_names = compute_options(options)
     m = Model(ml, al, xl, yl, wl, hl, die_width, die_height, hyper, max_ratio, og_names)
+
+    print("Initial cost: ", m.objective(numerical=True))
+
     if options['verbose']:
         m.gekko.open_folder()
     if options['plot']:
         m.interactive_draw()
+
+    start = time()
+
     # noinspection PyBroadException
     try:
         m.solve(options['verbose'])
     except Exception:
         print("No solution was found!")
+
+    end = time()
+    print("Final cost: ", m.objective(numerical=True))
+    print("Elapsed time: ", end - start, "s")
+
     if options['plot']:
         m.interactive_draw()
+
     m.get_netlist()
     return 0
 
