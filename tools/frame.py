@@ -10,7 +10,8 @@ import tools.hello.hello  # Fake tool
 import tools.draw.draw  # To draw floorplans
 import tools.netgen.netgen  # Netlist generator
 import tools.spectral.spectral  # To find an initial position of modules using spectral methods
-import tools.glbfloor.glbfloor  # ...
+import tools.force.force
+import tools.glbfloor.glbfloor
 import tools.rect.rect
 import tools.legalfloor.legalfloor
 
@@ -20,6 +21,7 @@ TOOLS = {"hello": tools.hello.hello.main,
          "draw": tools.draw.draw.main,
          "netgen": tools.netgen.netgen.main,
          "spectral": tools.spectral.spectral.main,
+         "force": tools.force.force.main,
          "glbfloor": tools.glbfloor.glbfloor.main,
          "rect": tools.rect.rect.main,
          "legalfloor": tools.legalfloor.legalfloor.main

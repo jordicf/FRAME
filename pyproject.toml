@@ -48,6 +48,7 @@ packages = [
     "tools.hello",
     "tools.netgen",
     "tools.spectral",
+    "tools.force",
     "tools.glbfloor",
     "tools.rect",
     "tools.legalfloor"
