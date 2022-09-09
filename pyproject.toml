@@ -14,8 +14,7 @@ dependencies = [
     "matplotlib",
     "distinctipy",
     "Pillow",
-    "python-sat",
-    "ipycanvas"
+    "python-sat"
 ]
 
 [project.optional-dependencies]
@@ -23,6 +22,11 @@ mypy = [
     "mypy",
     "types-Pillow",
     "types-setuptools"
+]
+
+jupyter = [
+    "jupyterlab",
+    "ipycanvas"
 ]
 
 [project.urls]
@@ -43,8 +47,10 @@ packages = [
     "tools.draw",
     "tools.hello",
     "tools.netgen",
+    "tools.spectral",
+    "tools.glbfloor",
     "tools.rect",
-    "tools.spectral"
+    "tools.legalfloor"
 ]
 
 [tool.mypy]

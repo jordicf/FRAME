@@ -18,7 +18,7 @@ git clone https://github.com/jordicf/FRAME.git
 cd FRAME
 python -m venv venv
 source venv/bin/activate
-pip install -e '.[mypy]'
+pip install -e '.[mypy,jupyter]'
 ```
 
 #### Windows
@@ -28,7 +28,7 @@ git clone https://github.com/jordicf/FRAME.git
 cd FRAME
 python -m venv venv
 .\venv\Scripts\activate
-pip install -e '.[mypy]'
+pip install -e '.[mypy,jupyter]'
 ```
 
 ### PyCharm configuration
@@ -67,7 +67,7 @@ python -m unittest discover -v -t . -s tests
 ### Adding third-party dependencies
 
 To add a third-party dependency, add the package name in the `dependencies` list of the `[project]`
-section of the [`pyproject.toml` file](pyproject.toml) and re-execute `pip install -e '.[mypy]'`
+section of the [`pyproject.toml` file](pyproject.toml) and re-execute `pip install -e '.[mypy,jupyter]'`
 from the top-level project folder. Note that the package name should be the one that appears in the
 [Python Package Index](https://pypi.org/).
 
@@ -77,7 +77,7 @@ To add a new subpackage to the `frame` Python package, create a new directory in
 [`frame` directory](frame). This new folder should contain an empty `__init__.py`
 file, and all the Python code of the new subpackage. Then, add the subpackage name (prefixed with
 `frame.`) in the `packages` list of the `[tool.setuptools]` of the 
-[`pyproject.toml` file](pyproject.toml). Finally, re-execute `pip install -e '.[mypy]'` from the
+[`pyproject.toml` file](pyproject.toml). Finally, re-execute `pip install -e '.[mypy,jupyter]'` from the
 top-level project folder.
 
 To add unit tests for the new subpackage, create a new directory inside the
@@ -102,7 +102,7 @@ of arguments passed to the tool. These arguments should be parsed using the
 (prefixed with `tools.`) in the `packages` list of the `[tool.setuptools]` of the 
 [`pyproject.toml` file](pyproject.toml), and specify the tool name and the main function to call in 
 the `TOOLS` dictionary in [`tools/frame.py`](tools/frame.py). Finally, re-execute 
-`pip install -e '.[mypy]'` from the top-level project folder.
+`pip install -e '.[mypy,jupyter]'` from the top-level project folder.
 
 To add unit tests for the new tool, create a new directory inside the
 [`tests` folder](tests) with the name of the tool. This folder should

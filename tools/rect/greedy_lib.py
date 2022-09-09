@@ -1,8 +1,7 @@
 # (c) Víctor Franco Sanchez 2022
 # For the FRAME Project.
 # Licensed under the MIT License (see https://github.com/jordicf/FRAME/blob/master/LICENSE.txt).
-
-
+import os
 from ctypes import *
 from typing import Type
 
@@ -18,7 +17,7 @@ class BOX(Structure):
 class GreedyManager:
 
     def __init__(self):
-        self.mylib = CDLL("../../rect_greedy.pyd")
+        self.mylib = CDLL(os.path.abspath(os.path.join(os.path.dirname(__file__), "rect_greedy.pyd")))
         self.mylib.find_best_box.restype = BOX
         self.mylib.find_best_box.argtypes = [POINTER(BOX), c_double, c_double, c_long, c_double]
 
