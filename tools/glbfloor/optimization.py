@@ -135,6 +135,19 @@ def extract_solution(model: Model, die: Die, cells: list[Rectangle], threshold: 
         module.center = Point(get_value(model.x[m]), get_value(model.y[m]))
         if module.is_hard and not module.is_fixed:
             module.recenter_rectangles()
+            if module.flip and module.num_rectangles > 1:
+                # flip if the rest of rectangles are on the opposite side of what they were with respect to the first
+                if all((get_value(model.x[f"{m}_0"]) - get_value(model.x[f"{m}_{r}"])) *
+                       (module.rectangles[0].center.x - module.rectangles[r].center.x) < 0
+                       for r in range(1, module.num_rectangles)):
+                    for rectangle in module.rectangles:
+                        rectangle.center.x = module.center.x - (rectangle.center.x - module.center.x)
+                if all((get_value(model.y[f"{m}_0"]) - get_value(model.y[f"{m}_{r}"])) *
+                       (module.rectangles[0].center.y - module.rectangles[r].center.y) < 0
+                       for r in range(1, module.num_rectangles)):
+                    for rectangle in module.rectangles:
+                        rectangle.center.y = module.center.y - (rectangle.center.y - module.center.y)
+
             dispersions[m] = 0.0
             for r in range(module.num_rectangles):
                 dispersions[m] += get_value(model.d[f"{m}_{r}"])
