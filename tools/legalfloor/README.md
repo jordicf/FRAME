@@ -29,7 +29,7 @@ options:
 Let $M$ be the set of modules, and for every $m \in M$, let $(x_{m}, y_{m})$ be the center of mass of the module.
 
 Also, let $\Omega$ be the hypergraph connecting the modules, and let $\langle \omega, S \rangle \in \Omega$ be a 
-hyperedge, where $\omega \in \mathbb{R}^{\geq 0}$ is the weight of the edge and $S \subseteq M$ is a multiset of $M$ 
+hyperedge, where $\omega \in \mathbb{R}^{\geq 0}$ is the weight of the edge and $S$ is a multisubset of $M$ 
 with at least two elements.
 
 For every multisubset $S$ of $M$, we define the center as:
