@@ -20,7 +20,7 @@ def parse_options(prog: str | None = None, args: list[str] | None = None) -> dic
 def main(prog: str | None = None, args: list[str] | None = None) -> None:
     """Main function."""
     options = parse_options(prog, args)
-    raise NotImplementedError
+    raise NotImplementedError  # TODO
 
 
 if __name__ == "__main__":
