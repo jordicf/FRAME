@@ -29,7 +29,8 @@ options:
 Let $M$ be the set of modules, and for every $m \in M$, let $(x_{m}, y_{m})$ be the center of mass of the module.
 
 Also, let $\Omega$ be the hypergraph connecting the modules, and let $\langle \omega, S \rangle \in \Omega$ be a 
-hyperedge, where $\omega \in \mathbb{R}^{\geq 0}$ is the weight of the edge and $S \subseteq M$ is a multiset of $M$.
+hyperedge, where $\omega \in \mathbb{R}^{\geq 0}$ is the weight of the edge and $S \subseteq M$ is a multiset of $M$ 
+with at least two elements.
 
 For every multisubset $S$ of $M$, we define the center as:
 
@@ -40,3 +41,6 @@ $y(S) = \frac{1}{|S|} \sum_{m \in S} y_m$
 The objective function is the following:
 
 Minimize $\sum_{\langle \omega, S \rangle \in \Omega} \sum_{m \in S} 4\omega^2 \cdot ( (x_{m} - x(S))^2 + (y_{m} - y(S))^2 )$
+
+## Implementation details
+Further details about the implementation can be found <a href="../../doc/FloorplanOptimization.ipynb">here</a>.
