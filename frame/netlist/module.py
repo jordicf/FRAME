@@ -119,6 +119,13 @@ class Module:
     def is_fixed(self) -> bool:
         return self._fixed
 
+    @is_fixed.setter
+    def is_fixed(self, value: bool) -> None:
+        if self._fixed != value:
+            self._fixed = value
+            for rectangle in self._rectangles:
+                rectangle.fixed = value
+
     @property
     def is_soft(self) -> bool:
         return not self._hard

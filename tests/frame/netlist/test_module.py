@@ -47,6 +47,29 @@ class TestModule(unittest.TestCase):
         self.assertEqual(b.area('lut'), 6)
         self.assertEqual(b.area('bram'), 20)
 
+    def test_soft_hard_fixed(self):
+        b = Module("my_module", hard=True)
+
+        self.assertFalse(b.is_soft)
+        self.assertTrue(b.is_hard)
+        self.assertFalse(b.is_fixed)
+        for rectangle in b.rectangles:
+            self.assertFalse(rectangle.fixed)
+
+        b.is_fixed = True
+        self.assertFalse(b.is_soft)
+        self.assertTrue(b.is_hard)
+        self.assertTrue(b.is_fixed)
+        for rectangle in b.rectangles:
+            self.assertTrue(rectangle.fixed)
+
+        b.is_fixed = False
+        self.assertFalse(b.is_soft)
+        self.assertTrue(b.is_hard)
+        self.assertFalse(b.is_fixed)
+        for rectangle in b.rectangles:
+            self.assertFalse(rectangle.fixed)
+
 
 if __name__ == '__main__':
     unittest.main()
