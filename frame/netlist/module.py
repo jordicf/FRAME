@@ -72,6 +72,7 @@ class Module:
             elif key == KW_FIXED:
                 assert isinstance(value, bool), "Incorrect value for fixed (should be a boolean)"
                 self._fixed = value
+                self._hard = value
             elif key == KW_HARD:
                 assert isinstance(value, bool), "Incorrect value for hard (should be a boolean)"
                 self._hard = value
@@ -80,6 +81,9 @@ class Module:
                 self._flip = value
             else:
                 assert False  # Should never happen
+
+        if KW_HARD in kwargs and KW_FIXED in kwargs:
+            assert not KW_FIXED or KW_HARD, f"Inconsistent module {name}. Fixed modules must be hard"
 
     def __hash__(self) -> int:
         return hash(self._name)
