@@ -22,8 +22,12 @@ class TestNetlist(unittest.TestCase):
           B4: {
             area: 2,
             rectangles: [[3,0.5,2,1]],
+          },
+          B5: {
+            rectangles: [[3,0.5,2,1]],
+            hard: true,
+            fixed: false
           }
-
         }
 
         Nets: [
@@ -36,7 +40,7 @@ class TestNetlist(unittest.TestCase):
         self.netlist.get_module("B4").calculate_center_from_rectangles()
 
     def test_num_modules(self):
-        self.assertEqual(self.netlist.num_modules, 4)
+        self.assertEqual(self.netlist.num_modules, 5)
 
     def test_num_edges(self):
         self.assertEqual(self.netlist.num_edges, 3)

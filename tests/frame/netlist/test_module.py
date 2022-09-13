@@ -70,6 +70,12 @@ class TestModule(unittest.TestCase):
         for rectangle in b.rectangles:
             self.assertFalse(rectangle.fixed)
 
+        b = Module("my_module", fixed=True)
+        self.assertTrue(b.is_hard)
+
+        b = Module("my_module", hard=True, fixed=True)
+        self.assertTrue(b.is_hard)
+
 
 if __name__ == '__main__':
     unittest.main()
