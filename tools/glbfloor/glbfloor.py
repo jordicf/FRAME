@@ -85,9 +85,8 @@ def main(prog: str | None = None, args: list[str] | None = None) -> None:
 
     if aspect_ratio is not None:
         if num_rectangles is None:
-            die.split_refinable_regions(aspect_ratio)
-        else:
-            die.split_refinable_regions(aspect_ratio, num_rectangles)
+            num_rectangles = 1  # default parameter
+        die.split_refinable_regions(aspect_ratio, num_rectangles)
     else:
         assert num_rectangles is None, "--aspect-ratio must be specified when using --num-rectangles"
 
