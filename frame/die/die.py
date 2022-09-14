@@ -8,14 +8,14 @@ Module to handle the die of a floorplan
 
 from collections import deque
 from itertools import combinations
-from typing import Set, Deque
+from typing import Set, Deque, Any
 from dataclasses import dataclass
 
 from .yaml_parse_die import parse_yaml_die
-from frame.geometry.geometry import Shape, Rectangle, Point, gather_boundaries, split_rectangles
+from frame.geometry.geometry import Shape, Rectangle, Point, RectDescriptor, split_rectangles, gather_boundaries
 from frame.netlist.netlist import Netlist
-from frame.utils.keywords import KW_CENTER, KW_SHAPE, KW_REGION, KW_GROUND, KW_BLOCKAGE
-from frame.utils.utils import TextIO_String
+from frame.utils.keywords import KW_WIDTH, KW_HEIGHT, KW_REGIONS, KW_CENTER, KW_SHAPE, KW_REGION, KW_GROUND, KW_BLOCKAGE
+from frame.utils.utils import TextIO_String, write_yaml
 
 
 @dataclass
@@ -144,7 +144,7 @@ class Die:
         :param ncols: number of columns of the grid
         """
         assert nrows > 0 and ncols > 0 and nrows + ncols > 1
-        assert len(self.fixed_regions) == 0 and len(self.specialized_regions) == 0 and len(self.blockages) == 0,\
+        assert len(self.fixed_regions) == 0 and len(self.specialized_regions) == 0 and len(self.blockages) == 0, \
             "Cannot create a gridded die: it has blockages, fixed regions or specialized regions."
         assert len(self.ground_regions) == 1, "Cannot create a gridded die: it has more than one ground region."
         self._ground_regions = self._die.rectangle_grid(nrows, ncols)
@@ -156,6 +156,25 @@ class Die:
         that correspond to fixed modules.
         """
         return self.specialized_regions + self.ground_regions, self.fixed_regions
+
+    def write_yaml(self, filename: str = None) -> None | str:
+        """
+        Writes the information of the die into a YAML file. If no file name is given, a string with the yaml contents
+        is returned
+        :param filename: name of the output file
+        :return: the YAML string in case filename is None
+        """
+        data: dict[str, Any] = {
+            KW_WIDTH: self.width,
+            KW_HEIGHT: self.height,
+        }
+
+        regions: list[RectDescriptor] = []
+        for r in self.blockages + self.specialized_regions:
+            regions.append(r.vector_spec)
+        if len(regions) > 0:
+            data[KW_REGIONS] = regions
+        return write_yaml(data, filename)
 
     def _cell_center(self, i: int, j: int) -> Point:
         """
