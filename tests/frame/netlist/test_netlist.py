@@ -29,8 +29,7 @@ class TestNetlist(unittest.TestCase):
           },
           B5: {
             rectangles: [[3,0.5,2,1]],
-            hard: true,
-            fixed: false
+            hard: true
           }
         }
 

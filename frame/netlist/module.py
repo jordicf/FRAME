@@ -58,32 +58,30 @@ class Module:
         # Reading parameters and type checking
         for key, value in kwargs.items():
             assert key in [KW_CENTER, KW_MIN_SHAPE, KW_AREA, KW_HARD, KW_FIXED, KW_FLIP],\
-                "Unknown module attribute"
+                f"Module {name}: unknown module attribute"
             if key == KW_CENTER:
-                assert isinstance(value, Point), "Incorrect point associated to the center of the module"
+                assert isinstance(value, Point), f"Module {name}: incorrect point associated to the center"
                 self._center = value
             elif key == KW_MIN_SHAPE:
-                assert isinstance(value, Shape), "Incorrect shape associated to the module"
-                assert value.w >= 0, "Incorrect module width"
-                assert value.h >= 0, "incorrect module height"
+                assert isinstance(value, Shape), f"Module {name}: Incorrect shape"
+                assert value.w >= 0, f"Module {name}: incorrect module width"
+                assert value.h >= 0, f"Module {name}: incorrect module height"
                 self._min_shape = value
             elif key == KW_AREA:
                 self._area_regions = self._read_region_area(value)
             elif key == KW_FIXED:
-                assert isinstance(value, bool), "Incorrect value for fixed (should be a boolean)"
+                assert isinstance(value, bool), f"Module {name}: incorrect value for fixed (should be a boolean)"
                 self._fixed = value
                 self._hard = value
             elif key == KW_HARD:
-                assert isinstance(value, bool), "Incorrect value for hard (should be a boolean)"
+                assert KW_FIXED not in kwargs, f"Module {name}: {KW_FIXED} and {KW_HARD} are mutually exclusive"
+                assert isinstance(value, bool), f"Module {name}: incorrect value for hard (should be a boolean)"
                 self._hard = value
             elif key == KW_FLIP:
-                assert isinstance(value, bool), "Incorrect value for flip (should be a boolean)"
+                assert isinstance(value, bool), f"Module {name}: incorrect value for flip (should be a boolean)"
                 self._flip = value
             else:
                 assert False  # Should never happen
-
-        if KW_HARD in kwargs and KW_FIXED in kwargs:
-            assert not KW_FIXED or KW_HARD, f"Inconsistent module {name}. Fixed modules must be hard"
 
     def __hash__(self) -> int:
         return hash(self._name)

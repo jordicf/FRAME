@@ -62,41 +62,24 @@ def parse_yaml_module(name: str, info: dict) -> Module:
     assert isinstance(info, dict), f"The YAML node for module {name} is not a dictionary"
     assert valid_identifier(name), f"Invalid name for module: {name}"
 
-    params: dict[str, Any]
-    params = {KW_FIXED: False, KW_HARD: False, KW_FLIP: False}  # Parameters for the constructor
+    params: dict[str, Any] = {}
     for key, value in info.items():
         assert isinstance(key, str)
-        if key == KW_AREA:
-            params[key] = value  # The same structure as in YAML
+        if key in [KW_AREA, KW_FIXED, KW_HARD, KW_FLIP]:
+            params[key] = value
         elif key == KW_CENTER:
             params[KW_CENTER] = parse_yaml_center(value, name)
         elif key == KW_MIN_SHAPE:
             params[KW_MIN_SHAPE] = parse_yaml_min_shape(value, name)
-        elif key == KW_FIXED:
-            assert isinstance(value, bool), f"Incorrect value for the fixed attribute of module {name}"
-            params[KW_FIXED] = value
-            if value:
-                params[KW_HARD] = True
-        elif key == KW_HARD:
-            assert isinstance(value, bool), f"Incorrect value for the hard attribute of module {name}"
-            params[KW_HARD] = value
-        elif key == KW_FLIP:
-            assert isinstance(value, bool), f"Incorrect value for the flip attribute of module {name}"
-            params[KW_FLIP] = value
         elif key == KW_RECTANGLES:
             pass
         else:
             assert False, f"Unknown module attribute {key}"
 
-    if KW_FIXED in info and KW_HARD in info:
-        assert not info[KW_FIXED] and not info[KW_HARD], \
-            f"Contradictory values for fixed and hard in module {name}"
-
     m = Module(name, **params)
 
     if KW_RECTANGLES in info:
-        assert isinstance(params[KW_FIXED], bool) and isinstance(params[KW_HARD], bool)
-        rectangles = parse_yaml_rectangles(info[KW_RECTANGLES], params[KW_FIXED], params[KW_HARD])
+        rectangles = parse_yaml_rectangles(info[KW_RECTANGLES], m.is_fixed, m.is_hard)
         for r in rectangles:
             m.add_rectangle(r)
 

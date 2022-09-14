@@ -73,7 +73,7 @@ class TestModule(unittest.TestCase):
         b = Module("my_module", fixed=True)
         self.assertTrue(b.is_hard)
 
-        b = Module("my_module", hard=True, fixed=True)
+        b = Module("my_module", fixed=True)
         self.assertTrue(b.is_hard)
 
 
