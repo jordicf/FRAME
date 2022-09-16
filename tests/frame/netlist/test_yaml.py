@@ -105,7 +105,6 @@ class TestYaml(unittest.TestCase):
         n = Netlist(netlist4)
         m = n.get_module("T2")
         self.assertTrue(m.is_terminal and m.is_hard and not m.is_fixed and m.area() == 0)
-        print(n.write_yaml())
 
 
 if __name__ == '__main__':

@@ -95,6 +95,9 @@ class Module:
         assert not self.is_hard or self.aspect_ratio is None,\
             f"Module {name}: aspect ratio incompatible with hard or fixed module"
 
+        assert not self.is_terminal or not self.is_fixed or self.center is not None,\
+            f"Module {name}: a fixed terminal must have coordinates (center)."
+
     def __hash__(self) -> int:
         return hash(self._name)
 
