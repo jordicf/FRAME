@@ -44,6 +44,12 @@ def parse_terminals(lines: list[str], i: int, modules: Modules):
     # So, TODO, this.
     if blank_line(lines[i]):
         return True
+    words = word_split(lines[i])
+    if len(words) == 2 and words[1] == "terminal":
+        modules[words[0]] = {
+            'terminal': True
+        }
+        return True
     return False
 
 
@@ -54,10 +60,12 @@ def parse_rectangles(lines: list[str], i: int, modules: Modules):
     # This separation of "soft" + "rectangular" is dumb, but it's the only way to get
     # PyCharm's typo detector to shut up
     if len(words) >= 5 and words[1] == "soft" + "rectangular":
+        low, high = float(words[3]), float(words[4])
+        if low > high:
+            low, high = high, low
         modules[words[0]] = {
             'area': float(words[2]),
-            'min_aspect_ratio': float(words[3]),
-            'max_aspect_ratio': float(words[4])
+            'aspect_ratio': [low, high]
         }
         return True
     elif len(words) == 11 and words[1] == "hard" + "rectilinear":
@@ -81,10 +89,10 @@ def parse_header(lines: list[str], i: int, headers: Headers):
     if blank_line(lines[i]):
         return True
     words = word_split(lines[i])
-    if words[1] != ':':
+    if len(words) < 2 or words[1] != ':':
         return False
     if len(words) != 3:
-        raise Exception("Error parsing line " + str(i) + ": Unknown Header:" + lines[i])
+        raise Exception("Error parsing line " + str(i+1) + ": Unknown Header:" + lines[i])
     if words[0] in defined_headers:
         headers[words[0]] = defined_headers[words[0]][0](words[2])
     else:
@@ -99,13 +107,12 @@ def parse_blocks(file_path: str):
     raw_text = f.read()
     lines = re.split('\n', raw_text)
     i = 1
-    while parse_header(lines, i, headers):
+    while i < len(lines) and parse_header(lines, i, headers):
         i = i + 1
-    while parse_rectangles(lines, i, modules):
+    while i < len(lines) and parse_rectangles(lines, i, modules):
         i = i + 1
-    while parse_terminals(lines, i, modules):
+    while i < len(lines) and parse_terminals(lines, i, modules):
         i = i + 1
-    print(headers)
     return modules
 
 
