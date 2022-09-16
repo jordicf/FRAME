@@ -101,6 +101,11 @@ class TestYaml(unittest.TestCase):
         Rectangle.undefine_epsilon()
         Netlist(netlist3)
 
+    def test_terminal(self):
+        n = Netlist(netlist4)
+        m = n.get_module("T2")
+        self.assertTrue(m.is_terminal and m.is_hard and not m.is_fixed and m.area() == 0)
+
 
 if __name__ == '__main__':
     unittest.main()
@@ -164,4 +169,25 @@ Modules:
     ]
     hard: true
 Nets: []
+"""
+
+netlist4 = """
+Modules: {
+  M0: {
+    area: 10,
+    aspect_ratio: [0.5, 2]
+  },
+  M1: {
+    area: 24,
+    aspect_ratio: 2
+  },
+  T2: {
+    terminal: true
+  }
+}   
+
+Nets: [
+  [M0, M1, 16],
+  [M0, T2, M1, 8]
+]
 """

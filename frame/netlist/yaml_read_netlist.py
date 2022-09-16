@@ -9,9 +9,9 @@ Module to read netlists in yaml format
 from typing import Any, cast
 from frame.netlist.module import Module
 from frame.netlist.netlist_types import NamedHyperEdge
-from frame.geometry.geometry import Rectangle, Shape, Point, parse_yaml_rectangle
-from frame.utils.keywords import KW_RECTANGLES, KW_CENTER, KW_FIXED, KW_HARD, KW_FLIP, \
-    KW_MODULES, KW_NETS, KW_AREA, KW_MIN_SHAPE
+from frame.geometry.geometry import Rectangle, AspectRatio, Point, parse_yaml_rectangle
+from frame.utils.keywords import KW_RECTANGLES, KW_CENTER, KW_TERMINAL, KW_FIXED, KW_HARD, KW_FLIP, \
+    KW_MODULES, KW_NETS, KW_AREA, KW_ASPECT_RATIO
 from frame.utils.utils import valid_identifier, is_number, read_yaml, TextIO_String
 
 
@@ -22,7 +22,6 @@ def parse_yaml_netlist(stream: TextIO_String) -> tuple[list[Module], list[NamedH
     :param stream: name of the YAML file, YAML text or handle to the file
     :return: the list of modules and the list of edges.
     """
-
     tree = read_yaml(stream)
     assert isinstance(tree, dict), "The YAML root node is not a dictionary"
     modules: list[Module] = []
@@ -65,12 +64,12 @@ def parse_yaml_module(name: str, info: dict) -> Module:
     params: dict[str, Any] = {}
     for key, value in info.items():
         assert isinstance(key, str)
-        if key in [KW_AREA, KW_FIXED, KW_HARD, KW_FLIP]:
+        if key in [KW_AREA, KW_TERMINAL, KW_FIXED, KW_HARD, KW_FLIP]:
             params[key] = value
         elif key == KW_CENTER:
             params[KW_CENTER] = parse_yaml_center(value, name)
-        elif key == KW_MIN_SHAPE:
-            params[KW_MIN_SHAPE] = parse_yaml_min_shape(value, name)
+        elif key == KW_ASPECT_RATIO:
+            params[KW_ASPECT_RATIO] = parse_yaml_aspect_ratio(value, name)
         elif key == KW_RECTANGLES:
             pass
         else:
@@ -99,23 +98,26 @@ def parse_yaml_center(center: list[float], name: str) -> Point:
     return Point(float(center[0]), float(center[1]))
 
 
-def parse_yaml_min_shape(min_shape: float | list[float], name: str) -> Shape:
+def parse_yaml_aspect_ratio(aspect_ratio: float | list[float], name: str) -> AspectRatio:
     """
-    Parses the min size of the module
-    :param min_shape: module attributes
+    Parses the aspect ratio of the module. If only one value is given, the aspect ratio is computed
+    as the inverval [value, 1/value] or [1/value, value] in such a way that the first component is smaller
+    than the second
+    :param aspect_ratio: module attribute
     :param name: name of the module
-    :return: a Shape with (min width, min height)
+    :return: an AspectRatio with (min w/h, max w/h)
     """
-    if is_number(min_shape):
-        minshape = cast(float, min_shape)
-        assert minshape > 0, f"Incorrect min shape for module {name}"
-        return Shape(float(minshape), float(minshape))
+    if is_number(aspect_ratio):
+        ar = cast(float, aspect_ratio)
+        assert ar > 0, f"Incorrect aspect ratio for module {name}"
+        inv_ar = 1 / ar
+        return AspectRatio(float(min(ar, inv_ar)), float(max(ar, inv_ar)))
 
-    assert isinstance(min_shape, list) and len(min_shape) == 2 and is_number(min_shape[0]) \
-           and is_number(min_shape[1]), f"Incorrect format for min shape of module {name}"
+    assert isinstance(aspect_ratio, list) and len(aspect_ratio) == 2 and is_number(aspect_ratio[0]) \
+           and is_number(aspect_ratio[1]), f"Incorrect format for aspect ratio of module {name}"
 
-    assert min_shape[0] >= 0 and min_shape[1] >= 0, f"Incorrect value for min shape of module {name}"
-    return Shape(float(min_shape[0]), float(min_shape[1]))
+    assert 0 <= aspect_ratio[0] <= 1 <= aspect_ratio[1], f"Incorrect value for aspect ratio of module {name}"
+    return AspectRatio(float(aspect_ratio[0]), float(aspect_ratio[1]))
 
 
 def parse_yaml_rectangles(rectangles: list, fixed: bool = False, hard: bool = False) -> list[Rectangle]:

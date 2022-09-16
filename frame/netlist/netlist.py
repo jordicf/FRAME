@@ -172,9 +172,9 @@ class Netlist:
         # Check that all fixed nodes have either a center or a rectangle
         smallest_distance = math.inf
         for m in self.modules:
-            assert not m.is_hard or m.center is not None or m.num_rectangles > 0, \
-                f'Module {m.name} is fixed and has neither center nor rectangles'
-            if m.is_hard and m.num_rectangles == 0:
+            assert m.is_terminal or m.is_soft or m.center is not None or m.num_rectangles > 0, \
+                f'Module {m.name} is hard and has neither center nor rectangles'
+            if m.is_hard and not m.is_terminal and m.num_rectangles == 0:
                 m.create_square()
             if m.num_rectangles > 0:
                 m.calculate_center_from_rectangles()
@@ -191,7 +191,7 @@ class Netlist:
 
         # Check that hard modules have non-overlapping rectangles.
         for m in self.modules:
-            if m.is_hard:
+            if m.is_hard and not m.is_terminal:
                 for r1, r2 in combinations(m.rectangles, 2):
                     assert not r1.overlap(r2), f"Inconsistent hard module {m.name}: overlapping rectangles."
 

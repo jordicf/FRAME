@@ -145,6 +145,15 @@ class Shape:
 
 
 @dataclass
+class AspectRatio:
+    """
+    A class to represent the aspect ratio of a module or a rectangle (interval of width/height)
+    """
+    min_wh: float
+    max_wh: float
+
+
+@dataclass
 class BoundingBox:
     """
     A class to represent a rectangle using a bounding box
