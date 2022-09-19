@@ -36,7 +36,7 @@ def blank_line(line: str):
 
 
 def word_split(line: str) -> list[str]:
-    return re.split(r'[^\S\n\t]+', line)
+    return re.split(r'[\s\n\t]+', line)
 
 
 def parse_terminals(lines: list[str], i: int, modules: Modules):
@@ -53,7 +53,7 @@ def parse_terminals(lines: list[str], i: int, modules: Modules):
     return False
 
 
-def parse_rectangles(lines: list[str], i: int, modules: Modules):
+def parse_rectangles(lines: list[str], i: int, modules: Modules) -> bool:
     if blank_line(lines[i]):
         return True
     words = word_split(lines[i])
@@ -70,7 +70,8 @@ def parse_rectangles(lines: list[str], i: int, modules: Modules):
         return True
     elif len(words) == 11 and words[1] == "hard" + "rectilinear":
         # TODO: This.
-        return True
+        raise Exception("TODO")
+        # return True
     else:
         return False
 
@@ -113,13 +114,13 @@ def parse_blocks(file_path: str):
         i = i + 1
     while i < len(lines) and parse_terminals(lines, i, modules):
         i = i + 1
-    return modules
+    return {'Modules': modules}
 
 
 def main(prog: str | None = None, args: list[str] | None = None) -> int:
     options = parse_options(prog, args)
     blocks = parse_blocks(options['filename'])
-    print(write_yaml({'Modules': blocks}))
+    print(write_yaml(blocks))
     return 1
 
 

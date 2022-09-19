@@ -1,0 +1,772 @@
+Modules:
+  cc_11:
+    area: 5744596.0
+    aspect_ratio:
+    - 0.58
+    - 1.722
+  cc_12:
+    area: 5744596.0
+    aspect_ratio:
+    - 0.58
+    - 1.722
+  cc_13:
+    area: 5744596.0
+    aspect_ratio:
+    - 0.58
+    - 1.722
+  cc_14:
+    area: 5744596.0
+    aspect_ratio:
+    - 0.58
+    - 1.722
+  cc_21:
+    area: 5836752.0
+    aspect_ratio:
+    - 0.575
+    - 1.739
+  cc_22:
+    area: 5836752.0
+    aspect_ratio:
+    - 0.575
+    - 1.739
+  cc_23:
+    area: 5836752.0
+    aspect_ratio:
+    - 0.575
+    - 1.739
+  cc_24:
+    area: 5836752.0
+    aspect_ratio:
+    - 0.575
+    - 1.739
+  clk:
+    area: 236236.0
+    aspect_ratio:
+    - 0.346
+    - 2.888
+  new0:
+    terminal: true
+    fixed: true
+    center:
+    - 0.0
+    - 2500.0
+  new1:
+    terminal: true
+    fixed: true
+    center:
+    - 0.0
+    - 2900.0
+  new2:
+    terminal: true
+    fixed: true
+    center:
+    - 0.0
+    - 3300.0
+  new3:
+    terminal: true
+    fixed: true
+    center:
+    - 0.0
+    - 3700.0
+  new4:
+    terminal: true
+    fixed: true
+    center:
+    - 0.0
+    - 4100.0
+  new5:
+    terminal: true
+    fixed: true
+    center:
+    - 0.0
+    - 4500.0
+  new6:
+    terminal: true
+    fixed: true
+    center:
+    - 0.0
+    - 4900.0
+  new7:
+    terminal: true
+    fixed: true
+    center:
+    - 0.0
+    - 5300.0
+  new8:
+    terminal: true
+    fixed: true
+    center:
+    - 0.0
+    - 5700.0
+  new10:
+    terminal: true
+    fixed: true
+    center:
+    - 0.0
+    - 6100.0
+  new11:
+    terminal: true
+    fixed: true
+    center:
+    - 0.0
+    - 6500.0
+  new12:
+    terminal: true
+    fixed: true
+    center:
+    - 0.0
+    - 6900.0
+  new14:
+    terminal: true
+    fixed: true
+    center:
+    - 0.0
+    - 7300.0
+  new15:
+    terminal: true
+    fixed: true
+    center:
+    - 0.0
+    - 7700.0
+  new16:
+    terminal: true
+    fixed: true
+    center:
+    - 0.0
+    - 8100.0
+  new17:
+    terminal: true
+    fixed: true
+    center:
+    - 0.0
+    - 8500.0
+  new18:
+    terminal: true
+    fixed: true
+    center:
+    - 0.0
+    - 8900.0
+  VSS:
+    terminal: true
+    fixed: true
+    center:
+    - 0.0
+    - 9300.0
+  new19:
+    terminal: true
+    fixed: true
+    center:
+    - 1700.0
+    - 0.0
+  new20:
+    terminal: true
+    fixed: true
+    center:
+    - 2100.0
+    - 0.0
+  new21:
+    terminal: true
+    fixed: true
+    center:
+    - 2500.0
+    - 0.0
+  new22:
+    terminal: true
+    fixed: true
+    center:
+    - 2900.0
+    - 0.0
+  new28:
+    terminal: true
+    fixed: true
+    center:
+    - 3300.0
+    - 0.0
+  new29:
+    terminal: true
+    fixed: true
+    center:
+    - 3700.0
+    - 0.0
+  new30:
+    terminal: true
+    fixed: true
+    center:
+    - 4100.0
+    - 0.0
+  new31:
+    terminal: true
+    fixed: true
+    center:
+    - 4500.0
+    - 0.0
+  new32:
+    terminal: true
+    fixed: true
+    center:
+    - 4900.0
+    - 0.0
+  new33:
+    terminal: true
+    fixed: true
+    center:
+    - 5300.0
+    - 0.0
+  new39:
+    terminal: true
+    fixed: true
+    center:
+    - 5700.0
+    - 0.0
+  new40:
+    terminal: true
+    fixed: true
+    center:
+    - 6100.0
+    - 0.0
+  new41:
+    terminal: true
+    fixed: true
+    center:
+    - 6500.0
+    - 0.0
+  new42:
+    terminal: true
+    fixed: true
+    center:
+    - 6900.0
+    - 0.0
+  new43:
+    terminal: true
+    fixed: true
+    center:
+    - 7300.0
+    - 0.0
+  new44:
+    terminal: true
+    fixed: true
+    center:
+    - 7700.0
+    - 0.0
+  new46:
+    terminal: true
+    fixed: true
+    center:
+    - 8100.0
+    - 0.0
+  new50:
+    terminal: true
+    fixed: true
+    center:
+    - 8500.0
+    - 0.0
+  VDD:
+    terminal: true
+    fixed: true
+    center:
+    - 8900.0
+    - 0.0
+  new51:
+    terminal: true
+    fixed: true
+    center:
+    - 10500.0
+    - 2500.0
+  new52:
+    terminal: true
+    fixed: true
+    center:
+    - 10500.0
+    - 2900.0
+  new54:
+    terminal: true
+    fixed: true
+    center:
+    - 10500.0
+    - 3300.0
+  new55:
+    terminal: true
+    fixed: true
+    center:
+    - 10500.0
+    - 3700.0
+  new56:
+    terminal: true
+    fixed: true
+    center:
+    - 10500.0
+    - 4100.0
+  new57:
+    terminal: true
+    fixed: true
+    center:
+    - 10500.0
+    - 4500.0
+  new58:
+    terminal: true
+    fixed: true
+    center:
+    - 10500.0
+    - 4900.0
+  new59:
+    terminal: true
+    fixed: true
+    center:
+    - 10500.0
+    - 5300.0
+  new60:
+    terminal: true
+    fixed: true
+    center:
+    - 10500.0
+    - 5700.0
+  new62:
+    terminal: true
+    fixed: true
+    center:
+    - 10500.0
+    - 6100.0
+  new63:
+    terminal: true
+    fixed: true
+    center:
+    - 10500.0
+    - 6500.0
+  new64:
+    terminal: true
+    fixed: true
+    center:
+    - 10500.0
+    - 6900.0
+  new65:
+    terminal: true
+    fixed: true
+    center:
+    - 10500.0
+    - 7300.0
+  new66:
+    terminal: true
+    fixed: true
+    center:
+    - 10500.0
+    - 7700.0
+  new67:
+    terminal: true
+    fixed: true
+    center:
+    - 10500.0
+    - 8100.0
+  new69:
+    terminal: true
+    fixed: true
+    center:
+    - 10500.0
+    - 8500.0
+  new70:
+    terminal: true
+    fixed: true
+    center:
+    - 10500.0
+    - 8900.0
+  GND:
+    terminal: true
+    fixed: true
+    center:
+    - 10500.0
+    - 9300.0
+  new71:
+    terminal: true
+    fixed: true
+    center:
+    - 1700.0
+    - 10500.0
+  new72:
+    terminal: true
+    fixed: true
+    center:
+    - 2100.0
+    - 10500.0
+  new73:
+    terminal: true
+    fixed: true
+    center:
+    - 2500.0
+    - 10500.0
+  new74:
+    terminal: true
+    fixed: true
+    center:
+    - 2900.0
+    - 10500.0
+  new75:
+    terminal: true
+    fixed: true
+    center:
+    - 3300.0
+    - 10500.0
+  new76:
+    terminal: true
+    fixed: true
+    center:
+    - 3700.0
+    - 10500.0
+  new77:
+    terminal: true
+    fixed: true
+    center:
+    - 4100.0
+    - 10500.0
+  new78:
+    terminal: true
+    fixed: true
+    center:
+    - 4500.0
+    - 10500.0
+  new79:
+    terminal: true
+    fixed: true
+    center:
+    - 4900.0
+    - 10500.0
+  new80:
+    terminal: true
+    fixed: true
+    center:
+    - 5300.0
+    - 10500.0
+  new81:
+    terminal: true
+    fixed: true
+    center:
+    - 5700.0
+    - 10500.0
+  new82:
+    terminal: true
+    fixed: true
+    center:
+    - 6100.0
+    - 10500.0
+  new83:
+    terminal: true
+    fixed: true
+    center:
+    - 6500.0
+    - 10500.0
+  new84:
+    terminal: true
+    fixed: true
+    center:
+    - 6900.0
+    - 10500.0
+  new85:
+    terminal: true
+    fixed: true
+    center:
+    - 7300.0
+    - 10500.0
+  new86:
+    terminal: true
+    fixed: true
+    center:
+    - 7700.0
+    - 10500.0
+  Phi:
+    terminal: true
+    fixed: true
+    center:
+    - 8100.0
+    - 10500.0
+  TestHS1:
+    terminal: true
+    fixed: true
+    center:
+    - 8500.0
+    - 10500.0
+Nets:
+- - VDD
+  - cc_11
+  - cc_12
+  - cc_13
+  - cc_14
+  - cc_21
+  - cc_22
+  - cc_23
+  - cc_24
+  - clk
+- - GND
+  - cc_11
+  - cc_12
+  - cc_13
+  - cc_14
+  - cc_21
+  - cc_22
+  - cc_23
+  - cc_24
+- - new18
+  - cc_11
+  - cc_12
+- - new19
+  - cc_11
+  - cc_12
+- - new17
+  - cc_11
+  - cc_12
+- - new16
+  - cc_11
+  - cc_21
+- - cc_11
+  - cc_12
+  - cc_13
+  - cc_14
+  - cc_21
+  - cc_22
+  - cc_23
+  - cc_24
+  - clk
+- - new1
+  - cc_11
+  - cc_12
+  - cc_13
+  - cc_14
+  - cc_21
+  - cc_22
+  - cc_23
+  - cc_24
+- - new15
+  - cc_11
+  - cc_21
+- - new14
+  - cc_11
+  - cc_21
+- - cc_11
+  - cc_12
+  - cc_13
+  - cc_14
+  - cc_21
+  - cc_22
+  - cc_23
+  - cc_24
+  - clk
+- - cc_11
+  - cc_12
+  - cc_13
+  - cc_14
+  - cc_21
+  - cc_22
+  - cc_23
+  - cc_24
+  - clk
+- - cc_11
+  - cc_12
+  - cc_12
+  - cc_21
+  - cc_21
+  - cc_22
+- - cc_11
+  - cc_12
+  - cc_13
+  - cc_14
+- - cc_11
+  - cc_12
+- - cc_11
+  - cc_12
+  - cc_13
+  - cc_14
+  - cc_21
+  - cc_22
+  - cc_23
+  - cc_24
+  - clk
+- - new5
+  - cc_11
+- - new4
+  - cc_11
+- - new3
+  - cc_11
+- - new2
+  - cc_11
+  - cc_12
+- - new8
+  - cc_11
+- - new10
+  - cc_11
+- - new11
+  - cc_11
+- - new6
+  - cc_11
+- - new7
+  - cc_11
+- - cc_11
+  - cc_24
+- - new12
+  - cc_11
+  - cc_21
+- - new29
+  - cc_12
+  - cc_13
+- - new30
+  - cc_12
+  - cc_13
+- - new28
+  - cc_12
+  - cc_13
+- - cc_12
+  - cc_21
+  - cc_22
+- - cc_12
+  - cc_21
+  - cc_22
+- - cc_12
+  - cc_21
+  - cc_22
+- - cc_12
+  - cc_13
+  - cc_13
+  - cc_22
+  - cc_22
+  - cc_23
+- - cc_12
+  - cc_13
+- - new22
+  - cc_12
+- - new21
+  - cc_12
+- - new20
+  - cc_12
+  - cc_13
+- - new40
+  - cc_13
+  - cc_14
+- - new41
+  - cc_13
+  - cc_14
+- - new39
+  - cc_13
+  - cc_14
+- - cc_13
+  - cc_22
+  - cc_23
+- - cc_13
+  - cc_22
+  - cc_23
+- - cc_13
+  - cc_22
+  - cc_23
+- - cc_13
+  - cc_14
+  - cc_14
+  - cc_23
+  - cc_23
+  - cc_24
+- - cc_13
+  - cc_14
+- - new33
+  - cc_13
+- - new32
+  - cc_13
+- - new31
+  - cc_13
+  - cc_14
+- - new51
+  - cc_14
+- - new52
+  - cc_14
+- - new50
+  - cc_14
+- - cc_14
+  - cc_23
+  - cc_24
+- - cc_14
+  - cc_23
+  - cc_24
+- - cc_14
+  - cc_23
+  - cc_24
+- - new46
+  - cc_14
+- - new44
+  - cc_14
+- - new43
+  - cc_14
+- - new42
+  - cc_14
+- - new54
+  - cc_21
+- - cc_21
+  - cc_22
+- - new59
+  - cc_21
+- - new58
+  - cc_21
+- - new57
+  - cc_21
+- - new56
+  - cc_21
+- - new55
+  - cc_21
+- - new60
+  - cc_21
+- - new0
+  - cc_21
+  - cc_22
+  - cc_23
+  - cc_24
+- - cc_22
+  - cc_23
+- - new66
+  - cc_22
+- - new65
+  - cc_22
+- - new64
+  - cc_22
+- - new63
+  - cc_22
+- - new62
+  - cc_22
+- - new67
+  - cc_22
+- - cc_23
+  - cc_24
+- - new73
+  - cc_23
+- - new72
+  - cc_23
+- - new71
+  - cc_23
+- - new70
+  - cc_23
+- - new69
+  - cc_23
+- - new74
+  - cc_23
+- - new83
+  - cc_24
+- - new85
+  - cc_24
+- - new84
+  - cc_24
+- - new82
+  - cc_24
+- - new86
+  - cc_24
+- - new81
+  - cc_24
+- - new79
+  - cc_24
+- - new78
+  - cc_24
+- - new77
+  - cc_24
+- - new76
+  - cc_24
+- - new75
+  - cc_24
+- - new80
+  - cc_24
+- - VSS
+  - clk
+- - TestHS1
+  - clk
+- - Phi
+  - clk
+  - clk

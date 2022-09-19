@@ -23,7 +23,7 @@ def blank_line(line: str):
 
 
 def word_split(line: str) -> list[str]:
-    return re.split(r'[^\S\n\t]+', line)
+    return re.split(r'[\s\n\t]+', line)
 
 
 def parse_options(prog: str | None = None, args: list[str] | None = None) -> dict[str, typing.Any]:
@@ -106,14 +106,13 @@ def parse_nets(file_path: str):
         cont, i = parse_net(lines, i, nets)
         if not cont:
             break
-    print(headers)
-    return nets
+    return {'Nets': nets}
 
 
 def main(prog: str | None = None, args: list[str] | None = None) -> int:
     options = parse_options(prog, args)
     nets = parse_nets(options['filename'])
-    print(write_yaml({'Nets': nets}))
+    print(write_yaml(nets))
     return 1
 
 
