@@ -125,6 +125,9 @@ class Point:
         """Dot product between self and other."""
         return self.x * other.x + self.y * other.y
 
+    def norm(self):
+        return (self.x**2 + self.y**2)**(1 / 2)
+
     def __str__(self) -> str:
         return f"Point(x={self.x}, y={self.y})"
 

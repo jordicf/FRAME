@@ -83,6 +83,11 @@ class TestPoint(unittest.TestCase):
         self.assertEqual(self.r & self.r, 0)
         self.assertEqual(self.p & Point(-2, 1), 0)
 
+    def test_norm(self) -> None:
+        self.assertAlmostEqual(self.p.norm(), 2.2360679775)
+        self.assertEqual(self.q.norm(), 1.5)
+        self.assertEqual(self.r.norm(), 0)
+
     def test_str(self) -> None:
         self.assertEqual(str(self.p), "Point(x=1, y=2)")
         self.assertEqual(str(self.q), "Point(x=-1.5, y=0)")
