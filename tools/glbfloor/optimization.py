@@ -106,7 +106,7 @@ def extract_solution(model: Model, die: Die, cells: list[Rectangle], threshold: 
     """
     Extracts the solution from the model
     :param model: the model
-    :param die: die with netlist containing the modules with centroids initialized
+    :param die: the die with the netlist
     :param cells: cells of the floor plan to allocate the modules
     :param threshold: hyperparameter between 0 and 1 to decide if allocations can be fixed
     :return:
@@ -259,7 +259,7 @@ def optimize_allocation(die: Die, allocation: Allocation, dispersions: dict[str,
     n_cells = allocation.num_rectangles
     cells = [alloc.rect for alloc in allocation.allocations]
 
-    bb = die.bounding_box.bounding_box
+    die_bb = die.bounding_box.bounding_box
 
     model = Model()
     g = model.gekko  # Shortcut (reference)
@@ -291,8 +291,8 @@ def optimize_allocation(die: Die, allocation: Allocation, dispersions: dict[str,
             model.x[m] = module.center.x
             model.y[m] = module.center.y
         else:
-            model.x[m] = g.Var(value=module.center.x, lb=bb.ll.x, ub=bb.ur.x, name=f"x_{m}")
-            model.y[m] = g.Var(value=module.center.y, lb=bb.ll.y, ub=bb.ur.y, name=f"y_{m}")
+            model.x[m] = g.Var(value=module.center.x, lb=die_bb.ll.x, ub=die_bb.ur.x, name=f"x_{m}")
+            model.y[m] = g.Var(value=module.center.y, lb=die_bb.ll.y, ub=die_bb.ur.y, name=f"y_{m}")
             model.d[m] = g.Var(value=dispersions[m], lb=0, name=f"d_{m}")
 
     # Get neighbouring cells of all the cells
@@ -341,8 +341,8 @@ def optimize_allocation(die: Die, allocation: Allocation, dispersions: dict[str,
     for module in nonfixed_hard_modules:
         m = module.name
         assert module.center is not None
-        model.x[m] = g.Var(value=module.center.x, lb=bb.ll.x, ub=bb.ur.x, name=f"x_{m}")
-        model.y[m] = g.Var(value=module.center.y, lb=bb.ll.y, ub=bb.ur.y, name=f"y_{m}")
+        model.x[m] = g.Var(value=module.center.x, lb=die_bb.ll.x, ub=die_bb.ur.x, name=f"x_{m}")
+        model.y[m] = g.Var(value=module.center.y, lb=die_bb.ll.y, ub=die_bb.ur.y, name=f"y_{m}")
 
         m0 = f"{m}_0"
         if module.flip:
