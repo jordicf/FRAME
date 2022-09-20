@@ -198,8 +198,8 @@ def draw_geometry(im: Image.Image, bb: BoundingBox, color, scaling: Scaling,
     im.paste(Image.alpha_composite(im, transp))
 
 
-def get_floorplan_plot(netlist: Netlist, allocation: Allocation | None, die_shape: Shape,
-                       width: int = 0, height: int = 0, frame: int = 20, fontsize: int = 20) -> Image.Image:
+def get_floorplan_plot(netlist: Netlist, die_shape: Shape, allocation: Allocation | None = None, width: int = 0,
+                       height: int = 0, frame: int = 20, fontsize: int = 20) -> Image.Image:
     """
     Generates the plot of the floorplan
     :param netlist: the netlist with the modules and the hyperedges
@@ -327,8 +327,8 @@ def main(prog: str | None = None, args: list[str] | None = None) -> None:
 
     assert alloc_die.w <= die_shape.w and alloc_die.h <= die_shape.h
 
-    im = get_floorplan_plot(netlist, allocation, die_shape,
-                            options['width'], options['height'], options['frame'], options['fontsize'])
+    im = get_floorplan_plot(netlist, die_shape, allocation, options['width'], options['height'], options['frame'],
+                            options['fontsize'])
 
     # Output file
     outfile = options['outfile']

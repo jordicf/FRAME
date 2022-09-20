@@ -195,7 +195,7 @@ def solve_and_extract_solution(model: Model, die: Die, cells: list[Rectangle], t
             assert die.netlist is not None, "No netlist associated to the die"  # Assertion to suppress Mypy error
 
             if plotting_options.joint_plot:
-                vis_imgs[0].append(get_joint_floorplan_plot(die.netlist, allocation, die.bounding_box.shape))
+                vis_imgs[0].append(get_joint_floorplan_plot(die.netlist, die.bounding_box.shape, allocation))
             if plotting_options.separated_plot:
                 vis_imgs[1].append(get_separated_floorplan_plot(die, allocation))
             print(i, end=" ", flush=True)
@@ -437,7 +437,7 @@ def glbfloor(die: Die, threshold: float, alpha: float,
 
     if plotting_options is not None:
         if plotting_options.joint_plot:
-            get_joint_floorplan_plot(die.netlist, allocation, die.bounding_box.shape). \
+            get_joint_floorplan_plot(die.netlist, die.bounding_box.shape, allocation). \
                 save(f"{plotting_options.name}-joint-{n_iter}.gif")
 
         if plotting_options.separated_plot:
@@ -463,7 +463,7 @@ def glbfloor(die: Die, threshold: float, alpha: float,
                 durations.extend([100] * (max(len(vis_imgs[0]), len(vis_imgs[1])) - 1) + [1000])
 
             if plotting_options.joint_plot:
-                get_joint_floorplan_plot(die.netlist, allocation, die.bounding_box.shape). \
+                get_joint_floorplan_plot(die.netlist, die.bounding_box.shape, allocation). \
                     save(f"{plotting_options.name}-joint-{n_iter}.gif")
 
             if plotting_options.separated_plot:
