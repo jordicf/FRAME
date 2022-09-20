@@ -7,9 +7,9 @@ Modules of a netlist
 """
 
 import math
-from frame.geometry.geometry import Point, Shape, Rectangle, create_stog
-from frame.utils.keywords import KW_CENTER, KW_SHAPE, KW_MIN_SHAPE, KW_AREA, KW_FIXED, KW_HARD, KW_FLIP,\
-    KW_GROUND, KW_RECTANGLES
+from frame.geometry.geometry import Point, Shape, AspectRatio, Rectangle, create_stog
+from frame.utils.keywords import KW_CENTER, KW_SHAPE, KW_ASPECT_RATIO, KW_AREA, KW_TERMINAL, KW_FIXED, KW_HARD,\
+    KW_FLIP, KW_GROUND, KW_RECTANGLES
 from frame.utils.utils import valid_identifier, is_number
 
 
@@ -19,7 +19,7 @@ class Module:
     """
     _name: str  # Name of the module
     _center: Point | None  # Center of the module (if defined)
-    _min_shape: Shape | None  # min width and height
+    _aspect_ratio: AspectRatio | None  # interval of the aspect ratio
     _hard: bool  # Must be a hard module (but movable if not fixed)
     _fixed: bool  # Must be fixed in the layout
     _flip: bool  # May be flipped (only for hard modules, not fixed)
@@ -40,11 +40,13 @@ class Module:
     def __init__(self, name: str, **kwargs):
         """
         Constructor
-        :param kwargs: name (str), center (Point), min_shape (Shape), area (float or dict), fixed (boolean)
+        :param kwargs: name (str), center (Point), aspect_ratio (AspectRatio), area (float or dict),
+        hard (boolean), fixed (boolean), terminal (boolean)
         """
         self._name = name
         self._center = None
-        self._min_shape = None
+        self._aspect_ratio = None
+        self._terminal = False
         self._hard = False
         self._fixed = False
         self._flip = False
@@ -57,16 +59,16 @@ class Module:
 
         # Reading parameters and type checking
         for key, value in kwargs.items():
-            assert key in [KW_CENTER, KW_MIN_SHAPE, KW_AREA, KW_HARD, KW_FIXED, KW_FLIP],\
+            assert key in [KW_CENTER, KW_ASPECT_RATIO, KW_AREA, KW_TERMINAL, KW_HARD, KW_FIXED, KW_FLIP],\
                 f"Module {name}: unknown module attribute"
             if key == KW_CENTER:
                 assert isinstance(value, Point), f"Module {name}: incorrect point associated to the center"
                 self._center = value
-            elif key == KW_MIN_SHAPE:
-                assert isinstance(value, Shape), f"Module {name}: Incorrect shape"
-                assert value.w >= 0, f"Module {name}: incorrect module width"
-                assert value.h >= 0, f"Module {name}: incorrect module height"
-                self._min_shape = value
+            elif key == KW_ASPECT_RATIO:
+                assert isinstance(value, AspectRatio), f"Module {name}: Incorrect aspect ratio"
+                assert 0 <= value.min_wh <= 1.0, f"Module {name}: incorrect aspect ratio"
+                assert value.max_wh >= 1.0, f"Module {name}: incorrect aspect ratio"
+                self._aspect_ratio = value
             elif key == KW_AREA:
                 self._area_regions = self._read_region_area(value)
             elif key == KW_FIXED:
@@ -80,8 +82,21 @@ class Module:
             elif key == KW_FLIP:
                 assert isinstance(value, bool), f"Module {name}: incorrect value for flip (should be a boolean)"
                 self._flip = value
+            elif key == KW_TERMINAL:
+                assert KW_AREA not in kwargs, f"Module {name}: terminal cannot have area"
+                assert KW_ASPECT_RATIO not in kwargs, f"Module {name}: terminal cannot have aspect ratio"
+                assert KW_FLIP not in kwargs, f"Module {name}: terminal cannot have flip attribute"
+                assert isinstance(value, bool), f"Module {name}: incorrect value for terminal (should be a boolean)"
+                self._terminal = value
+                self._hard = True
             else:
                 assert False  # Should never happen
+
+        assert not self.is_hard or self.aspect_ratio is None,\
+            f"Module {name}: aspect ratio incompatible with hard or fixed module"
+
+        assert not self.is_terminal or not self.is_fixed or self.center is not None,\
+            f"Module {name}: a fixed terminal must have coordinates (center)."
 
     def __hash__(self) -> int:
         return hash(self._name)
@@ -106,16 +121,28 @@ class Module:
 
     # Getter and setter for min_shape
     @property
-    def min_shape(self) -> Shape | None:
-        return self._min_shape
+    def aspect_ratio(self) -> AspectRatio | None:
+        return self._aspect_ratio
 
-    @min_shape.setter
-    def min_shape(self, shape: Shape) -> None:
-        self._min_shape = shape
+    @aspect_ratio.setter
+    def aspect_ratio(self, ar: AspectRatio) -> None:
+        self._aspect_ratio = ar
+
+    @property
+    def is_terminal(self) -> bool:
+        return self._terminal
+
+    @is_terminal.setter
+    def is_terminal(self, value: bool) -> None:
+        self._terminal = value
 
     @property
     def is_hard(self) -> bool:
         return self._hard
+
+    @is_hard.setter
+    def is_hard(self, value: bool) -> None:
+        self._hard = value
 
     @property
     def is_fixed(self) -> bool:
@@ -236,9 +263,9 @@ class Module:
             # It also checks that at least has one rectangle
             assert not area_defined, f"Inconsistent hard module {self.name}: cannot specify area."
             assert self.center is None, f"Inconsistent hard module {self.name}: cannot specify center."
-            assert self.min_shape is None,\
-                f"Inconsistent hard module {self.name}: cannot specify min_shape."
-            assert self.num_rectangles > 0, \
+            assert self.aspect_ratio is None,\
+                f"Inconsistent hard module {self.name}: cannot specify aspect ratio."
+            assert self.is_terminal or self.num_rectangles > 0, \
                 f"Inconsistent hard module {self.name}: must have at least one rectangle."
 
             # Calculate the area of hard modules
@@ -290,7 +317,7 @@ class Module:
 
     def __str__(self) -> str:
         s = f"{self.name}: {KW_AREA}={self.area_regions} {KW_CENTER}={self.center}"
-        s += f" {KW_MIN_SHAPE}={self.min_shape}"
+        s += f" {KW_ASPECT_RATIO}={self.aspect_ratio}"
         if self.num_rectangles == 0:
             return s
         s += f" {KW_RECTANGLES}=["

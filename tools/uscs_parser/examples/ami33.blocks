@@ -1,0 +1,85 @@
+UCSC blocks 1.0
+# Created      : Tue Nov 07 17:53:03 PST 2000
+# User         : huaizhi@olympus
+# Platform     : SunOS 5.6 sparc
+
+NumSoftRectangularBlocks : 33
+NumHardRectilinearBlocks : 0
+NumTerminals : 42
+
+bk1 softrectangular 44688 0.395 2.526
+bk10a softrectangular 44982 0.314 3.176
+bk10b softrectangular 22540 0.869 1.149
+bk10c softrectangular 5831 0.411 2.428
+bk11 softrectangular 20825 0.680 1.470
+bk12 softrectangular 56840 2.900 0.344
+bk13 softrectangular 69580 3.549 0.281
+bk14a softrectangular 23324 0.607 1.647
+bk14b softrectangular 34986 0.404 2.470
+bk14c softrectangular 19159 0.739 1.352
+bk15a softrectangular 31654 2.235 0.447
+bk15b softrectangular 39984 2.823 0.354
+bk16 softrectangular 14994 1.058 0.944
+bk17a softrectangular 67522 0.490 2.038
+bk17b softrectangular 36946 1.115 0.896
+bk18 softrectangular 36946  1.115 0.896
+bk19 softrectangular 9996 1.416 0.705
+bk2 softrectangular 39102 2.210 0.452
+bk20 softrectangular 63700 1.923 0.520
+bk21 softrectangular 44100 0.444 2.250
+bk3 softrectangular 41895 2.368 0.422
+bk4 softrectangular 74480 0.237 4.210
+bk5a softrectangular 18620 1.052 0.950
+bk5b softrectangular 23275 0.759 1.315
+bk5c softrectangular 30723 1.736 0.575
+bk6 softrectangular 41895 2.368 0.422
+bk7 softrectangular 17836 0.538 1.857
+bk8a softrectangular 44100 1.000 1.000
+bk8b softrectangular 47628 3.000 0.333
+bk9a softrectangular 21658 0.653 1.529
+bk9b softrectangular 14161 1.000 1.000
+bk9c softrectangular 42483 0.333 3.000
+bk9d softrectangular 9996 0.705 1.416
+
+VSS terminal
+VDD terminal
+P9 terminal
+P8 terminal
+P7 terminal
+P6 terminal
+P5 terminal
+P4 terminal
+P37 terminal
+P36 terminal
+POW terminal
+POW terminal
+P35 terminal
+P34 terminal
+P33 terminal
+P32 terminal
+P31 terminal
+P30 terminal
+P3 terminal
+P29 terminal
+P28 terminal
+P27 terminal
+P26 terminal
+P25 terminal
+P24 terminal
+P23 terminal
+P22 terminal
+P21 terminal
+P20 terminal
+P2 terminal
+P19 terminal
+P18 terminal
+P17 terminal
+GND terminal
+GND terminal
+P16 terminal
+P15 terminal
+P14 terminal
+P13 terminal
+P12 terminal
+P11 terminal
+P10 terminal

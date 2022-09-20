@@ -1,0 +1,636 @@
+Modules:
+  clkc:
+    area: 478632.0
+    aspect_ratio:
+    - 0.445
+    - 2.242
+  clkd:
+    area: 264600.0
+    aspect_ratio:
+    - 0.54
+    - 1.851
+  cmp1:
+    area: 205800.0
+    aspect_ratio:
+    - 0.214
+    - 4.666
+  cmp2:
+    area: 205800.0
+    aspect_ratio:
+    - 0.214
+    - 4.666
+  cmp3:
+    area: 205800.0
+    aspect_ratio:
+    - 0.214
+    - 4.666
+  cntd:
+    area: 1803984.0
+    aspect_ratio:
+    - 0.165
+    - 6.051
+  cntu:
+    area: 1803984.0
+    aspect_ratio:
+    - 0.165
+    - 6.051
+  npd:
+    area: 508032.0
+    aspect_ratio:
+    - 0.125
+    - 8.0
+  nps:
+    area: 1422960.0
+    aspect_ratio:
+    - 0.15
+    - 6.666
+  ppd:
+    area: 508032.0
+    aspect_ratio:
+    - 0.125
+    - 8.0
+  pps:
+    area: 1422960.0
+    aspect_ratio:
+    - 0.15
+    - 6.666
+  bu7:
+    terminal: true
+    fixed: true
+    center:
+    - 4648.0
+    - 4200.0
+  rs2:
+    terminal: true
+    fixed: true
+    center:
+    - 4312.0
+    - 4200.0
+  mcu:
+    terminal: true
+    fixed: true
+    center:
+    - 3612.0
+    - 4200.0
+  bu0:
+    terminal: true
+    fixed: true
+    center:
+    - 3136.0
+    - 4200.0
+  bu1:
+    terminal: true
+    fixed: true
+    center:
+    - 2912.0
+    - 4200.0
+  bu2:
+    terminal: true
+    fixed: true
+    center:
+    - 2688.0
+    - 4200.0
+  bu3:
+    terminal: true
+    fixed: true
+    center:
+    - 2464.0
+    - 4200.0
+  bu4:
+    terminal: true
+    fixed: true
+    center:
+    - 2072.0
+    - 4200.0
+  bu5:
+    terminal: true
+    fixed: true
+    center:
+    - 1848.0
+    - 4200.0
+  bu6:
+    terminal: true
+    fixed: true
+    center:
+    - 1792.0
+    - 4200.0
+  gnd1:
+    terminal: true
+    fixed: true
+    center:
+    - 1064.0
+    - 4200.0
+  vin1:
+    terminal: true
+    fixed: true
+    center:
+    - 728.0
+    - 4200.0
+  mc1:
+    terminal: true
+    fixed: true
+    center:
+    - 0.0
+    - 2772.0
+  vin:
+    terminal: true
+    fixed: true
+    center:
+    - 0.0
+    - 2100.0
+  vssa:
+    terminal: true
+    fixed: true
+    center:
+    - 0.0
+    - 1722.0
+  vdda:
+    terminal: true
+    fixed: true
+    center:
+    - 0.0
+    - 1680.0
+  busa8:
+    terminal: true
+    fixed: true
+    center:
+    - 4928.0
+    - 2702.0
+  busa7:
+    terminal: true
+    fixed: true
+    center:
+    - 4928.0
+    - 2674.0
+  busa6:
+    terminal: true
+    fixed: true
+    center:
+    - 4928.0
+    - 2646.0
+  busa5:
+    terminal: true
+    fixed: true
+    center:
+    - 4928.0
+    - 2618.0
+  busa4:
+    terminal: true
+    fixed: true
+    center:
+    - 4928.0
+    - 2590.0
+  busa3:
+    terminal: true
+    fixed: true
+    center:
+    - 4928.0
+    - 2562.0
+  busa2:
+    terminal: true
+    fixed: true
+    center:
+    - 4928.0
+    - 2534.0
+  busa1:
+    terminal: true
+    fixed: true
+    center:
+    - 4928.0
+    - 2506.0
+  mk1:
+    terminal: true
+    fixed: true
+    center:
+    - 4928.0
+    - 2478.0
+  vdd:
+    terminal: true
+    fixed: true
+    center:
+    - 4928.0
+    - 2100.0
+  vss:
+    terminal: true
+    fixed: true
+    center:
+    - 4928.0
+    - 1764.0
+  mc2:
+    terminal: true
+    fixed: true
+    center:
+    - 4928.0
+    - 1428.0
+  mk2:
+    terminal: true
+    fixed: true
+    center:
+    - 4928.0
+    - 630.0
+  mcd:
+    terminal: true
+    fixed: true
+    center:
+    - 4480.0
+    - 0.0
+  rs1:
+    terminal: true
+    fixed: true
+    center:
+    - 4200.0
+    - 0.0
+  busb4:
+    terminal: true
+    fixed: true
+    center:
+    - 3556.0
+    - 0.0
+  busb3:
+    terminal: true
+    fixed: true
+    center:
+    - 3528.0
+    - 0.0
+  busb2:
+    terminal: true
+    fixed: true
+    center:
+    - 3500.0
+    - 0.0
+  busb1:
+    terminal: true
+    fixed: true
+    center:
+    - 3472.0
+    - 0.0
+  b0:
+    terminal: true
+    fixed: true
+    center:
+    - 2884.0
+    - 0.0
+  b1:
+    terminal: true
+    fixed: true
+    center:
+    - 2660.0
+    - 0.0
+  b2:
+    terminal: true
+    fixed: true
+    center:
+    - 2464.0
+    - 0.0
+  b3:
+    terminal: true
+    fixed: true
+    center:
+    - 2240.0
+    - 0.0
+  b4:
+    terminal: true
+    fixed: true
+    center:
+    - 2044.0
+    - 0.0
+  b5:
+    terminal: true
+    fixed: true
+    center:
+    - 1820.0
+    - 0.0
+  b6:
+    terminal: true
+    fixed: true
+    center:
+    - 1624.0
+    - 0.0
+  b7:
+    terminal: true
+    fixed: true
+    center:
+    - 1400.0
+    - 0.0
+  gnd2:
+    terminal: true
+    fixed: true
+    center:
+    - 700.0
+    - 0.0
+  vin2:
+    terminal: true
+    fixed: true
+    center:
+    - 364.0
+    - 0.0
+Nets:
+- - bu7
+  - cntu
+- - rs2
+  - cntu
+- - mcu
+  - cntu
+- - bu0
+  - cntu
+- - bu1
+  - cntu
+- - bu2
+  - cntu
+- - bu3
+  - cntu
+- - bu4
+  - cntu
+- - bu5
+  - cntu
+- - bu6
+  - cntu
+- - busa8
+  - cntu
+  - nps
+  - npd
+  - ppd
+  - clkc
+- - busa7
+  - cntu
+  - nps
+  - npd
+  - ppd
+  - clkc
+- - busa6
+  - cntu
+  - nps
+  - npd
+  - ppd
+  - clkc
+- - busa5
+  - cntu
+  - nps
+  - npd
+  - ppd
+  - clkc
+- - busa4
+  - cntu
+  - nps
+  - clkc
+  - cmp1
+  - cmp2
+  - cmp3
+- - busa3
+  - cntu
+  - nps
+  - clkc
+  - cmp1
+  - cmp2
+  - cmp3
+- - busa2
+  - cntu
+  - nps
+  - clkc
+  - cmp1
+  - cmp2
+  - cmp3
+- - busa1
+  - cntu
+  - nps
+  - clkc
+  - cmp1
+  - cmp2
+  - cmp3
+- - cntu
+  - nps
+- - cntu
+  - nps
+- - cntu
+  - nps
+- - cntu
+  - nps
+- - cntu
+  - nps
+- - vdd
+  - cntu
+  - cntu
+  - nps
+  - nps
+  - npd
+  - ppd
+  - ppd
+  - pps
+  - pps
+  - cntd
+  - cntd
+  - clkc
+  - clkc
+- - mk1
+  - cntu
+  - nps
+  - nps
+  - nps
+  - nps
+  - npd
+  - npd
+- - vss
+  - cntu
+  - cntu
+  - nps
+  - nps
+  - npd
+  - npd
+  - ppd
+  - ppd
+  - pps
+  - pps
+  - cntd
+  - cntd
+  - clkc
+  - clkc
+- - nps
+  - nps
+  - nps
+  - nps
+  - nps
+  - clkd
+  - npd
+  - npd
+  - ppd
+  - ppd
+  - pps
+  - pps
+  - pps
+  - pps
+  - pps
+- - nps
+  - nps
+  - nps
+  - nps
+  - nps
+  - clkd
+  - npd
+  - npd
+  - ppd
+  - ppd
+  - pps
+  - pps
+  - pps
+  - pps
+  - pps
+- - nps
+  - nps
+- - nps
+  - nps
+- - nps
+  - nps
+  - nps
+- - nps
+  - nps
+  - nps
+- - nps
+  - nps
+  - nps
+- - nps
+  - nps
+  - nps
+- - nps
+  - npd
+  - ppd
+- - gnd1
+  - nps
+- - vin1
+  - nps
+- - nps
+  - cmp1
+- - nps
+  - cmp1
+- - busb4
+  - clkd
+  - pps
+  - cntd
+- - busb3
+  - clkd
+  - pps
+  - cntd
+- - busb2
+  - clkd
+  - pps
+  - cntd
+- - busb1
+  - clkd
+  - pps
+  - cntd
+- - mc2
+  - clkd
+- - npd
+  - ppd
+  - pps
+- - npd
+  - ppd
+  - cmp2
+- - npd
+  - npd
+  - ppd
+  - ppd
+  - cmp2
+- - mk2
+  - ppd
+  - ppd
+  - pps
+  - pps
+  - pps
+  - pps
+  - cntd
+- - pps
+  - pps
+- - pps
+  - pps
+- - pps
+  - pps
+  - pps
+- - pps
+  - pps
+  - pps
+- - pps
+  - pps
+  - pps
+- - pps
+  - pps
+  - pps
+- - gnd2
+  - pps
+- - vin2
+  - pps
+- - pps
+  - cmp3
+- - pps
+  - cntd
+- - pps
+  - cntd
+- - pps
+  - cntd
+- - pps
+  - cntd
+- - pps
+  - cntd
+- - pps
+  - cmp3
+- - rs1
+  - cntd
+- - mcd
+  - cntd
+- - b0
+  - cntd
+- - b1
+  - cntd
+- - b2
+  - cntd
+- - b3
+  - cntd
+- - b4
+  - cntd
+- - b5
+  - cntd
+- - b6
+  - cntd
+- - b7
+  - cntd
+- - clkc
+  - cmp1
+  - cmp2
+  - cmp3
+- - clkc
+  - cmp1
+  - cmp2
+  - cmp3
+- - clkc
+  - cmp1
+  - cmp2
+  - cmp3
+- - clkc
+  - cmp1
+  - cmp2
+  - cmp3
+- - clkc
+  - cmp1
+  - cmp2
+  - cmp3
+- - clkc
+  - cmp1
+  - cmp2
+  - cmp3
+- - mc1
+  - clkc
+- - vdda
+  - cmp1
+  - cmp1
+  - cmp2
+  - cmp2
+  - cmp3
+  - cmp3
+- - vssa
+  - cmp1
+  - cmp1
+  - cmp2
+  - cmp2
+  - cmp3
+  - cmp3
+- - vin
+  - cmp2

@@ -1,0 +1,66 @@
+UCSC blocks 1.0
+# Created      : Thu Nov 09 18:23:29 PST 2000
+# User         : huaizhi@olympus
+# Platform     : SunOS 5.6 sparc
+
+NumSoftRectangularBlocks : 11
+NumHardRectilinearBlocks : 0
+NumTerminals : 45
+
+clkc softrectangular 478632 0.445 2.242
+clkd softrectangular 264600 0.540 1.851
+cmp1 softrectangular 205800 0.214 4.666
+cmp2 softrectangular 205800 0.214 4.666
+cmp3 softrectangular 205800 0.214 4.666
+cntd softrectangular 1803984 0.165 6.051
+cntu softrectangular 1803984 0.165 6.051
+npd softrectangular 508032 0.125 8.000
+nps softrectangular 1422960 0.150 6.666
+ppd softrectangular 508032 0.125 8.000
+pps softrectangular 1422960 0.150 6.666
+
+bu7 terminal
+rs2 terminal
+mcu terminal
+bu0 terminal
+bu1 terminal
+bu2 terminal
+bu3 terminal
+bu4 terminal
+bu5 terminal
+bu6 terminal
+gnd1 terminal
+vin1 terminal
+mc1 terminal
+vin terminal
+vssa terminal
+vdda terminal
+busa8 terminal
+busa7 terminal
+busa6 terminal
+busa5 terminal
+busa4 terminal
+busa3 terminal
+busa2 terminal
+busa1 terminal
+mk1 terminal
+vdd terminal
+vss terminal
+mc2 terminal
+mk2 terminal
+mcd terminal
+rs1 terminal
+busb4 terminal
+busb3 terminal
+busb2 terminal
+busb1 terminal
+b0 terminal
+b1 terminal
+b2 terminal
+b3 terminal
+b4 terminal
+b5 terminal
+b6 terminal
+b7 terminal
+gnd2 terminal
+vin2 terminal

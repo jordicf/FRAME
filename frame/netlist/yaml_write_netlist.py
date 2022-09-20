@@ -6,7 +6,8 @@ from typing import Any
 from .module import Module
 from .netlist_types import HyperEdge
 from ..geometry.geometry import Rectangle
-from ..utils.keywords import KW_AREA, KW_FIXED, KW_HARD, KW_CENTER, KW_MIN_SHAPE, KW_RECTANGLES, KW_GROUND
+from ..utils.keywords import KW_AREA, KW_FIXED, KW_HARD, KW_TERMINAL, KW_CENTER, KW_ASPECT_RATIO,\
+    KW_RECTANGLES, KW_GROUND
 
 
 def dump_yaml_modules(modules: list[Module]) -> dict[str, Any]:
@@ -50,13 +51,17 @@ def dump_yaml_module(module: Module) -> dict:
         if module.center is not None:
             info[KW_CENTER] = [module.center.x, module.center.y]
 
-        if module.min_shape is not None:
-            info[KW_MIN_SHAPE] = [module.min_shape.w, module.min_shape.h]
+        if module.aspect_ratio is not None:
+            info[KW_ASPECT_RATIO] = [module.aspect_ratio.min_wh, module.aspect_ratio.max_wh]
 
     if module.is_fixed:
         info[KW_FIXED] = True
     elif module.is_hard:
         info[KW_HARD] = True
+
+    if module.is_terminal:
+        info[KW_TERMINAL] = True
+        del info[KW_HARD]
 
     if len(module.rectangles) > 0:
         info[KW_RECTANGLES] = dump_yaml_rectangles(module.rectangles)
