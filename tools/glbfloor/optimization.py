@@ -50,7 +50,7 @@ def get_value(v) -> float:
         v = v.value.value
         if hasattr(v, "__getitem__"):
             v = v[0]
-    if not isinstance(v, float):
+    if v is not float:
         try:
             v = float(v)
         except TypeError:
