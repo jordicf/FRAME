@@ -39,11 +39,12 @@ def color_mix(c1: tuple[int, int, int], c2: tuple[int, int, int], p: float) -> s
 def cross_dot_implementation(self, point: tuple[float, float], color: str, radius: float):
     width_ratio = (self.x1 - self.x0) / self.width
     height_ratio = (self.y1 - self.y0) / self.height
+    ratio = min(height_ratio, width_ratio)
     (x0, y0) = point
-    x1, y1 = x0 - radius * width_ratio, y0 - radius * height_ratio
-    x2, y2 = x0 + radius * width_ratio, y0 + radius * height_ratio
-    x3, y3 = x0 - radius * width_ratio, y0 + radius * height_ratio
-    x4, y4 = x0 + radius * width_ratio, y0 - radius * height_ratio
+    x1, y1 = x0 - radius * width_ratio, y0 - radius * ratio
+    x2, y2 = x0 + radius * width_ratio, y0 + radius * ratio
+    x3, y3 = x0 - radius * width_ratio, y0 + radius * ratio
+    x4, y4 = x0 + radius * width_ratio, y0 - radius * ratio
     self._draw_simple_line(((x1, y1), (x2, y2)), color=color)
     self._draw_simple_line(((x3, y3), (x4, y4)), color=color)
 
@@ -51,13 +52,26 @@ def cross_dot_implementation(self, point: tuple[float, float], color: str, radiu
 def thin_cross_dot_implementation(self, point: tuple[float, float], color: str, radius: float):
     width_ratio = (self.x1 - self.x0) / self.width
     height_ratio = (self.y1 - self.y0) / self.height
+    ratio = min(height_ratio, width_ratio)
     (x0, y0) = point
-    x1, y1 = x0 - radius * width_ratio, y0 - radius * height_ratio
-    x2, y2 = x0 + radius * width_ratio, y0 + radius * height_ratio
-    x3, y3 = x0 - radius * width_ratio, y0 + radius * height_ratio
-    x4, y4 = x0 + radius * width_ratio, y0 - radius * height_ratio
+    x1, y1 = x0 - radius * width_ratio, y0 - radius * ratio
+    x2, y2 = x0 + radius * width_ratio, y0 + radius * ratio
+    x3, y3 = x0 - radius * width_ratio, y0 + radius * ratio
+    x4, y4 = x0 + radius * width_ratio, y0 - radius * ratio
     self._draw_simple_line(((x1, y1), (x2, y2)), color=color, width=1)
     self._draw_simple_line(((x3, y3), (x4, y4)), color=color, width=1)
+
+
+def thin_circle_dot_implementation(self, point: tuple[float, float], color: str, radius: float):
+    width_ratio = (self.x1 - self.x0) / self.width
+    height_ratio = (self.y1 - self.y0) / self.height
+    self._draw_ellipse(point, (radius * width_ratio, radius * height_ratio), color, None, 1)
+
+
+def solid_circle_dot_implementation(self, point: tuple[float, float], color: str, radius: float):
+    width_ratio = (self.x1 - self.x0) / self.width
+    height_ratio = (self.y1 - self.y0) / self.height
+    self._draw_ellipse(point, (radius * width_ratio, radius * height_ratio), None, color, 1)
 
 
 def solid_line_implementation(self, line: tuple[tuple[float, float], tuple[float, float]], color: str,
@@ -164,7 +178,9 @@ class Canvas:
         self.context: ImageDraw.ImageDraw = ImageDraw.Draw(self.overlay)
         self.clear()
         self.dot_implementations = {"cross": cross_dot_implementation,
-                                    "thin_cross": thin_cross_dot_implementation}
+                                    "thin_cross": thin_cross_dot_implementation,
+                                    "thin_circle": thin_circle_dot_implementation,
+                                    "solid_circle": solid_circle_dot_implementation}
         self.line_implementations = {"solid": solid_line_implementation,
                                      "dashed": dashed_line_implementation}
 
@@ -216,6 +232,15 @@ class Canvas:
         (b1, e1) = line
         b2, e2 = self.interpolate(b1), self.interpolate(e1)
         self.context.line((b2, e2), fill=color, width=width)
+        self.portray_changes()
+
+    def _draw_ellipse(self, center: tuple[float, float], radii: tuple[float, float],
+                      outline: str = "#000000", fill: str = "#FFFFFF", width: int = 1) -> None:
+        width_ratio = (self.x1 - self.x0) / self.width
+        height_ratio = (self.y1 - self.y0) / self.height
+        c, r = self.interpolate(center), (radii[0] / width_ratio, radii[1] / height_ratio)
+        self.context.ellipse([(c[0] - r[0], c[1] - r[1]), (c[0] + r[0], c[1] + r[1])],
+                             fill=fill, outline=outline, width=width)
         self.portray_changes()
 
     def portray_changes(self):

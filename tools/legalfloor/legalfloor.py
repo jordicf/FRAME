@@ -514,9 +514,9 @@ class Model:
                 for rect_id in range(0, self.M[module].c):
                     x_r = value_of(self.M[module].x[rect_id])
                     y_r = value_of(self.M[module].y[rect_id])
-                    canvas.dot((x_r, y_r), color="#FFFFFF", dot_type="thin_cross")
+                    canvas.dot((x_r, y_r), color="#FFFFFF", dot_type="thin_circle")
                     canvas.line(((x_r, y_r), (x, y)), color="#FFFFFF", thickness=1, line_type="dashed")
-                canvas.dot((x, y), color="#FFFFFF")
+                canvas.dot((x, y), color="#FFFFFF", dot_type="solid_circle")
                 x_center += x / len(modules)
                 y_center += y / len(modules)
                 list_x.append(x)
