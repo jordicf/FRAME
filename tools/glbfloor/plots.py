@@ -168,7 +168,8 @@ def get_separated_floorplan_plot(die: Die, allocation: Allocation, dispersions: 
 
 def do_plots(plotting_options: PlottingOptions, n_iter: int,
              die: Die, allocation: Allocation, dispersions: dict[str, float], alpha: float) -> None:
-    """Create the plots according to the options given
+    """
+    Create the plots according to the options given
     :param plotting_options: plotting options.
     :param n_iter: the iteration number (for the output filename).
     :param die: the die with the netlist.
