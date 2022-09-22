@@ -14,48 +14,48 @@ from frame.utils.utils import Vector, Matrix
 from .spectral_types import AdjList
 
 
-def spectral_layout_unit_square(adj: AdjList, mass: Vector, size: Vector, dim, fixed: Matrix) \
+def spectral_layout_die(adj: AdjList, mass: Vector, size: Vector, initial: Matrix, fixed: list[bool]) \
         -> tuple[Matrix, float, list[int]]:
     """
-    Computes a spectral layout of a graph in the square [+/-1,+/-1]
+    Computes a spectral layout of a graph in a rectangular die
     :param adj: adjacency list (a list of edges for every node). Nodes are numbered from 0 to len(adj)-1
     :param mass: mass (size) of each node
-    :param size: length of each dimension (usually width and height)
-    :param dim: number of dimensions of the layout
-    :param fixed: a matrix with the coordinates of the fixed nodes. If the coordinates are negative, the nodes
-                  are floating
+    :param size: shape of the die (size of each dimension)
+    :param initial: a matrix with the initial coordinates of the nodes. Negative coordinates must be generated
+                    randomly
+    :param fixed: a vector indicating which nodes are fixed
     :return: a matrix dim x nodes. Each vector represents the coordinates of one of the dimensions for each node.
              It also returns the total wirelength and the number of iterations used for each dimension
     """
     # print("Adj =", adj)
     # print("Mass =", mass)
-    dim += 1
-    new_size = [2.0] + size
     n = len(adj)  # number of nodes
     epsilon = max(size) * n * 1e-10
     one_minus_epsilon: float = 1 - epsilon  # tolerance for convergence
     degree = [sum([e.weight for e in adj[i]]) for i in range(n)]  # degree of each node (sum of edge weights)
     radius = [math.sqrt(mass[i] / math.pi) for i in range(n)]  # radius of each node, assuming it is a circle
-    max_span = [[new_size[d] / 2 - radius[i] for i in range(n)] for d in
-                range(dim)]  # max span of each node in each dimension
-    # Initial random coordinates for the nodes (always inside the die)
-    coord: Matrix = [[random.uniform(-max_span[d][i], max_span[d][i]) for i in range(n)] for d in range(dim)]
-    coord[0] = [1] * n
+    # max span of each node in each dimension
+    dim = len(size) + 1
+    new_size = [2.0] + size
+    max_span = [[new_size[d] / 2 - radius[i] for i in range(n)] for d in range(dim)]
 
-    # Fixed coordinates
-    is_fixed: list[bool] = [x >= 0 for x in fixed[0]]
-    # Apply the fixed coordinates (center the coordinates)
-    for i in range(n):
-        if is_fixed[i]:
-            for d in range(1, dim):
-                coord[d][i] = fixed[d - 1][i] - new_size[d] / 2
+    # Initial coordinates for the nodes (always inside the die)
+    coord: Matrix = [[1.0]*n] + [[x for x in initial[i]] for i in range(dim-1)]
 
-    float_mass = [0 if is_fixed[i] else mass[i] for i in range(n)]
+    # Define random coordinates for the unknowns and shift coordinates to have the center at (0,0)
+    for d in range(1, dim):
+        for i in range(n):
+            if coord[d][i] < 0:
+                assert not fixed[i]
+                coord[d][i] = random.uniform(0, 2*max_span[d][i])
+            coord[d][i] -= new_size[d] / 2
+
+    float_mass = [0 if fixed[i] else mass[i] for i in range(n)]
 
     iterations = []
     for d in range(1, dim):
         # Apply the fixed coordinates
-        normalize(coord[d], max_span[d], is_fixed)
+        normalize(coord[d], max_span[d], fixed)
         dotprod = 0.0
         num_iter = 0
         # Add a limit of iterations to reduce the CPU time
@@ -63,11 +63,11 @@ def spectral_layout_unit_square(adj: AdjList, mass: Vector, size: Vector, dim, f
             # print("  Iter =", d, num_iter)
             num_iter += 1
             # print("  Normalized (D =", d, "):", coord[d])
-            orthogonalize(coord, float_mass, d, is_fixed)  # Orthogonalize coord[d] wrt to the other coordinates
+            orthogonalize(coord, float_mass, d, fixed)  # Orthogonalize coord[d] wrt to the other coordinates
             # print("  Orthogonalized (D =", d, "):", coord[k])
             tmp_coord = calculate_centroids(adj, coord[d], degree)
             # Keep the fixed coordinates
-            new_coord = [coord[d][i] if is_fixed[i] else tmp_coord[i] for i in range(n)]
+            new_coord = [coord[d][i] if fixed[i] else tmp_coord[i] for i in range(n)]
             # print("  Centroids (D =", d, "):", new_coord)
             # Sanity check (not all nodes in the same place). If so, a more modest move is done
             # print("diff =", max(new_coord) - min(new_coord))
@@ -75,7 +75,7 @@ def spectral_layout_unit_square(adj: AdjList, mass: Vector, size: Vector, dim, f
             if max(new_coord) - min(new_coord) < epsilon:
                 # new_coord = [random.uniform(-1, 1) for i in range(n)]
                 new_coord = [0.5 * (new_coord[i] + coord[d][i]) for i in range(n)]
-            normalize(new_coord, max_span[d], is_fixed)
+            normalize(new_coord, max_span[d], fixed)
             dotprod = abs_norm_dot_product(coord[d], new_coord, float_mass)
             # print("    Dotprod =", dotprod)
             coord[d] = new_coord

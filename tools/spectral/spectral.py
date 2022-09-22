@@ -8,6 +8,7 @@ proposed by Yehuda Koren in his paper 'Drawing Graphs by Eigenvectors: Theory an
 modified to incorporate the mass of each node. The mass is interpreted as the multiplicity of the node.
 """
 import argparse
+from itertools import combinations
 import math
 from typing import Any
 
@@ -16,7 +17,7 @@ from frame.geometry.geometry import Point, Shape
 from frame.netlist.netlist import Netlist
 from frame.utils.utils import Vector, Matrix, TextIO_String
 from tools.spectral.spectral_types import AdjEdge, AdjList
-from tools.spectral.spectral_algorithm import spectral_layout_unit_square
+from tools.spectral.spectral_algorithm import spectral_layout_die
 
 
 class Spectral(Netlist):
@@ -26,10 +27,14 @@ class Spectral(Netlist):
 
     _adj: AdjList  # Adjacency list
     _mass: Vector  # Mass (size) of each node in _G
-    _fixed_coord: Matrix  # A 2xn matrix with the fixed coordinates (negative if floating)
+    _centers: Matrix  # A 2xn matrix with the coordinates of the centers (negative if unknown)
+    _fixed_modules: list[bool]  # A boolean vector to indicate the fixed modules
 
     def __init__(self, stream: TextIO_String):
-        """Constructor"""
+        """
+        Constructor
+        :param stream: input stream from which the netlist is read
+        """
         Netlist.__init__(self, stream)
         self._build_graph()
 
@@ -44,51 +49,67 @@ class Spectral(Netlist):
         name2index = {m.name: i for i, m in enumerate(self.modules)}
 
         # Number of nodes, including the centers of the hyperedges with more than two nodes
-        nnodes = self.num_modules + sum(1 for e in self.edges if len(e.modules) > 2)
+        n = self.num_modules
+
         # Masses (0 for the centers of hyperedges)
-        self._mass = [m.area() for m in self.modules] + [0.0] * (nnodes - self.num_modules)
+        self._mass = [m.area() for m in self.modules]
 
         # Find the fixed modules
-        self._fixed_coord = [[-1.0] * nnodes, [-1.0] * nnodes]
+        self._fixed_modules = [False] * n
+        self._centers = [[-1.0] * n, [-1.0] * n]
+
+        # Centers
         for i, m in enumerate(self.modules):
+            if m.center is not None:
+                self._centers[0][i], self._centers[1][i] = m.center
             if m.is_fixed:
                 assert m.center is not None
-                self._fixed_coord[0][i], self._fixed_coord[1][i] = m.center
+                self._fixed_modules[i] = True
 
         # Let us now create the adjacency list
-        self._adj = [[] for _ in range(nnodes)]  # Adjacency list (list of lists)
+        self._adj = [[] for _ in range(n)]  # Adjacency list (list of lists)
 
-        # Fake nodes for centers of hyperedges
-        fake_node = self.num_modules  # The first fake node in the adjacency list
+        # Clique model
         for e in self.edges:
-            if len(e.modules) == 2:  # Normal edge (2 pins)
-                # We use weight/2 to mimic the star model when using hyperedges
-                src, dst = name2index[e.modules[0].name], name2index[e.modules[1].name]
-                self._adj[src].append(AdjEdge(dst, e.weight / 2))
-                self._adj[dst].append(AdjEdge(src, e.weight / 2))
-            else:  # Hyperedge (more than 2 pins)
-                for m in e.modules:
-                    idx = name2index[m.name]
-                    self._adj[idx].append(AdjEdge(fake_node, e.weight))
-                    self._adj[fake_node].append(AdjEdge(idx, e.weight))
-                fake_node += 1
+            assert len(e.modules) > 1
+            weight = 2 * e.weight / len(e.modules)
+            for m1, m2 in combinations(e.modules, 2):
+                src, dst = name2index[m1.name], name2index[m2.name]
+                self._adj[src].append(AdjEdge(dst, weight))
+                self._adj[dst].append(AdjEdge(src, weight))
 
     def spectral_layout(self, shape: Shape, nfloorplans: int, verbose: bool) -> int:
         """
         Computes a spectral layout of a graph in the rectangle with ll=(0,0).
-        It defines the center of the modules
+        It defines the center of the modules. The algorithm is executed several times with different random
+        initial points and the solution with best wirelength is selected. In case nfloorplans is zero, the
+        initial location of the modules is used and only one floorplan is generated
         :param shape: shape of the die (width and height)
-        :param nfloorplans: number of generated floorplans
+        :param nfloorplans: number of generated floorplans (if 0, initial centers are defined)
         :param verbose: indicates whether some verbose information must be printed
         """
-        assert len(self._mass) > 2, "Graph too small. Spectral layout needs more than 2 nodes."
+        n = len(self._mass)
+        assert n > 2, "Graph too small. Spectral layout needs more than 2 nodes."
         best_wl = math.inf
         best_coord = None
         if verbose:
             print("Spectral: verbose information")
+
+        assert nfloorplans >= 0
+        if nfloorplans == 0:
+            nfloorplans = 1
+            # assert all modules have centers
+            for m in self.modules:
+                assert m.center is not None, f"Module {m.name} has no initial center"
+        else:
+            # Remove centers of the non-fixed nodes
+            for i in range(n):
+                if not self._fixed_modules[i]:
+                    self._centers[0][i], self._centers[1][i] = -1.0, -1.0
+
         for i in range(nfloorplans):
-            coord, wl, niter = spectral_layout_unit_square(self._adj, self._mass,
-                                                           [shape.w, shape.h], 2, self._fixed_coord)
+            coord, wl, niter = spectral_layout_die(self._adj, self._mass, [shape.w, shape.h],
+                                                   self._centers, self._fixed_modules)
             if verbose:
                 print("{:3d}:".format(i), "  WL =", "{:7.3f}".format(wl),
                       ", iterations(x,y) = (", niter[0], ",", niter[1], ")", sep='')
@@ -126,6 +147,7 @@ def parse_options(prog: str | None = None, args: list[str] | None = None) -> dic
     parser.add_argument("-v", "--verbose", action='store_true')
     parser.add_argument("-d", "--die", metavar="<WIDTH>x<HEIGHT> or FILENAME",
                         help="size of the die (width x height) or name of the file")
+    parser.add_argument("-i", "--init", action='store_true', help="use initial coordinates")
     parser.add_argument("--bestof", type=int, default=5,
                         help="number of floorplans generated to select the best. Default: 5")
     parser.add_argument("-o", "--outfile", required=True, help="output file (netlist)")
@@ -147,7 +169,10 @@ def main(prog: str | None = None, args: list[str] | None = None) -> int:
     infile = options['netlist']
     netlist = Spectral(infile)
     nfloorplans = options['bestof']
-    assert nfloorplans > 0, "The number of floorplans must be a positive integer"
+    initial_center = options['init']
+    if initial_center:
+        nfloorplans = 0
+    assert initial_center or nfloorplans > 0, "The number of floorplans must be a positive integer"
     status = netlist.spectral_layout(die, nfloorplans, options['verbose'])
     netlist.write_yaml(options['outfile'])
     return status
