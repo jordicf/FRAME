@@ -14,6 +14,7 @@ from matplotlib import cm
 from frame.geometry.geometry import Point
 from frame.die.die import Die
 from frame.allocation.allocation import Allocation
+from tools.draw.draw import get_floorplan_plot as get_joint_floorplan_plot
 
 
 class PlottingOptions:
@@ -163,3 +164,24 @@ def get_separated_floorplan_plot(die: Die, allocation: Allocation, dispersions: 
         draw.text((img.width / 2, 0), suptitle, anchor="ma", font=large_font, fill="Black")
 
     return img
+
+
+def do_plots(plotting_options: PlottingOptions, n_iter: int,
+             die: Die, allocation: Allocation, dispersions: dict[str, float], alpha: float) -> None:
+    """Create the plots according to the options given
+    :param plotting_options: plotting options.
+    :param n_iter: the iteration number (for the output filename).
+    :param die: the die with the netlist.
+    :param allocation: the allocation.
+    :param dispersions: the dispersions of the modules.
+    :param alpha: the value of the alpha hyperparameter.
+    """
+    assert die.netlist is not None, "No netlist associated to the die"
+
+    if plotting_options.joint_plot:
+        get_joint_floorplan_plot(die.netlist, die.bounding_box.shape, allocation). \
+            save(f"{plotting_options.name}-joint-{n_iter}.gif")
+
+    if plotting_options.separated_plot:
+        get_separated_floorplan_plot(die, allocation, dispersions, alpha, draw_text=True). \
+            save(f"{plotting_options.name}-separated-{n_iter}.png")

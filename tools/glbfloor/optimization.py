@@ -16,7 +16,7 @@ from frame.allocation.allocation import AllocDescriptor, Alloc, Allocation, crea
 from frame.netlist.module import Module
 
 from tools.draw.draw import get_floorplan_plot as get_joint_floorplan_plot
-from tools.glbfloor.plots import PlottingOptions, get_separated_floorplan_plot
+from tools.glbfloor.plots import PlottingOptions, get_separated_floorplan_plot, do_plots
 
 GEKKOType = Union[float, GKVariable]
 
@@ -436,13 +436,7 @@ def glbfloor(die: Die, threshold: float, alpha: float,
     n_iter = 0
 
     if plotting_options is not None:
-        if plotting_options.joint_plot:
-            get_joint_floorplan_plot(die.netlist, die.bounding_box.shape, allocation). \
-                save(f"{plotting_options.name}-joint-{n_iter}.gif")
-
-        if plotting_options.separated_plot:
-            get_separated_floorplan_plot(die, allocation, dispersions, alpha, draw_text=True). \
-                save(f"{plotting_options.name}-separated-{n_iter}.png")
+        do_plots(plotting_options, n_iter, die, allocation, dispersions, alpha)
 
     n_iter += 1
     while max_iter is None or n_iter <= max_iter:
@@ -462,13 +456,7 @@ def glbfloor(die: Die, threshold: float, alpha: float,
                 separated_vis_imgs.extend(vis_imgs[1])
                 durations.extend([100] * (max(len(vis_imgs[0]), len(vis_imgs[1])) - 1) + [1000])
 
-            if plotting_options.joint_plot:
-                get_joint_floorplan_plot(die.netlist, die.bounding_box.shape, allocation). \
-                    save(f"{plotting_options.name}-joint-{n_iter}.gif")
-
-            if plotting_options.separated_plot:
-                get_separated_floorplan_plot(die, allocation, dispersions, alpha, draw_text=True). \
-                    save(f"{plotting_options.name}-separated-{n_iter}.png")
+            do_plots(plotting_options, n_iter, die, allocation, dispersions, alpha)
 
         if verbose:
             print(f"Iteration {n_iter} finished\n")
