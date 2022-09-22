@@ -1,5 +1,6 @@
-# `frame glbfloor`
+# `frame force`
 
-Execute `frame glbfloor --help` for help.
+Relocate the modules of the netlist using a force-directed algorithm to obtain better initial values
+for the next stages.
 
-See [here](example/README.md) for some examples.
+Execute `frame force --help` for help.

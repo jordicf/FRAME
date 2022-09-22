@@ -10,10 +10,10 @@ import tools.hello.hello  # Fake tool
 import tools.draw.draw  # To draw floorplans
 import tools.netgen.netgen  # Netlist generator
 import tools.spectral.spectral  # To find an initial position of modules using spectral methods
-import tools.force.force
-import tools.glbfloor.glbfloor
-import tools.rect.rect
-import tools.legalfloor.legalfloor
+import tools.force.force  # To improve the initial position of modules using force-directed methods
+import tools.glbfloor.glbfloor  # To find the allocation of the modules using optimization methods
+import tools.rect.rect  # To normalize fuzzy module assignments
+import tools.legalfloor.legalfloor  # To legalize the floorplan
 
 # Tool names and the entry function they execute.
 # The functions must accept two parameters: the tool name and the command-line arguments passed to it.
