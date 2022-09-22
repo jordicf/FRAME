@@ -18,6 +18,7 @@ options:
   -v, --verbose
   -d <WIDTH>x<HEIGHT> or FILENAME, --die <WIDTH>x<HEIGHT> or FILENAME
                         size of the die (width x height) or name of the file
+  -i, --init            use initial coordinates
   --bestof BESTOF       number of floorplans generated to select the best. Default: 5
   -o OUTFILE, --outfile OUTFILE
                         output file (netlist)
@@ -35,3 +36,7 @@ frame spectral --die 32.7x46.5 -o out_net.yml in_net.yml
 
 The tool defines the center of each module in the netlist. The previous values of the centers are
 overwritten.
+
+In case the option `--init` is used, the initial location of the modules is read from the input file
+(instead of generating them randomly). In this case, only one floorplan is generated, i.e., the
+option `--bestof` is ignored.
