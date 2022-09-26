@@ -3,8 +3,8 @@
 # Licensed under the MIT License (see https://github.com/jordicf/FRAME/blob/master/LICENSE.txt).
 from random import randint
 from time import time
-from typing import Any, TypeVar, Callable, Union
-from enum import Enum
+from typing import Any, TypeVar, Union
+from enum import IntEnum
 from gekko import GEKKO
 from gekko.gk_variable import GKVariable
 from gekko.gk_operators import GK_Value
@@ -12,6 +12,8 @@ from gekko.gk_operators import GK_Value
 from frame.die.die import Die
 from frame.netlist.netlist import Netlist
 from frame.geometry.geometry import Rectangle
+from tools.legalfloor.expression_tree import ExpressionTree
+from tools.legalfloor.expression_tree import sqrt as expr_sqrt
 from tools.rect.canvas import Canvas
 from argparse import ArgumentParser
 
@@ -22,6 +24,7 @@ OptionalMatrix = dict[int, OptionalList]
 HyperEdge = tuple[float, list[int]]
 HyperGraph = list[HyperEdge]
 GekkoType = Union[float, GKVariable]
+FourVars = tuple[ExpressionTree, ExpressionTree, ExpressionTree, ExpressionTree]
 
 
 # Think of GekkoType as either a constant, a variable or an expression.
@@ -94,6 +97,27 @@ def hsv_to_str(h: float, s: float = 0.7, v: float = 1.0) -> str:
 T = TypeVar('T')
 
 
+class Cmp(IntEnum):
+    LE = 0
+    GE = 1
+    EQ = 2
+
+
+def add_equation(gekko: GEKKO, lhs: ExpressionTree, cmp: Cmp, rhs: ExpressionTree, name: str):
+    if cmp is Cmp.LE:
+        gekko.Equation(lhs.get_gekko_expression() <= rhs.get_gekko_expression())
+        if lhs.evaluate() > rhs.evaluate():
+            print("Equation " + name + " is not met: ", lhs.evaluate(), "<=", rhs.evaluate())
+    elif cmp is Cmp.GE:
+        gekko.Equation(lhs.get_gekko_expression() >= rhs.get_gekko_expression())
+        if lhs.evaluate() < rhs.evaluate():
+            print("Equation " + name + " is not met", lhs.evaluate(), ">=", rhs.evaluate())
+    elif cmp is Cmp.EQ:
+        gekko.Equation(lhs.get_gekko_expression() == rhs.get_gekko_expression())
+        if lhs.evaluate() != rhs.evaluate():
+            print("Equation " + name + " is not met", lhs.evaluate(), "==", rhs.evaluate())
+
+
 def optional_get(opt: dict[int, T] | None, index: int) -> T | None:
     if opt is None:
         return None
@@ -102,15 +126,21 @@ def optional_get(opt: dict[int, T] | None, index: int) -> T | None:
     return None
 
 
-def smax(x: GekkoType, y: GekkoType, sroot: Callable[[GekkoType], GekkoType], tau: GekkoType = 0.01) -> GekkoType:
-    return 0.5 * (x + y + sroot((x - y) ** 2 + 4 * tau * tau))
+def smax(x: ExpressionTree, y: ExpressionTree, tau: ExpressionTree) -> ExpressionTree:
+    half = ExpressionTree(x.gekko, 0.5)
+    two = ExpressionTree(x.gekko, 2)
+    four = ExpressionTree(x.gekko, 4)
+    return half * (x + y + expr_sqrt((x - y) ** two + four * tau * tau))
 
 
-def thin(w: GekkoType, h: GekkoType = 1) -> GekkoType:
-    return 2 * w * h / (w * w + h * h)
+U = TypeVar('U', float, ExpressionTree)
 
 
-class Cardinal(Enum):
+def thin(w: U, h: U) -> U:
+    return w * h / (w * w + h * h)
+
+
+class Cardinal(IntEnum):
     NORTH = 0
     SOUTH = 1
     EAST = 2
@@ -119,10 +149,10 @@ class Cardinal(Enum):
 
 class ModelModule:
     def __init__(self,
-                 x: list[GekkoType],
-                 y: list[GekkoType],
-                 w: list[GekkoType],
-                 h: list[GekkoType],
+                 x: list[ExpressionTree],
+                 y: list[ExpressionTree],
+                 w: list[ExpressionTree],
+                 h: list[ExpressionTree],
                  gekko: GEKKO,
                  trunk: BoxType,
                  die_width: float,
@@ -133,17 +163,17 @@ class ModelModule:
         self.S: list[int] = []
         self.E: list[int] = []
         self.W: list[int] = []
-        self.x: list[GekkoType] = x
-        self.y: list[GekkoType] = y
-        self.w: list[GekkoType] = w
-        self.h: list[GekkoType] = h
+        self.x: list[ExpressionTree] = x
+        self.y: list[ExpressionTree] = y
+        self.w: list[ExpressionTree] = w
+        self.h: list[ExpressionTree] = h
         self.c: int = 0
         self.id: int = n_mods
         self.dw: float = die_width
         self.dh: float = die_height
-        self.area: GekkoType = 0
-        self.x_sum: GekkoType = 0
-        self.y_sum: GekkoType = 0
+        self.area: ExpressionTree = ExpressionTree(gekko, 0)
+        self.x_sum: ExpressionTree = ExpressionTree(gekko, 0)
+        self.y_sum: ExpressionTree = ExpressionTree(gekko, 0)
         self.max_ratio: float = max_ratio
         self.degree = 0  # 0 = soft, 1 = hard, 2 = fixed. Just required for output purposes
         self.set_trunk(gekko, trunk)
@@ -157,68 +187,75 @@ class ModelModule:
         self.c = 1
         self._define_vars(gekko, trunk)
 
-    def add_rect_north(self, gekko: GEKKO, rect: BoxType) -> tuple[GekkoType, GekkoType, GekkoType, GekkoType]:
+    def add_rect_blank(self, gekko: GEKKO, rect: BoxType) -> FourVars:
         assert self.c > 0, "!"
-        self.N.append(self.c)
         self.c += 1
         xv, yv, wv, hv = self._define_vars(gekko, rect)
 
+        return xv, yv, wv, hv
+
+    def add_rect_north(self, gekko: GEKKO, rect: BoxType) -> FourVars:
+        xv, yv, wv, hv = self.add_rect_blank(gekko, rect)
+        self.N.append(self.c - 1)
+
         # Keep the box attached
-        gekko.Equation(yv == self.y[0] + 0.5 * self.h[0] + 0.5 * hv)
-        gekko.Equation(xv >= self.x[0] - 0.5 * self.w[0] + 0.5 * wv)
-        gekko.Equation(xv <= self.x[0] + 0.5 * self.w[0] - 0.5 * wv)
+        hlf = ExpressionTree(gekko, 0.5)
+
+        add_equation(gekko, yv, Cmp.EQ, self.y[0] + hlf * self.h[0] + hlf * hv, "north_attach")
+        add_equation(gekko, xv, Cmp.GE, self.x[0] - hlf * self.w[0] + hlf * wv, "north_border0")
+        add_equation(gekko, xv, Cmp.LE, self.x[0] + hlf * self.w[0] - hlf * wv, "north_border1")
 
         return xv, yv, wv, hv
 
-    def add_rect_south(self, gekko: GEKKO, rect: BoxType) -> tuple[GekkoType, GekkoType, GekkoType, GekkoType]:
-        assert self.c > 0, "!"
-        self.S.append(self.c)
-        self.c += 1
-        xv, yv, wv, hv = self._define_vars(gekko, rect)
+    def add_rect_south(self, gekko: GEKKO, rect: BoxType) -> FourVars:
+        xv, yv, wv, hv = self.add_rect_blank(gekko, rect)
+        self.S.append(self.c - 1)
 
         # Keep the box attached
-        gekko.Equation(yv == self.y[0] - 0.5 * self.h[0] - 0.5 * hv)
-        gekko.Equation(xv >= self.x[0] - 0.5 * self.w[0] + 0.5 * wv)
-        gekko.Equation(xv <= self.x[0] + 0.5 * self.w[0] - 0.5 * wv)
+        hlf = ExpressionTree(gekko, 0.5)
+
+        add_equation(gekko, yv, Cmp.EQ, self.y[0] - hlf * self.h[0] - hlf * hv, "south_attach")
+        add_equation(gekko, xv, Cmp.GE, self.x[0] - hlf * self.w[0] + hlf * wv, "south_border0")
+        add_equation(gekko, xv, Cmp.LE, self.x[0] + hlf * self.w[0] - hlf * wv, "south_border1")
 
         return xv, yv, wv, hv
 
-    def add_rect_east(self, gekko: GEKKO, rect: BoxType) -> tuple[GekkoType, GekkoType, GekkoType, GekkoType]:
-        assert self.c > 0, "!"
-        self.E.append(self.c)
-        self.c += 1
-        xv, yv, wv, hv = self._define_vars(gekko, rect)
+    def add_rect_east(self, gekko: GEKKO, rect: BoxType) -> FourVars:
+        xv, yv, wv, hv = self.add_rect_blank(gekko, rect)
+        self.E.append(self.c - 1)
 
         # Keep the box attached
-        gekko.Equation(xv == self.x[0] + 0.5 * self.w[0] + 0.5 * wv)
-        gekko.Equation(yv >= self.y[0] - 0.5 * self.h[0] + 0.5 * hv)
-        gekko.Equation(yv <= self.y[0] + 0.5 * self.h[0] - 0.5 * hv)
+        hlf = ExpressionTree(gekko, 0.5)
+
+        add_equation(gekko, xv, Cmp.EQ, self.x[0] + hlf * self.w[0] + hlf * wv, "east_attach")
+        add_equation(gekko, yv, Cmp.GE, self.y[0] - hlf * self.h[0] + hlf * hv, "east_border0")
+        add_equation(gekko, yv, Cmp.LE, self.y[0] + hlf * self.h[0] - hlf * hv, "east_border1")
 
         return xv, yv, wv, hv
 
-    def add_rect_west(self, gekko: GEKKO, rect: BoxType) -> tuple[GekkoType, GekkoType, GekkoType, GekkoType]:
-        assert self.c > 0, "!"
-        self.W.append(self.c)
-        self.c += 1
-        xv, yv, wv, hv = self._define_vars(gekko, rect)
+    def add_rect_west(self, gekko: GEKKO, rect: BoxType) -> FourVars:
+        xv, yv, wv, hv = self.add_rect_blank(gekko, rect)
+        self.W.append(self.c - 1)
 
         # Keep the box attached
-        gekko.Equation(xv == self.x[0] - 0.5 * self.w[0] - 0.5 * wv)
-        gekko.Equation(yv >= self.y[0] - 0.5 * self.h[0] + 0.5 * hv)
-        gekko.Equation(yv <= self.y[0] + 0.5 * self.h[0] - 0.5 * hv)
+        hlf = ExpressionTree(gekko, 0.5)
+
+        add_equation(gekko, xv, Cmp.EQ, self.x[0] - hlf * self.w[0] - hlf * wv, "west_attach")
+        add_equation(gekko, yv, Cmp.GE, self.y[0] - hlf * self.h[0] + hlf * hv, "west_border0")
+        add_equation(gekko, yv, Cmp.LE, self.y[0] + hlf * self.h[0] - hlf * hv, "west_border1")
 
         return xv, yv, wv, hv
 
-    def _define_vars(self, gekko: GEKKO, rect: BoxType) -> tuple[GekkoType, GekkoType, GekkoType, GekkoType]:
+    def _define_vars(self, gekko: GEKKO, rect: BoxType) -> FourVars:
         rect_id = len(self.x)
-        var_x = gekko.Var(lb=0, ub=self.dw, name="x" + str(self.id) + "i" + str(rect_id))
-        var_y = gekko.Var(lb=0, ub=self.dh, name="y" + str(self.id) + "i" + str(rect_id))
-        var_w = gekko.Var(lb=0.1, ub=self.dw, name="w" + str(self.id) + "i" + str(rect_id))
-        var_h = gekko.Var(lb=0.1, ub=self.dh, name="h" + str(self.id) + "i" + str(rect_id))
-        var_x.value = [rect[0]]
-        var_y.value = [rect[1]]
-        var_w.value = [rect[2]]
-        var_h.value = [rect[3]]
+        var_x = ExpressionTree(gekko, gekko.Var(lb=0, ub=self.dw, name="x" + str(self.id) + "i" + str(rect_id)))
+        var_y = ExpressionTree(gekko, gekko.Var(lb=0, ub=self.dh, name="y" + str(self.id) + "i" + str(rect_id)))
+        var_w = ExpressionTree(gekko, gekko.Var(lb=0.1, ub=self.dw, name="w" + str(self.id) + "i" + str(rect_id)))
+        var_h = ExpressionTree(gekko, gekko.Var(lb=0.1, ub=self.dh, name="h" + str(self.id) + "i" + str(rect_id)))
+        var_x.value.value = [rect[0]]
+        var_y.value.value = [rect[1]]
+        var_w.value.value = [rect[2]]
+        var_h.value.value = [rect[3]]
         self.x.append(var_x)
         self.y.append(var_y)
         self.w.append(var_w)
@@ -229,13 +266,15 @@ class ModelModule:
         self.y_sum += var_y * var_w * var_h
 
         # The box must stay inside the dice
-        gekko.Equation(var_x - 0.5 * var_w >= 0)
-        gekko.Equation(var_y - 0.5 * var_h >= 0)
-        gekko.Equation(var_x + 0.5 * var_w <= self.dw)
-        gekko.Equation(var_y + 0.5 * var_h <= self.dh)
+        hlf = ExpressionTree(gekko, 0.5)
+
+        add_equation(gekko, var_x - hlf * var_w, Cmp.GE, ExpressionTree(gekko, 0), "bounds_left")
+        add_equation(gekko, var_y - hlf * var_h, Cmp.GE, ExpressionTree(gekko, 0), "bounds_bottom")
+        add_equation(gekko, var_x + hlf * var_w, Cmp.LE, ExpressionTree(gekko, self.dw), "bounds_right")
+        add_equation(gekko, var_y + hlf * var_h, Cmp.LE, ExpressionTree(gekko, self.dh), "bounds_top")
 
         # The ratio cannot exceed a maximum value
-        gekko.Equation(thin(var_w, var_h) >= thin(self.max_ratio))
+        add_equation(gekko, thin(var_w, var_h), Cmp.GE, ExpressionTree(gekko, thin(self.max_ratio, 1)), "ratio")
 
         return var_x, var_y, var_w, var_h
 
@@ -250,22 +289,22 @@ class Model:
 
     # Model variables
     # (without accurate type hints because GEKKO does not have type hints yet)
-    x: list[list[GekkoType]]
-    y: list[list[GekkoType]]
-    w: list[list[GekkoType]]
-    h: list[list[GekkoType]]
+    x: list[list[ExpressionTree]]
+    y: list[list[ExpressionTree]]
+    w: list[list[ExpressionTree]]
+    h: list[list[ExpressionTree]]
     max_ratio: float
 
-    tau: float
+    tau: ExpressionTree
 
     # For visualization
     hue_array: list[str]
 
     def define_module(self, trunk_box: BoxType) -> int:
-        x: list[GekkoType] = []
-        y: list[GekkoType] = []
-        w: list[GekkoType] = []
-        h: list[GekkoType] = []
+        x: list[ExpressionTree] = []
+        y: list[ExpressionTree] = []
+        w: list[ExpressionTree] = []
+        h: list[ExpressionTree] = []
         m = ModelModule(x, y, w, h, self.gekko, trunk_box, self.dw, self.dh, self.max_ratio, len(self.M))
         self.M.append(m)
         self.x.append(x)
@@ -275,13 +314,15 @@ class Model:
         return len(self.M) - 1
 
     def add_rect(self, m: int, box: BoxType, direction: Cardinal) -> int:
-        call = self.M[m].add_rect_west
+        call = self.M[m].add_rect_blank
         if direction is Cardinal.NORTH:
             call = self.M[m].add_rect_north
         elif direction is Cardinal.SOUTH:
             call = self.M[m].add_rect_south
         elif direction is Cardinal.EAST:
             call = self.M[m].add_rect_east
+        elif direction is Cardinal.WEST:
+            call = self.M[m].add_rect_west
         # xv, yv, wv, hv =
         call(self.gekko, box)
         return len(self.M) - 1
@@ -297,11 +338,10 @@ class Model:
             y_get: float | None = optional_get(yl, i)
             w_get: float | None = optional_get(wl, i)
             h_get: float | None = optional_get(hl, i)
-            x_const: GekkoType
-            y_const: GekkoType
-            w_const: GekkoType
-            h_const: GekkoType
-            x_const, y_const, w_const, h_const = 0, 0, 0, 0
+            x_const: ExpressionTree = ExpressionTree(self.gekko, 0)
+            y_const: ExpressionTree = ExpressionTree(self.gekko, 0)
+            w_const: ExpressionTree = ExpressionTree(self.gekko, 0)
+            h_const: ExpressionTree = ExpressionTree(self.gekko, 0)
             if x_get is not None:
                 x_const += x_get
             if y_get is not None:
@@ -316,65 +356,35 @@ class Model:
             elif x_get is not None:
                 self.M[m].set_degree(2)
             if x_get is not None:
-                self.gekko.Equation(self.M[m].x[i] == x_const)
+                add_equation(self.gekko, self.M[m].x[i], Cmp.EQ, x_const, "fix_x")
             if y_get is not None:
-                self.gekko.Equation(self.M[m].y[i] == y_const)
+                add_equation(self.gekko, self.M[m].y[i], Cmp.EQ, y_const, "fix_y")
             if w_get is not None:
                 self.M[m].set_degree(1)
-                self.gekko.Equation(self.M[m].w[i] == w_const)
+                add_equation(self.gekko, self.M[m].w[i], Cmp.EQ, w_const, "fix_w")
             if h_get is not None:
-                self.gekko.Equation(self.M[m].h[i] == h_const)
+                add_equation(self.gekko, self.M[m].h[i], Cmp.EQ, h_const, "fix_h")
 
-    def objective(self, numerical=False):
-        obj = 0.0
-        x_sum = {}
-        y_sum = {}
-        a_sum = {}
+    def objective(self) -> ExpressionTree:
+        obj = ExpressionTree(self.gekko, 0.0)
         for (weight, Set) in self.hyper:
-            centroid_x: Any = 0.0
-            centroid_y: Any = 0.0
+            centroid_x: ExpressionTree = ExpressionTree(self.gekko, 0.0)
+            centroid_y: ExpressionTree = ExpressionTree(self.gekko, 0.0)
             for i in Set:
-                if numerical:
-                    if i not in x_sum:
-                        x_sum[i] = 0
-                        y_sum[i] = 0
-                        a_sum[i] = 0
-                        for r in range(0, self.M[i].c):
-                            x_sum[i] += value_of(self.M[i].x[r]) * value_of(self.M[i].w[r]) * value_of(self.M[i].h[r])
-                            y_sum[i] += value_of(self.M[i].y[r]) * value_of(self.M[i].w[r]) * value_of(self.M[i].h[r])
-                            a_sum[i] += value_of(self.M[i].w[r]) * value_of(self.M[i].h[r])
-                    centroid_x += x_sum[i] / a_sum[i]
-                    centroid_y += y_sum[i] / a_sum[i]
-                else:
-                    centroid_x += self.M[i].x_sum / self.M[i].area
-                    centroid_y += self.M[i].y_sum / self.M[i].area
+                centroid_x += self.M[i].x_sum / self.M[i].area
+                centroid_y += self.M[i].y_sum / self.M[i].area
                 for j in range(0, self.M[i].c):
-                    if numerical:
-                        obj += weight * weight * (
-                            (value_of(self.M[i].x[j]) - x_sum[i] / a_sum[i]) ** 2 +
-                            (value_of(self.M[i].y[j]) - y_sum[i] / a_sum[i]) ** 2
-                        )
-                    else:
-                        aux_var = self.gekko.Var()
-                        self.gekko.Equation(aux_var == weight * weight * (
-                                (self.M[i].x[j] - self.M[i].x_sum / self.M[i].area) ** 2 +
-                                (self.M[i].y[j] - self.M[i].y_sum / self.M[i].area) ** 2))
-                        obj += aux_var
+                    obj += (
+                            (self.M[i].x[j] - self.M[i].x_sum / self.M[i].area) ** 2 +
+                            (self.M[i].y[j] - self.M[i].y_sum / self.M[i].area) ** 2
+                    ) * (weight * weight)
             centroid_x /= len(Set)
             centroid_y /= len(Set)
             for i in Set:
-                module = self.M[i]
-                if numerical:
-                    obj += weight * weight * (
-                        (x_sum[i] / a_sum[i] - centroid_x) ** 2 +
-                        (y_sum[i] / a_sum[i] - centroid_y) ** 2
-                    )
-                else:
-                    aux_var = self.gekko.Var()
-                    self.gekko.Equation(aux_var == weight * weight * (
-                            (module.x_sum / module.area - centroid_x) ** 2 +
-                            (module.y_sum / module.area - centroid_y) ** 2))
-                    obj += aux_var
+                obj += (
+                    (self.M[i].x_sum / self.M[i].area - centroid_x) ** 2 +
+                    (self.M[i].y_sum / self.M[i].area - centroid_y) ** 2
+                ) * (weight * weight)
         return obj
 
     def __init__(self,
@@ -392,10 +402,10 @@ class Model:
         assert len(ml) == len(al), "M and A need to have the same length!"
 
         self.M: list[ModelModule] = []
-        self.x: list[list[GekkoType]] = []
-        self.y: list[list[GekkoType]] = []
-        self.w: list[list[GekkoType]] = []
-        self.h: list[list[GekkoType]] = []
+        self.x: list[list[ExpressionTree]] = []
+        self.y: list[list[ExpressionTree]] = []
+        self.w: list[list[ExpressionTree]] = []
+        self.h: list[list[ExpressionTree]] = []
         self.dw: float = die_width
         self.dh: float = die_height
         self.max_ratio: float = max_ratio
@@ -405,11 +415,12 @@ class Model:
 
         """Constructs the GEKKO object and initializes the model"""
         self.gekko = GEKKO(remote=False)
+        #self.gekko.options.SOLVER = 1
         self.hue_array = []
 
         # self.tau = self.gekko.Var(lb = 0, name="tau")
         # self.tau.value = [5]
-        self.tau = 0.01 * min(die_width, die_height) / len(ml)
+        self.tau = ExpressionTree(self.gekko, 0.01 * min(die_width, die_height) / len(ml))
 
         # Variable definition
         for (trunk, Nb, Sb, Eb, Wb) in ml:
@@ -425,50 +436,59 @@ class Model:
 
         # Minimal area requirements
         for m in range(0, len(al)):
-            self.gekko.Equation(self.M[m].area >= al[m])
+            add_equation(self.gekko, self.M[m].area, Cmp.GE, ExpressionTree(self.gekko, al[m]), "min_area")
 
         # No Intra-Module Intersection
+        hlf = ExpressionTree(self.gekko, 0.5)
+        two = ExpressionTree(self.gekko, 2)
+        qrt = ExpressionTree(self.gekko, 0.25)
+        zero = ExpressionTree(self.gekko, 0)
+
         for m in range(0, len(al)):
             nid = self.M[m].N
             sid = self.M[m].S
             eid = self.M[m].E
             wid = self.M[m].W
 
-            nid.sort(key=lambda z: value_of(self.M[m].x[z]))
+            nid.sort(key=lambda z: self.M[m].x[z].evaluate())
             for i in range(0, len(nid) - 1):
                 x, y = nid[i], nid[i + 1]
-                self.gekko.Equation(self.M[m].x[x] + 0.5 * self.M[m].w[x] <= self.M[m].x[y] - 0.5 * self.M[m].w[y])
+                add_equation(self.gekko, self.M[m].x[x] + hlf * self.M[m].w[x], Cmp.LE,
+                             self.M[m].x[y] - hlf * self.M[m].w[y], "no_intramodule_north_intersection")
 
-            sid.sort(key=lambda z: value_of(self.M[m].x[z]))
+            sid.sort(key=lambda z: self.M[m].x[z].evaluate())
             for i in range(0, len(sid) - 1):
                 x, y = sid[i], sid[i + 1]
-                self.gekko.Equation(self.M[m].x[x] + 0.5 * self.M[m].w[x] <= self.M[m].x[y] - 0.5 * self.M[m].w[y])
+                add_equation(self.gekko, self.M[m].x[x] + hlf * self.M[m].w[x], Cmp.LE,
+                             self.M[m].x[y] - hlf * self.M[m].w[y], "no_intramodule_south_intersection")
 
-            eid.sort(key=lambda z: value_of(self.M[m].y[z]))
+            eid.sort(key=lambda z: self.M[m].y[z].evaluate())
             for i in range(0, len(eid) - 1):
                 x, y = eid[i], eid[i + 1]
-                self.gekko.Equation(self.M[m].y[x] + 0.5 * self.M[m].h[x] <= self.M[m].y[y] - 0.5 * self.M[m].h[y])
+                add_equation(self.gekko, self.M[m].y[x] + hlf * self.M[m].h[x], Cmp.LE,
+                             self.M[m].y[y] - hlf * self.M[m].h[y], "no_intramodule_east_intersection")
 
-            wid.sort(key=lambda z: value_of(self.M[m].y[z]))
+            wid.sort(key=lambda z: self.M[m].y[z].evaluate())
             for i in range(0, len(wid) - 1):
                 x, y = wid[i], wid[i + 1]
-                self.gekko.Equation(self.M[m].y[x] + 0.5 * self.M[m].h[x] <= self.M[m].y[y] - 0.5 * self.M[m].h[y])
+                add_equation(self.gekko, self.M[m].y[x] + hlf * self.M[m].h[x], Cmp.LE,
+                             self.M[m].y[y] - hlf * self.M[m].h[y], "no_intramodule_west_intersection")
 
         # No Inter-Module Intersection
         for m in range(0, len(al)):
             for n in range(m + 1, len(al)):
                 for i in range(0, self.M[m].c):
                     for j in range(0, self.M[n].c):
-                        t1 = (self.x[m][i] - self.x[n][j]) ** 2 - 0.25 * (self.w[m][i] + self.w[n][j]) ** 2
-                        t2 = (self.y[m][i] - self.y[n][j]) ** 2 - 0.25 * (self.h[m][i] + self.h[n][j]) ** 2
-                        self.gekko.Equation(smax(t1, t2, self.gekko.sqrt, self.tau) >= 0)
+                        t1 = (self.x[m][i] - self.x[n][j]) ** two - qrt * (self.w[m][i] + self.w[n][j]) ** two
+                        t2 = (self.y[m][i] - self.y[n][j]) ** two - qrt * (self.h[m][i] + self.h[n][j]) ** two
+                        add_equation(self.gekko, smax(t1, t2, self.tau), Cmp.GE, zero, "no_intermodule_overlap")
 
         # Fixed/Hard modules
         for m in range(0, len(al)):
             self.fix(m, optional_get(xl, m), optional_get(yl, m), optional_get(wl, m), optional_get(hl, m))
 
         # Objective function
-        self.gekko.Obj(self.objective() + self.tau)
+        self.gekko.Obj((self.objective() + self.tau).get_gekko_expression())
 
     def interactive_draw(self, canvas_width=500, canvas_height=500) -> None:
         canvas = Canvas(width=canvas_width, height=canvas_height)
@@ -487,10 +507,10 @@ class Model:
         for i in range(0, len(self.M)):
             m = self.M[i]
             for j in range(0, len(m.x)):
-                a = value_of(m.x[j]) - 0.5 * value_of(m.w[j])
-                b = value_of(m.y[j]) - 0.5 * value_of(m.h[j])
-                c = value_of(m.x[j]) + 0.5 * value_of(m.w[j])
-                d = value_of(m.y[j]) + 0.5 * value_of(m.h[j])
+                a = m.x[j].evaluate() - 0.5 * m.w[j].evaluate()
+                b = m.y[j].evaluate() - 0.5 * m.h[j].evaluate()
+                c = m.x[j].evaluate() + 0.5 * m.w[j].evaluate()
+                d = m.y[j].evaluate() + 0.5 * m.h[j].evaluate()
                 canvas.drawbox(((a, b), (c, d)), col=self.hue_array[i])
 
         canvas.drawbox(((0, 0), (self.dw, self.dh)), "#00000000", "#FFFFFF")
@@ -506,14 +526,14 @@ class Model:
                 y_sum = 0.0
                 area = 0.0
                 for rect_id in range(0, self.M[module].c):
-                    r_area = value_of(self.M[module].w[rect_id]) * value_of(self.M[module].h[rect_id])
-                    x_sum += value_of(self.M[module].x[rect_id]) * r_area
-                    y_sum += value_of(self.M[module].y[rect_id]) * r_area
+                    r_area = self.M[module].w[rect_id].evaluate() * self.M[module].h[rect_id].evaluate()
+                    x_sum += self.M[module].x[rect_id].evaluate() * r_area
+                    y_sum += self.M[module].y[rect_id].evaluate() * r_area
                     area += r_area
                 x, y = x_sum / area, y_sum / area
                 for rect_id in range(0, self.M[module].c):
-                    x_r = value_of(self.M[module].x[rect_id])
-                    y_r = value_of(self.M[module].y[rect_id])
+                    x_r = self.M[module].x[rect_id].evaluate()
+                    y_r = self.M[module].y[rect_id].evaluate()
                     canvas.dot((x_r, y_r), color="#FFFFFF", dot_type="thin_circle")
                     canvas.line(((x_r, y_r), (x, y)), color="#FFFFFF", thickness=1, line_type="dashed")
                 canvas.dot((x, y), color="#FFFFFF", dot_type="solid_circle")
@@ -543,10 +563,10 @@ class Model:
                 yaml += "    fixed: true,\n"
             yaml += "    rectangles: ["
             for j in range(0, len(self.M[i].x)):
-                rect = [value_of(self.M[i].x[j]),
-                        value_of(self.M[i].y[j]),
-                        value_of(self.M[i].w[j]),
-                        value_of(self.M[i].h[j])]
+                rect = [self.M[i].x[j].evaluate(),
+                        self.M[i].y[j].evaluate(),
+                        self.M[i].w[j].evaluate(),
+                        self.M[i].h[j].evaluate()]
                 if j != 0:
                     yaml += ", "
                 yaml += str(rect)
@@ -662,7 +682,7 @@ def main(prog: str | None = None, args: list[str] | None = None) -> int:
     ml, al, xl, yl, wl, hl, die_width, die_height, hyper, max_ratio, og_names = compute_options(options)
     m = Model(ml, al, xl, yl, wl, hl, die_width, die_height, hyper, max_ratio, og_names)
 
-    print("Initial cost: ", m.objective(numerical=True))
+    print("Initial cost: ", m.objective().evaluate())
 
     if options['verbose']:
         m.gekko.open_folder()
@@ -678,7 +698,7 @@ def main(prog: str | None = None, args: list[str] | None = None) -> int:
         print("No solution was found!")
 
     end = time()
-    print("Final cost: ", m.objective(numerical=True))
+    print("Final cost: ", m.objective().evaluate())
     print("Elapsed time: ", end - start, "s")
 
     if options['plot']:
