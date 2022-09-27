@@ -12,7 +12,7 @@ from gekko.gk_operators import GK_Value
 from frame.die.die import Die
 from frame.netlist.netlist import Netlist
 from frame.geometry.geometry import Rectangle
-from tools.legalfloor.expression_tree import ExpressionTree
+from tools.legalfloor.expression_tree import ExpressionTree, add_equation, Cmp
 from tools.legalfloor.expression_tree import sqrt as expr_sqrt
 from tools.rect.canvas import Canvas
 from argparse import ArgumentParser
@@ -95,27 +95,6 @@ def hsv_to_str(h: float, s: float = 0.7, v: float = 1.0) -> str:
 
 
 T = TypeVar('T')
-
-
-class Cmp(IntEnum):
-    LE = 0
-    GE = 1
-    EQ = 2
-
-
-def add_equation(gekko: GEKKO, lhs: ExpressionTree, cmp: Cmp, rhs: ExpressionTree, name: str):
-    if cmp is Cmp.LE:
-        gekko.Equation(lhs.get_gekko_expression() <= rhs.get_gekko_expression())
-        if lhs.evaluate() > rhs.evaluate():
-            print("Equation " + name + " is not met: ", lhs.evaluate(), "<=", rhs.evaluate())
-    elif cmp is Cmp.GE:
-        gekko.Equation(lhs.get_gekko_expression() >= rhs.get_gekko_expression())
-        if lhs.evaluate() < rhs.evaluate():
-            print("Equation " + name + " is not met", lhs.evaluate(), ">=", rhs.evaluate())
-    elif cmp is Cmp.EQ:
-        gekko.Equation(lhs.get_gekko_expression() == rhs.get_gekko_expression())
-        if lhs.evaluate() != rhs.evaluate():
-            print("Equation " + name + " is not met", lhs.evaluate(), "==", rhs.evaluate())
 
 
 def optional_get(opt: dict[int, T] | None, index: int) -> T | None:
@@ -366,6 +345,7 @@ class Model:
                 add_equation(self.gekko, self.M[m].h[i], Cmp.EQ, h_const, "fix_h")
 
     def objective(self) -> ExpressionTree:
+        msize = float('inf')
         obj = ExpressionTree(self.gekko, 0.0)
         for (weight, Set) in self.hyper:
             centroid_x: ExpressionTree = ExpressionTree(self.gekko, 0.0)
@@ -378,6 +358,8 @@ class Model:
                             (self.M[i].x[j] - self.M[i].x_sum / self.M[i].area) ** 2 +
                             (self.M[i].y[j] - self.M[i].y_sum / self.M[i].area) ** 2
                     ) * (weight * weight)
+                    if obj.size >= msize:
+                        return obj
             centroid_x /= len(Set)
             centroid_y /= len(Set)
             for i in Set:
@@ -385,6 +367,8 @@ class Model:
                     (self.M[i].x_sum / self.M[i].area - centroid_x) ** 2 +
                     (self.M[i].y_sum / self.M[i].area - centroid_y) ** 2
                 ) * (weight * weight)
+                if obj.size >= msize:
+                    return obj
         return obj
 
     def __init__(self,
@@ -415,7 +399,7 @@ class Model:
 
         """Constructs the GEKKO object and initializes the model"""
         self.gekko = GEKKO(remote=False)
-        #self.gekko.options.SOLVER = 1
+        #self.gekko.options.SOLVER = 2
         self.hue_array = []
 
         # self.tau = self.gekko.Var(lb = 0, name="tau")
@@ -454,25 +438,25 @@ class Model:
             for i in range(0, len(nid) - 1):
                 x, y = nid[i], nid[i + 1]
                 add_equation(self.gekko, self.M[m].x[x] + hlf * self.M[m].w[x], Cmp.LE,
-                             self.M[m].x[y] - hlf * self.M[m].w[y], "no_intramodule_north_intersection")
+                             self.M[m].x[y] - hlf * self.M[m].w[y], "no_intra"+"module_north_intersection")
 
             sid.sort(key=lambda z: self.M[m].x[z].evaluate())
             for i in range(0, len(sid) - 1):
                 x, y = sid[i], sid[i + 1]
                 add_equation(self.gekko, self.M[m].x[x] + hlf * self.M[m].w[x], Cmp.LE,
-                             self.M[m].x[y] - hlf * self.M[m].w[y], "no_intramodule_south_intersection")
+                             self.M[m].x[y] - hlf * self.M[m].w[y], "no_intra"+"module_south_intersection")
 
             eid.sort(key=lambda z: self.M[m].y[z].evaluate())
             for i in range(0, len(eid) - 1):
                 x, y = eid[i], eid[i + 1]
                 add_equation(self.gekko, self.M[m].y[x] + hlf * self.M[m].h[x], Cmp.LE,
-                             self.M[m].y[y] - hlf * self.M[m].h[y], "no_intramodule_east_intersection")
+                             self.M[m].y[y] - hlf * self.M[m].h[y], "no_intra"+"module_east_intersection")
 
             wid.sort(key=lambda z: self.M[m].y[z].evaluate())
             for i in range(0, len(wid) - 1):
                 x, y = wid[i], wid[i + 1]
                 add_equation(self.gekko, self.M[m].y[x] + hlf * self.M[m].h[x], Cmp.LE,
-                             self.M[m].y[y] - hlf * self.M[m].h[y], "no_intramodule_west_intersection")
+                             self.M[m].y[y] - hlf * self.M[m].h[y], "no_intra"+"module_west_intersection")
 
         # No Inter-Module Intersection
         for m in range(0, len(al)):
@@ -481,13 +465,14 @@ class Model:
                     for j in range(0, self.M[n].c):
                         t1 = (self.x[m][i] - self.x[n][j]) ** two - qrt * (self.w[m][i] + self.w[n][j]) ** two
                         t2 = (self.y[m][i] - self.y[n][j]) ** two - qrt * (self.h[m][i] + self.h[n][j]) ** two
-                        add_equation(self.gekko, smax(t1, t2, self.tau), Cmp.GE, zero, "no_intermodule_overlap")
+                        add_equation(self.gekko, smax(t1, t2, self.tau), Cmp.GE, zero, "no_inter"+"module_overlap")
 
         # Fixed/Hard modules
         for m in range(0, len(al)):
             self.fix(m, optional_get(xl, m), optional_get(yl, m), optional_get(wl, m), optional_get(hl, m))
 
         # Objective function
+        # print("Size of objective: ", self.objective().size)
         self.gekko.Obj((self.objective() + self.tau).get_gekko_expression())
 
     def interactive_draw(self, canvas_width=500, canvas_height=500) -> None:

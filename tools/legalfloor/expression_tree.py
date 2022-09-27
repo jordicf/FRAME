@@ -7,6 +7,44 @@ from typing import Any, Callable
 from enum import IntEnum
 
 
+class Cmp(IntEnum):
+    LE = 0
+    GE = 1
+    EQ = 2
+
+
+def add_equation(gekko: GEKKO, lhs: ExpressionTree, cmp: Cmp, rhs: ExpressionTree, name: str):
+    epsilon = 1e-18
+    lhs_expr = lhs.get_gekko_expression(lambda x: x, None, False)
+    rhs_expr = rhs.get_gekko_expression(lambda x: x, None, False)
+    lhs_val = lhs.evaluate()
+    rhs_val = rhs.evaluate()
+    if isinstance(lhs_expr, ExpressionTree) or isinstance(rhs_expr, ExpressionTree):
+        raise Exception("?")
+    if cmp is Cmp.LE:
+        gekko.Equation(lhs_expr <= rhs_expr + epsilon)
+        if lhs.evaluate() > rhs.evaluate():
+            print("WARNING: Equation " + name + " is not met: ", lhs_val, "<=", rhs_val)
+        else:
+            print("Equation " + name + " is met: ", lhs_val, "<=", rhs_val, "(slack =",
+                  rhs_val + epsilon - lhs_val, ")")
+    elif cmp is Cmp.GE:
+        gekko.Equation(lhs_expr >= rhs_expr - epsilon)
+        if lhs.evaluate() < rhs.evaluate():
+            print("WARNING: Equation " + name + " is not met", lhs_val, ">=", rhs_val)
+        else:
+            print("Equation " + name + " is met: ", lhs_val, ">=", rhs_val, "(slack =",
+                  lhs_val - rhs_val + epsilon, ")")
+    elif cmp is Cmp.EQ:
+        gekko.Equation(lhs_expr >= rhs_expr - epsilon)
+        gekko.Equation(lhs_expr <= rhs_expr + epsilon)
+        if abs(lhs.evaluate() - rhs.evaluate()) > epsilon:
+            print("WARNING: Equation " + name + " is not met", lhs_val, "==", rhs_val)
+        else:
+            print("Equation " + name + " is met: ", lhs_val, "==", rhs_val, "(slack = ",
+                  epsilon - abs(lhs.evaluate() - rhs.evaluate()), ")")
+
+
 class NodeType(IntEnum):
     CST = 0
     VAR = 1
@@ -73,7 +111,7 @@ class ExpressionTree:
     def get_gekko_expression_aux(self,
                                  getter: Callable[[Any], Any] = lambda x: x,
                                  root: Callable[[Any], Any] | None = None,
-                                 aux_var: bool = True) -> tuple[GKVariable | float, int]:
+                                 aux_var: bool = True) -> tuple[GKVariable | float, ExpressionTree]:
         if root is None:
             root = self.gekko.sqrt
         blank: Callable[[Any, Any], Any] = lambda x, y: 0
@@ -84,31 +122,44 @@ class ExpressionTree:
         exp: Callable[[Any, Any], Any] = lambda x, y: x ** y
         operations: list[Callable[[Any, Any], Any]] = [blank, blank, add, sub, mul, div, exp, blank]
         if self.type is NodeType.CST or self.type is NodeType.VAR:
-            return getter(self.value), 1
+            return getter(self.value), ExpressionTree(self.gekko, self.value, self.type)
         if self.type is NodeType.SRT:
-            expr, size = self.value[0].get_gekko_expression_aux(getter, root, aux_var)
-            if size > 50 and aux_var:
-                new_var = self.gekko.Var()
-                self.gekko.Equation(new_var == expr)
-                return root(new_var), 2
-            return root(expr), size + 1
-        lhs, size1 = self.value[0].get_gekko_expression_aux(getter, root, aux_var)
-        rhs, size2 = self.value[1].get_gekko_expression_aux(getter, root, aux_var)
-        if size1 + size2 > 50 and aux_var:
-            lhs_var, rhs_var = self.gekko.Var(), self.gekko.Var()
-            self.gekko.Equation(lhs_var == lhs)
-            self.gekko.Equation(rhs_var == rhs)
-            return operations[self.type](lhs_var, rhs_var), 3
-        return operations[self.type](lhs, rhs), size1 + size2 + 1
+            expr, tree = self.value[0].get_gekko_expression_aux(getter, root, aux_var)
+            if tree.size > 50 and aux_var:
+                new_var = ExpressionTree(self.gekko, self.gekko.Var())
+                new_var.value.value = [self.value[0].evaluate()]
+                add_equation(self.gekko, new_var, Cmp.EQ, tree, "aux_var")
+                return root(new_var), ExpressionTree(self.gekko, [new_var], self.type)
+            return root(expr), ExpressionTree(self.gekko, [tree], self.type)
+        lhs, tree1 = self.value[0].get_gekko_expression_aux(getter, root, aux_var)
+        rhs, tree2 = self.value[1].get_gekko_expression_aux(getter, root, aux_var)
+        if tree1.size + tree2.size > 50 and aux_var:
+            lhs_var, rhs_var = ExpressionTree(self.gekko, self.gekko.Var()), \
+                               ExpressionTree(self.gekko, self.gekko.Var())
+            lhs_var.value.value = [self.value[0].evaluate()]
+            rhs_var.value.value = [self.value[1].evaluate()]
+            add_equation(self.gekko, lhs_var, Cmp.EQ, tree1, "aux_var")
+            add_equation(self.gekko, rhs_var, Cmp.EQ, tree2, "aux_var")
+            return operations[self.type](lhs_var.value, rhs_var.value), \
+                   ExpressionTree(self.gekko, [lhs_var, rhs_var], self.type)
+        if isinstance(lhs, ExpressionTree):
+            raise Exception("lhs is an expression tree!")
+        if isinstance(rhs, ExpressionTree):
+            raise Exception("rhs is an expression tree!")
+        return operations[self.type](lhs, rhs), ExpressionTree(self.gekko, [tree1, tree2], self.type)
 
     def get_gekko_expression(self,
                              getter: Callable[[Any], Any] = lambda x: x,
                              root: Callable[[Any], Any] | None = None,
-                             auxvar: bool = True) -> GKVariable | float:
-        return self.get_gekko_expression_aux(getter, root, auxvar)[0]
+                             aux_var: bool = True) -> GKVariable | float:
+        return self.get_gekko_expression_aux(getter, root, aux_var)[0]
 
     def evaluate(self) -> float:
-        return self.get_gekko_expression(value_of, math_sqrt, False)
+        value = self.get_gekko_expression(value_of, math_sqrt, False)
+        if not isinstance(value, float) and not isinstance(value, int):
+            print(value)
+            raise Exception("Invalid return of evaluate function!")
+        return value
 
     def __add__(self, term: float | int | GKVariable | ExpressionTree) -> ExpressionTree:
         if isinstance(term, float) or isinstance(term, int) or isinstance(term, GKVariable):
