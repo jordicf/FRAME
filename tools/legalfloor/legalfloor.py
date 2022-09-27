@@ -473,6 +473,9 @@ class Model:
 
         # Objective function
         # print("Size of objective: ", self.objective().size)
+        # self.apply_objective_function()
+
+    def apply_objective_function(self):
         self.gekko.Obj((self.objective() + self.tau).get_gekko_expression())
 
     def interactive_draw(self, canvas_width=500, canvas_height=500) -> None:
@@ -678,7 +681,13 @@ def main(prog: str | None = None, args: list[str] | None = None) -> int:
 
     # noinspection PyBroadException
     try:
+        print("Beginning legalization phase")
         m.solve(options['verbose'])
+        print("Legalization done")
+        print("Beginning optimization phase")
+        m.apply_objective_function()
+        m.solve(options['verbose'])
+        print("Optimization done")
     except Exception:
         print("No solution was found!")
 

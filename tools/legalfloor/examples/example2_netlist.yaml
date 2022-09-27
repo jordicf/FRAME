@@ -8,7 +8,7 @@ Modules: {
     area: 5.0
   },
   M25: {
-    rectangles: [[0.5, 0.5, 1.0, 1.0]],
+    rectangles: [[0.5, 0.5, 1.1, 1.1]],
     area: 1.0
   },
   M15: {
@@ -16,15 +16,15 @@ Modules: {
     fixed: true
   },
   M17: {
-    rectangles: [[1.5, 2.5, 1.0, 1.0]],
+    rectangles: [[1.5, 2.5, 1.1, 1.1]],
     area: 1.0
   },
   M19: {
-    rectangles: [[0.5, 2.5, 1.0, 1.0]],
+    rectangles: [[0.5, 2.5, 1.1, 1.1]],
     area: 1.0
   },
   M28: {
-    rectangles: [[3.5, 0.5, 1.0, 1.0]],
+    rectangles: [[3.5, 0.5, 1.1, 1.1]],
     area: 1.0
   },
   M9: {
@@ -32,11 +32,11 @@ Modules: {
     hard: true
   },
   M11: {
-    rectangles: [[7.0, 0.5, 6.0, 1.0], [6.0, 1.5, 2.0, 1.0]],
+    rectangles: [[7.0, 0.5, 6.1, 1.1], [6.0, 1.5, 2.1, 1.1]],
     area: 7.0
   },
   M26: {
-    rectangles: [[0.5, 3.5, 1.0, 1.0]],
+    rectangles: [[0.5, 3.5, 1.1, 1.1]],
     area: 1.0
   },
   M10: {
@@ -44,15 +44,15 @@ Modules: {
     area: 3.0
   },
   M24: {
-    rectangles: [[4.5, 5.5, 1.0, 1.0]],
+    rectangles: [[4.5, 5.5, 1.1, 1.1]],
     area: 1.0
   },
   M1: {
-    rectangles: [[8.5, 7.0, 3.0, 6.0]],
+    rectangles: [[8.5, 7.0, 3.1, 6.1]],
     area: 17.0
   },
   M22: {
-    rectangles: [[1.5, 7.5, 1.0, 1.0]],
+    rectangles: [[1.5, 7.5, 1.1, 1.1]],
     area: 1.0
   },
   M0: {
@@ -68,7 +68,7 @@ Modules: {
     area: 2.0
   },
   M16: {
-    rectangles: [[8.5, 2.5, 1.0, 1.0]],
+    rectangles: [[8.5, 2.5, 1.1, 1.1]],
     area: 1.0
   },
   M20: {
@@ -76,19 +76,19 @@ Modules: {
     area: 3.0
   },
   M21: {
-    rectangles: [[3.5, 1.5, 1.0, 1.0]],
+    rectangles: [[3.5, 1.5, 1.1, 1.1]],
     area: 1.0
   },
   M4: {
-    rectangles: [[8.0, 3.5, 2.0, 1.0]],
+    rectangles: [[8.0, 3.5, 2.1, 1.1]],
     area: 2.0
   },
   M7: {
-    rectangles: [[4.5, 7.5, 1.0, 3.0]],
+    rectangles: [[4.5, 7.5, 1.1, 3.1]],
     area: 3.0
   },
   M14: {
-    rectangles: [[2.5, 2.5, 1.0, 1.0]],
+    rectangles: [[2.5, 2.5, 1.1, 1.1]],
     area: 1.0
   },
   M3: {
@@ -96,15 +96,15 @@ Modules: {
     area: 6.0
   },
   M23: {
-    rectangles: [[2.5, 7.5, 1.0, 1.0]],
+    rectangles: [[2.5, 7.5, 1.1, 1.1]],
     area: 1.0
   },
   M27: {
-    rectangles: [[9.5, 3.5, 1.0, 1.0]],
+    rectangles: [[9.5, 3.5, 1.1, 1.1]],
     area: 1.0
   },
   M12: {
-    rectangles: [[4.5, 2.5, 1.0, 3.0]],
+    rectangles: [[4.5, 2.5, 1.1, 3.1]],
     area: 4.0
   },
   M18: {

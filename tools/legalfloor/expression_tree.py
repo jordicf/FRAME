@@ -25,24 +25,30 @@ def add_equation(gekko: GEKKO, lhs: ExpressionTree, cmp: Cmp, rhs: ExpressionTre
         gekko.Equation(lhs_expr <= rhs_expr + epsilon)
         if lhs.evaluate() > rhs.evaluate():
             print("WARNING: Equation " + name + " is not met: ", lhs_val, "<=", rhs_val)
+        """
         else:
             print("Equation " + name + " is met: ", lhs_val, "<=", rhs_val, "(slack =",
                   rhs_val + epsilon - lhs_val, ")")
+        """
     elif cmp is Cmp.GE:
         gekko.Equation(lhs_expr >= rhs_expr - epsilon)
         if lhs.evaluate() < rhs.evaluate():
             print("WARNING: Equation " + name + " is not met", lhs_val, ">=", rhs_val)
+        """
         else:
             print("Equation " + name + " is met: ", lhs_val, ">=", rhs_val, "(slack =",
                   lhs_val - rhs_val + epsilon, ")")
+        """
     elif cmp is Cmp.EQ:
         gekko.Equation(lhs_expr >= rhs_expr - epsilon)
         gekko.Equation(lhs_expr <= rhs_expr + epsilon)
         if abs(lhs.evaluate() - rhs.evaluate()) > epsilon:
             print("WARNING: Equation " + name + " is not met", lhs_val, "==", rhs_val)
+        """
         else:
             print("Equation " + name + " is met: ", lhs_val, "==", rhs_val, "(slack = ",
                   epsilon - abs(lhs.evaluate() - rhs.evaluate()), ")")
+        """
 
 
 class NodeType(IntEnum):
@@ -140,8 +146,8 @@ class ExpressionTree:
             rhs_var.value.value = [self.value[1].evaluate()]
             add_equation(self.gekko, lhs_var, Cmp.EQ, tree1, "aux_var")
             add_equation(self.gekko, rhs_var, Cmp.EQ, tree2, "aux_var")
-            return operations[self.type](lhs_var.value, rhs_var.value), \
-                   ExpressionTree(self.gekko, [lhs_var, rhs_var], self.type)
+            return operations[self.type](lhs_var.value, rhs_var.value), ExpressionTree(self.gekko, [lhs_var, rhs_var],
+                                                                                       self.type)
         if isinstance(lhs, ExpressionTree):
             raise Exception("lhs is an expression tree!")
         if isinstance(rhs, ExpressionTree):
