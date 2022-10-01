@@ -28,8 +28,8 @@ def netlist_to_matrix(netlist: Netlist) -> AdjacencyMatrix:
     for hyperedge in netlist.edges:
         for m1, m2 in combinations(hyperedge.modules, 2):
             i, j = mod2idx[m1], mod2idx[m2]
-            graph[i][j] = hyperedge.weight
-            graph[j][i] = hyperedge.weight
+            graph[i][j] = 2 * hyperedge.weight / len(hyperedge.modules)
+            graph[j][i] = 2 * hyperedge.weight / len(hyperedge.modules)
     return graph
 
 
