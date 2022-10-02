@@ -22,14 +22,26 @@ def fruchterman_reingold_layout(die: Die, verbose: bool = False, visualize: str 
 
     k = (die.width * die.height / die.netlist.num_modules)**(1 / 2)
 
-    def f_att(x, a):
-        return x**2 / (k * a)
+    def f_att(x, w):
+        return w * x**2 / k
 
-    def f_rep(x, a):
-        return (k * a)**2 / x
+    def f_rep(x, w):
+        return w * k**2 / max(x, 0.01)
+
+    def die_repelling(p: Point, w: float) -> Point:
+        repelling = Point(0, 0)
+        if p.x < -die.width / 2 + die.width / 10:
+            repelling += Point(1, 0) * f_rep(p.x + die.width / 2, w)
+        if p.x > die.width / 2 - die.width / 10:
+            repelling += Point(-1, 0) * f_rep(die.width / 2 - p.x, w)
+        if p.y < -die.height / 2 + die.height / 10:
+            repelling += Point(0, 1) * f_rep(p.y + die.height / 2, w)
+        if p.y > die.height / 2 - die.height / 10:
+            repelling += Point(0, -1) * f_rep(die.height / 2 -  p.y, w)
+        return repelling
 
     pos: list[Point] = [module.center - Point(die.width, die.height) / 2 if module.center is not None else Point()
-                        for module in die.netlist.modules]
+                        for module in die.netlist.modules]  # The die is recentered to the origin
     disp = [Point()] * die.netlist.num_modules
     for i in range(max_iter):
         for v in range(die.netlist.num_modules):
@@ -38,15 +50,16 @@ def fruchterman_reingold_layout(die: Die, verbose: bool = False, visualize: str 
                 if u != v:
                     diff = pos[v] - pos[u]
                     diff_norm = max(diff.norm(), 0.01)
-                    disp[v] += diff / diff_norm * f_rep(diff_norm, die.netlist.modules[v].area())
+                    disp[v] += diff / diff_norm * f_rep(diff_norm, die.netlist.modules[v].area()) \
+                        + die_repelling(pos[v], die.netlist.modules[v].area())
 
         for hyperedge in die.netlist.edges:
             for v_mod, u_mod in combinations(hyperedge.modules, 2):
                 v, u = mod2idx[v_mod], mod2idx[u_mod]
                 diff = pos[v] - pos[u]
                 diff_norm = max(diff.norm(), 0.01)
-                disp[v] -= diff / diff_norm * f_att(diff_norm, die.netlist.modules[v].area())
-                disp[u] += diff / diff_norm * f_att(diff_norm, die.netlist.modules[u].area())
+                disp[v] -= diff / diff_norm * f_att(diff_norm, hyperedge.weight)
+                disp[u] += diff / diff_norm * f_att(diff_norm, hyperedge.weight)
 
         for v in range(die.netlist.num_modules):
             if not die.netlist.modules[v].is_fixed:
