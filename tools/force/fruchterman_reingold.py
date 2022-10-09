@@ -2,15 +2,62 @@
 # For the FRAME Project.
 # Licensed under the MIT License (see https://github.com/jordicf/FRAME/blob/master/LICENSE.txt).
 
+from copy import deepcopy
 from itertools import combinations
+import math
 
 from frame.die.die import Die
 from frame.geometry.geometry import Point
 from tools.draw.draw import get_floorplan_plot
 
 
-def fruchterman_reingold_layout(die: Die, verbose: bool = False, visualize: str | None = None,
+def circle_circle_intersection_area(c1: Point, r1: float, c2: Point, r2: float) -> float:
+    """
+    Computes the area of the intersection of two circles.
+    :param c1: center of the first circle.
+    :param r1: radius of the first circle.
+    :param c2: center of the second circle.
+    :param r2: radius of the second circle.
+    :return: the area of the intersection of the two circles.
+    """
+    d = (c1 - c2).norm()
+    if d > r1 + r2:
+        return 0
+    if d <= abs(r1 - r2):
+        return math.pi * min(r1, r2)**2
+    alpha = math.acos((r1**2 + d**2 - r2**2) / (2 * r1 * d))
+    beta = math.acos((r2**2 + d**2 - r1**2) / (2 * r2 * d))
+    return r1**2 * alpha + r2**2 * beta - d * r1 * math.sin(alpha)
+
+
+def total_intersection_area(die: Die) -> float:
+    """
+    Computes the total area of the intersection of all the circles in the die.
+    :param die: the die, with the netlist with the modules with the centers initialized.
+    :return: the total area of the intersection of all the circles in the die.
+    """
+    assert die.netlist is not None  # Assertion to suppress Mypy error
+    area = 0.0
+    for m1 in die.netlist.modules:
+        for m2 in die.netlist.modules:
+            if m1 != m2:
+                assert m1.center is not None and m2.center is not None  # Assertion to suppress Mypy error
+                area += circle_circle_intersection_area(m1.center, math.sqrt(m1.area() / math.pi),
+                                                        m2.center, math.sqrt(m2.area() / math.pi))
+    return area
+
+
+def fruchterman_reingold_layout(die: Die, kappa: float = 1.0, verbose: bool = False, visualize: str | None = None,
                                 max_iter: int = 100) -> Die:
+    """
+    Computes a layout for the die netlist using a modified version of the Fruchterman-Reingold algorithm.
+    :param die: the die, with the netlist with the modules with the centers initialized.
+    :param kappa: hyperparameter that multiplies the spring constant k used in the algorithm.
+    :param verbose: if True, prints information to the console.
+    :param visualize: if not None, saves the intermediate layouts as a GIF with the given name.
+    :param max_iter: the maximum number of iterations of the algorithm.
+    :return: the die with the netlist with the center of the modules updated to the computed layout.
+    """
     assert die.netlist is not None, "No netlist associated to the die"
 
     vis_imgs = []
@@ -20,7 +67,7 @@ def fruchterman_reingold_layout(die: Die, verbose: bool = False, visualize: str 
     t = max(die.width, die.height) * 0.1
     dt = t / (max_iter + 1)
 
-    k = (die.width * die.height / die.netlist.num_modules)**(1 / 2)
+    k = kappa * (die.width * die.height / die.netlist.num_modules)**(1 / 2)
 
     def f_att(x, w):
         return w * x**2 / k
@@ -37,7 +84,7 @@ def fruchterman_reingold_layout(die: Die, verbose: bool = False, visualize: str 
         if p.y < -die.height / 2 + die.height / 10:
             repelling += Point(0, 1) * f_rep(p.y + die.height / 2, w)
         if p.y > die.height / 2 - die.height / 10:
-            repelling += Point(0, -1) * f_rep(die.height / 2 -  p.y, w)
+            repelling += Point(0, -1) * f_rep(die.height / 2 - p.y, w)
         return repelling
 
     pos: list[Point] = [module.center - Point(die.width, die.height) / 2 if module.center is not None else Point()
@@ -88,3 +135,40 @@ def fruchterman_reingold_layout(die: Die, verbose: bool = False, visualize: str 
         vis_imgs[0].save(f"{visualize}.gif", save_all=True, append_images=vis_imgs[1:], duration=100)
 
     return die
+
+
+def force_algorithm(die: Die, verbose: bool = False, visualize: str | None = None, max_iter: int = 100) -> Die:
+    """
+    Computes multiple layouts for the die netlist by changing the kappa hyperparameter, and returns the one with the
+    smallest cost, which is defined as the sum of the areas of the intersections of the circles of the modules plus half
+    the netlist wire length. The layout algorithm is based on the Fruchterman-Reingold algorithm.
+    :param die: the die, with the netlist with the modules with the centers initialized.
+    :param verbose: if True, prints information to the console.
+    :param visualize: if not None, saves the intermediate layouts as a GIF with the given name.
+    :param max_iter: the maximum number of iterations of the algorithm.
+    :return: the die with the netlist with the center of the modules updated to the computed layout.
+    """
+    best_cost = float("inf")
+    best_kappa = 0.0
+    best_die = None
+    for kappa in [i / 10 for i in range(4, 16)]:
+        if verbose:
+            print(f"Kappa: {kappa}")
+        die = fruchterman_reingold_layout(die, kappa, verbose, visualize, max_iter)
+        assert die.netlist is not None  # Assertion to suppress Mypy error
+        intersection_area = total_intersection_area(die)
+        wire_length = die.netlist.wire_length
+        cost = intersection_area + wire_length / 2
+        if verbose:
+            print(f"Intersection area: {intersection_area} | Wire length: {wire_length} | Cost: {cost}")
+            print("--------------------")
+        if cost < best_cost:
+            best_cost = cost
+            best_kappa = kappa
+            best_die = deepcopy(die)
+
+    if verbose:
+        print(f"Best kappa: {best_kappa}")
+
+    assert best_die is not None  # Assertion to suppress Mypy error
+    return best_die
