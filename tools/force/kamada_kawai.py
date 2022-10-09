@@ -56,8 +56,8 @@ def kamada_kawai_layout(die: Die, verbose: bool = False, visualize: str | None =
     Relocate the modules of the netlist using and adaptation of the algorithm proposed
     by Kamada & Kawai in "An algorithm for drawing general undirected graphs" (1989).
     :param die: the die, with the netlist containing the modules
-    :param verbose: if True, the GEKKO optimization log is displayed (not supported if visualize is True)
-    :param visualize: if True, produce a GIF showing the optimization process
+    :param verbose: if True, the GEKKO optimization log is displayed (not supported if visualize is not None)
+    :param visualize: if not None, saves the intermediate layouts as a GIF with the given name.
     :param max_iter: maximum number of iterations for GEKKO
     :return:
     - die: the die with the netlist with the modules relocated
