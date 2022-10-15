@@ -83,12 +83,12 @@ def parse_net(lines: list[str], i: int, nets: Nets) -> tuple[bool, int]:
         raise Exception("Unknown format on line " + str(i+1) + ": " + lines[i])
     net_size = int(words[2])
     net: Net = []
-    i = i + 1
+    i += 1
     j = 0
     while j < net_size:
         if parse_net_line(lines, i, net):
-            j = j + 1
-        i = i + 1
+            j += 1
+        i += 1
     nets.append(net)
     return True, i
 
@@ -101,7 +101,7 @@ def parse_nets(file_path: str):
     lines = re.split('\n', raw_text)
     i = 1
     while i < len(lines) and parse_header(lines, i, headers):
-        i = i + 1
+        i += 1
     while i < len(lines):
         cont, i = parse_net(lines, i, nets)
         if not cont:

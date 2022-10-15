@@ -35,7 +35,7 @@ def netlist_to_matrix(netlist: Netlist) -> AdjacencyMatrix:
 
 def get_all_shortest_path_lengths(graph: AdjacencyMatrix) -> AdjacencyMatrix:
     """
-    Get all-pairs shortest paths using Floyd-Warshall algorithm
+    Get the all-pairs shortest paths using Floyd-Warshall algorithm
     :param graph: the graph in adjacency matrix format, where graph[i][j] contains the weight of edge (i, j),
     or infinity if there is no such edge
     :return:
@@ -57,7 +57,7 @@ def kamada_kawai_layout(die: Die, verbose: bool = False, visualize: str | None =
     by Kamada & Kawai in "An algorithm for drawing general undirected graphs" (1989).
     :param die: the die, with the netlist containing the modules
     :param verbose: if True, the GEKKO optimization log is displayed (not supported if visualize is not None)
-    :param visualize: if not None, saves the intermediate layouts as a GIF with the given name.
+    :param visualize: if not None, saves the intermediate layouts as a GIF with the given name
     :param max_iter: maximum number of iterations for GEKKO
     :return:
     - die: the die with the netlist with the modules relocated

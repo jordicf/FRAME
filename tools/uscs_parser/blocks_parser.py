@@ -109,11 +109,11 @@ def parse_blocks(file_path: str):
     lines = re.split('\n', raw_text)
     i = 1
     while i < len(lines) and parse_header(lines, i, headers):
-        i = i + 1
+        i += 1
     while i < len(lines) and parse_rectangles(lines, i, modules):
-        i = i + 1
+        i += 1
     while i < len(lines) and parse_terminals(lines, i, modules):
-        i = i + 1
+        i += 1
     return {'Modules': modules}
 
 

@@ -13,12 +13,12 @@ from tools.draw.draw import get_floorplan_plot
 
 def circle_circle_intersection_area(c1: Point, r1: float, c2: Point, r2: float) -> float:
     """
-    Computes the area of the intersection of two circles.
-    :param c1: center of the first circle.
-    :param r1: radius of the first circle.
-    :param c2: center of the second circle.
-    :param r2: radius of the second circle.
-    :return: the area of the intersection of the two circles.
+    Computes the area of the intersection of two circles
+    :param c1: center of the first circle
+    :param r1: radius of the first circle
+    :param c2: center of the second circle
+    :param r2: radius of the second circle
+    :return: the area of the intersection of the two circles
     """
     d = (c1 - c2).norm()
     if d > r1 + r2:
@@ -32,9 +32,9 @@ def circle_circle_intersection_area(c1: Point, r1: float, c2: Point, r2: float) 
 
 def total_intersection_area(die: Die) -> float:
     """
-    Computes the total area of the intersection of all the circles in the die.
-    :param die: the die, with the netlist with the modules with the centers initialized.
-    :return: the total area of the intersection of all the circles in the die.
+    Computes the total area of the intersection of all the circles in the die
+    :param die: the die, with the netlist with the modules with the centers initialized
+    :return: the total area of the intersection of all the circles in the die
     """
     assert die.netlist is not None  # Assertion to suppress Mypy error
     area = 0.0
@@ -50,13 +50,13 @@ def total_intersection_area(die: Die) -> float:
 def fruchterman_reingold_layout(die: Die, kappa: float = 1.0, verbose: bool = False, visualize: str | None = None,
                                 max_iter: int = 100) -> Die:
     """
-    Computes a layout for the die netlist using a modified version of the Fruchterman-Reingold algorithm.
-    :param die: the die, with the netlist with the modules with the centers initialized.
-    :param kappa: hyperparameter that multiplies the spring constant k used in the algorithm.
-    :param verbose: if True, prints information to the console.
-    :param visualize: if not None, saves the intermediate layouts as a GIF with the given name.
-    :param max_iter: the maximum number of iterations of the algorithm.
-    :return: the die with the netlist with the center of the modules updated to the computed layout.
+    Computes a layout for the die netlist using a modified version of the Fruchterman-Reingold algorithm
+    :param die: the die, with the netlist with the modules with the centers initialized
+    :param kappa: hyperparameter that multiplies the spring constant k used in the algorithm
+    :param verbose: if True, prints information to the console
+    :param visualize: if not None, saves the intermediate layouts as a GIF with the given name
+    :param max_iter: the maximum number of iterations of the algorithm
+    :return: the die with the netlist with the center of the modules updated to the computed layout
     """
     assert die.netlist is not None, "No netlist associated to the die"
 
@@ -141,12 +141,12 @@ def force_algorithm(die: Die, verbose: bool = False, visualize: str | None = Non
     """
     Computes multiple layouts for the die netlist by changing the kappa hyperparameter, and returns the one with the
     smallest cost, which is defined as the sum of the areas of the intersections of the circles of the modules plus half
-    the netlist wire length. The layout algorithm is based on the Fruchterman-Reingold algorithm.
-    :param die: the die, with the netlist with the modules with the centers initialized.
-    :param verbose: if True, prints information to the console.
-    :param visualize: if not None, saves the intermediate layouts as a GIF with the given name.
-    :param max_iter: the maximum number of iterations of the algorithm.
-    :return: the die with the netlist with the center of the modules updated to the computed layout.
+    the netlist wire length. The layout algorithm is based on the Fruchterman-Reingold algorithm
+    :param die: the die, with the netlist with the modules with the centers initialized
+    :param verbose: if True, prints information to the console
+    :param visualize: if not None, saves the intermediate layouts as a GIF with the given name
+    :param max_iter: the maximum number of iterations of the algorithm
+    :return: the die with the netlist with the center of the modules updated to the computed layout
     """
     best_cost = float("inf")
     best_kappa = 0.0

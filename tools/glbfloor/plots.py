@@ -170,12 +170,12 @@ def do_plots(plotting_options: PlottingOptions, n_iter: int,
              die: Die, allocation: Allocation, dispersions: dict[str, float], alpha: float) -> None:
     """
     Create the plots according to the options given
-    :param plotting_options: plotting options.
-    :param n_iter: the iteration number (for the output filename).
-    :param die: the die with the netlist.
-    :param allocation: the allocation.
-    :param dispersions: the dispersions of the modules.
-    :param alpha: the value of the alpha hyperparameter.
+    :param plotting_options: plotting options
+    :param n_iter: the iteration number (for the output filename)
+    :param die: the die with the netlist
+    :param allocation: the allocation
+    :param dispersions: the dispersions of the modules
+    :param alpha: the value of the alpha hyperparameter
     """
     assert die.netlist is not None, "No netlist associated to the die"
 

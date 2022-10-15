@@ -399,7 +399,7 @@ class Model:
 
         """Constructs the GEKKO object and initializes the model"""
         self.gekko = GEKKO(remote=False)
-        #self.gekko.options.SOLVER = 2
+        # self.gekko.options.SOLVER = 2
         self.hue_array = []
 
         # self.tau = self.gekko.Var(lb = 0, name="tau")
