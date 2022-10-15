@@ -150,14 +150,13 @@ def force_algorithm(die: Die, verbose: bool = False, visualize: str | None = Non
     """
     best_cost = float("inf")
     best_kappa = 0.0
-    best_die = None
     for kappa in [i / 10 for i in range(4, 16)]:
         if verbose:
             print(f"Kappa: {kappa}")
-        die = fruchterman_reingold_layout(die, kappa, verbose, visualize, max_iter)
-        assert die.netlist is not None  # Assertion to suppress Mypy error
-        intersection_area = total_intersection_area(die)
-        wire_length = die.netlist.wire_length
+        new_die = fruchterman_reingold_layout(deepcopy(die), kappa, verbose, None, max_iter)
+        assert new_die.netlist is not None  # Assertion to suppress Mypy error
+        intersection_area = total_intersection_area(new_die)
+        wire_length = new_die.netlist.wire_length
         cost = intersection_area + wire_length / 2
         if verbose:
             print(f"Intersection area: {intersection_area} | Wire length: {wire_length} | Cost: {cost}")
@@ -165,10 +164,13 @@ def force_algorithm(die: Die, verbose: bool = False, visualize: str | None = Non
         if cost < best_cost:
             best_cost = cost
             best_kappa = kappa
-            best_die = deepcopy(die)
 
     if verbose:
         print(f"Best kappa: {best_kappa}")
+        print("Recalculating layout with best kappa", end="")
+        if visualize:
+            print(" and creating the visualization", end="")
+        print("...")
 
-    assert best_die is not None  # Assertion to suppress Mypy error
-    return best_die
+    return fruchterman_reingold_layout(die, best_kappa, verbose, visualize, max_iter)
+
