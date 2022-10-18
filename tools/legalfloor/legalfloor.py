@@ -9,10 +9,11 @@ from gekko import GEKKO
 from gekko.gk_variable import GKVariable
 from gekko.gk_operators import GK_Value
 
+# import numpy as np
 from frame.die.die import Die
 from frame.netlist.netlist import Netlist
 from frame.geometry.geometry import Rectangle
-from tools.legalfloor.expression_tree import ExpressionTree, add_equation, Cmp
+from tools.legalfloor.expression_tree import ExpressionTree, add_equation, Cmp, set_epsilon, get_epsilon, turn_off_flag
 from tools.legalfloor.expression_tree import sqrt as expr_sqrt
 from tools.rect.canvas import Canvas
 from argparse import ArgumentParser
@@ -272,12 +273,34 @@ class Model:
     y: list[list[ExpressionTree]]
     w: list[list[ExpressionTree]]
     h: list[list[ExpressionTree]]
+    time: ExpressionTree
+    alpha: ExpressionTree
     max_ratio: float
 
+    og_names: list[str]
+    og_area: list[float]
+    hyper: HyperGraph
+    enforces: list[tuple[ExpressionTree, float]]
+
+    fixed_t: float
     tau: ExpressionTree
 
     # For visualization
     hue_array: list[str]
+    output_counter: int
+
+    def time_advance(self, amount: float):
+        if amount <= 0:
+            raise Exception("The amount of time must be > 0")
+        self.time.assign(self.time.evaluate() + amount)
+        self.time.fix_as_lower_bound()
+
+    def define_time(self) -> None:
+        t = self.gekko.Var([0])
+        self.time = ExpressionTree(self.gekko, t)
+        set_epsilon(ExpressionTree(self.gekko, 0.01) ** self.time)
+        self.time_advance(self.fixed_t)
+        print("")
 
     def define_module(self, trunk_box: BoxType) -> int:
         x: list[ExpressionTree] = []
@@ -335,17 +358,21 @@ class Model:
             elif x_get is not None:
                 self.M[m].set_degree(2)
             if x_get is not None:
+                self.enforces.append((self.M[m].x[i], x_const.evaluate()))
                 add_equation(self.gekko, self.M[m].x[i], Cmp.EQ, x_const, "fix_x")
             if y_get is not None:
+                self.enforces.append((self.M[m].y[i], y_const.evaluate()))
                 add_equation(self.gekko, self.M[m].y[i], Cmp.EQ, y_const, "fix_y")
             if w_get is not None:
+                self.enforces.append((self.M[m].w[i], w_const.evaluate()))
                 self.M[m].set_degree(1)
                 add_equation(self.gekko, self.M[m].w[i], Cmp.EQ, w_const, "fix_w")
             if h_get is not None:
+                self.enforces.append((self.M[m].h[i], h_const.evaluate()))
                 add_equation(self.gekko, self.M[m].h[i], Cmp.EQ, h_const, "fix_h")
 
     def objective(self) -> ExpressionTree:
-        msize = float('inf')
+        maximum_size = float('inf')
         obj = ExpressionTree(self.gekko, 0.0)
         for (weight, Set) in self.hyper:
             centroid_x: ExpressionTree = ExpressionTree(self.gekko, 0.0)
@@ -358,7 +385,7 @@ class Model:
                             (self.M[i].x[j] - self.M[i].x_sum / self.M[i].area) ** 2 +
                             (self.M[i].y[j] - self.M[i].y_sum / self.M[i].area) ** 2
                     ) * (weight * weight)
-                    if obj.size >= msize:
+                    if obj.size >= maximum_size:
                         return obj
             centroid_x /= len(Set)
             centroid_y /= len(Set)
@@ -367,23 +394,26 @@ class Model:
                     (self.M[i].x_sum / self.M[i].area - centroid_x) ** 2 +
                     (self.M[i].y_sum / self.M[i].area - centroid_y) ** 2
                 ) * (weight * weight)
-                if obj.size >= msize:
+                if obj.size >= maximum_size:
                     return obj
         return obj
 
-    def __init__(self,
-                 ml: list[InputModule],
-                 al: list[float],
-                 xl: OptionalMatrix,
-                 yl: OptionalMatrix,
-                 wl: OptionalMatrix,
-                 hl: OptionalMatrix,
-                 die_width: float,
-                 die_height: float,
-                 hyper: HyperGraph,
-                 max_ratio: float,
-                 og_names: list[str]):
-        assert len(ml) == len(al), "M and A need to have the same length!"
+    def reinforce_fixed(self):
+        for (x, v) in self.enforces:
+            x.value.value = [v]
+
+    def build_model(self):
+        ml = self.ml
+        al = self.al
+        xl = self.xl
+        yl = self.yl
+        wl = self.wl
+        hl = self.hl
+        die_width = self.die_width
+        die_height = self.die_height
+        hyper = self.hyper
+        max_ratio = self.max_ratio
+        og_names = self.og_names
 
         self.M: list[ModelModule] = []
         self.x: list[list[ExpressionTree]] = []
@@ -397,14 +427,19 @@ class Model:
         self.og_area: list[float] = al
         self.hyper = hyper
 
+        self.enforces: list[tuple[ExpressionTree, float]] = []
+
         """Constructs the GEKKO object and initializes the model"""
         self.gekko = GEKKO(remote=False)
-        # self.gekko.options.SOLVER = 2
-        self.hue_array = []
+        # self.gekko.options.SOLVER = 3
+        # self.gekko.options.IMODE = 6
+        self.gekko.options.COLDSTART = 1
+        self.gekko.options.MAX_ITER = 1
 
         # self.tau = self.gekko.Var(lb = 0, name="tau")
         # self.tau.value = [5]
         self.tau = ExpressionTree(self.gekko, 0.01 * min(die_width, die_height) / len(ml))
+        self.define_time()
 
         # Variable definition
         for (trunk, Nb, Sb, Eb, Wb) in ml:
@@ -438,25 +473,25 @@ class Model:
             for i in range(0, len(nid) - 1):
                 x, y = nid[i], nid[i + 1]
                 add_equation(self.gekko, self.M[m].x[x] + hlf * self.M[m].w[x], Cmp.LE,
-                             self.M[m].x[y] - hlf * self.M[m].w[y], "no_intra"+"module_north_intersection")
+                             self.M[m].x[y] - hlf * self.M[m].w[y], "no_intra" + "module_north_intersection")
 
             sid.sort(key=lambda z: self.M[m].x[z].evaluate())
             for i in range(0, len(sid) - 1):
                 x, y = sid[i], sid[i + 1]
                 add_equation(self.gekko, self.M[m].x[x] + hlf * self.M[m].w[x], Cmp.LE,
-                             self.M[m].x[y] - hlf * self.M[m].w[y], "no_intra"+"module_south_intersection")
+                             self.M[m].x[y] - hlf * self.M[m].w[y], "no_intra" + "module_south_intersection")
 
             eid.sort(key=lambda z: self.M[m].y[z].evaluate())
             for i in range(0, len(eid) - 1):
                 x, y = eid[i], eid[i + 1]
                 add_equation(self.gekko, self.M[m].y[x] + hlf * self.M[m].h[x], Cmp.LE,
-                             self.M[m].y[y] - hlf * self.M[m].h[y], "no_intra"+"module_east_intersection")
+                             self.M[m].y[y] - hlf * self.M[m].h[y], "no_intra" + "module_east_intersection")
 
             wid.sort(key=lambda z: self.M[m].y[z].evaluate())
             for i in range(0, len(wid) - 1):
                 x, y = wid[i], wid[i + 1]
                 add_equation(self.gekko, self.M[m].y[x] + hlf * self.M[m].h[x], Cmp.LE,
-                             self.M[m].y[y] - hlf * self.M[m].h[y], "no_intra"+"module_west_intersection")
+                             self.M[m].y[y] - hlf * self.M[m].h[y], "no_intra" + "module_west_intersection")
 
         # No Inter-Module Intersection
         for m in range(0, len(al)):
@@ -465,7 +500,7 @@ class Model:
                     for j in range(0, self.M[n].c):
                         t1 = (self.x[m][i] - self.x[n][j]) ** two - qrt * (self.w[m][i] + self.w[n][j]) ** two
                         t2 = (self.y[m][i] - self.y[n][j]) ** two - qrt * (self.h[m][i] + self.h[n][j]) ** two
-                        add_equation(self.gekko, smax(t1, t2, self.tau), Cmp.GE, zero, "no_inter"+"module_overlap")
+                        add_equation(self.gekko, smax(t1, t2, self.tau), Cmp.GE, zero, "no_inter" + "module_overlap")
 
         # Fixed/Hard modules
         for m in range(0, len(al)):
@@ -473,7 +508,42 @@ class Model:
 
         # Objective function
         # print("Size of objective: ", self.objective().size)
-        # self.apply_objective_function()
+        self.apply_objective_function()
+
+    def set_ml(self, ml: list[InputModule]):
+        self.ml = ml
+
+    def set_fixed_t(self, ft: float):
+        self.fixed_t = ft
+
+    def __init__(self,
+                 ml: list[InputModule],
+                 al: list[float],
+                 xl: OptionalMatrix,
+                 yl: OptionalMatrix,
+                 wl: OptionalMatrix,
+                 hl: OptionalMatrix,
+                 die_width: float,
+                 die_height: float,
+                 hyper: HyperGraph,
+                 max_ratio: float,
+                 og_names: list[str]):
+        assert len(ml) == len(al), "M and A need to have the same length!"
+        self.ml = ml
+        self.al = al
+        self.xl = xl
+        self.yl = yl
+        self.wl = wl
+        self.hl = hl
+        self.die_width = die_width
+        self.die_height = die_height
+        self.hyper = hyper
+        self.max_ratio = max_ratio
+        self.og_names = og_names
+        self.hue_array = []
+        self.output_counter = 0
+        self.fixed_t = 1
+        self.build_model()
 
     def apply_objective_function(self):
         self.gekko.Obj((self.objective() + self.tau).get_gekko_expression())
@@ -532,10 +602,14 @@ class Model:
             for i in range(0, len(list_x)):
                 canvas.line(((x_center, y_center), (list_x[i], list_y[i])), color="#FFFFFF")
 
-        canvas.show()
+        canvas.save("./example_visuals/frame" + str(self.output_counter) + ".png")
+        self.output_counter += 1
 
     def solve(self, verbose=False) -> None:
-        self.gekko.solve(disp=verbose)
+        self.gekko.options.COLDSTART = 1
+        self.gekko.options.MAX_ITER += 10
+        self.gekko.solve(disp=verbose, debug=0)
+        self.reinforce_fixed()
 
     def get_netlist(self) -> Netlist:
         yaml = "Modules: {\n"
@@ -575,37 +649,22 @@ class Model:
                     yaml += "__fixed_region_" + str(m - len(self.og_names))
             yaml += "]"
         yaml += "\n]\n"
-        print(yaml)
+        # print(yaml)
         return Netlist(yaml)
 
+    def is_solved(self):
+        return self.gekko.options.APPSTATUS == 1
 
-def compute_options(options) -> tuple[list[InputModule],  # Module list
-                                      list[float],  # Area list
-                                      OptionalMatrix,  # X coords
-                                      OptionalMatrix,  # Y coords
-                                      OptionalMatrix,  # widths
-                                      OptionalMatrix,  # heights
-                                      float,  # Die width
-                                      float,  # Die height
-                                      HyperGraph,  # Hypergraph
-                                      float,  # Max ratio
-                                      list[str]]:  # Original manes
-    max_ratio: float = options['max_ratio']
 
-    die = Die(options['die'])
-    die_width: float = die.width
-    die_height: float = die.height
-
-    netlist = Netlist(options['netlist'])
-    mod_map: dict[str, int] = {}
-    og_names = []
-
+def netlist_to_utils(netlist: Netlist):
     ml: list[InputModule] = []
     al: list[float] = []
     xl: OptionalMatrix = {}
     yl: OptionalMatrix = {}
     wl: OptionalMatrix = {}
     hl: OptionalMatrix = {}
+    mod_map: dict[str, int] = {}
+    og_names = []
     for module in netlist.modules:
         mod_map[module.name] = len(ml)
         og_names.append(module.name)
@@ -658,7 +717,27 @@ def compute_options(options) -> tuple[list[InputModule],  # Module list
         connection = list(map(lambda e_mod: mod_map[e_mod.name], edge.modules))
         weight = edge.weight
         hyper.append((weight, connection))
+    return ml, al, xl, yl, wl, hl, hyper, og_names
 
+
+def compute_options(options) -> tuple[list[InputModule],  # Module list
+                                      list[float],  # Area list
+                                      OptionalMatrix,  # X coords
+                                      OptionalMatrix,  # Y coords
+                                      OptionalMatrix,  # widths
+                                      OptionalMatrix,  # heights
+                                      float,  # Die width
+                                      float,  # Die height
+                                      HyperGraph,  # Hypergraph
+                                      float,  # Max ratio
+                                      list[str]]:  # Original manes
+    max_ratio: float = options['max_ratio']
+
+    die = Die(options['die'])
+    die_width: float = die.width
+    die_height: float = die.height
+    netlist = Netlist(options['netlist'])
+    ml, al, xl, yl, wl, hl, hyper, og_names = netlist_to_utils(netlist)
     return ml, al, xl, yl, wl, hl, die_width, die_height, hyper, max_ratio, og_names
 
 
@@ -669,6 +748,7 @@ def main(prog: str | None = None, args: list[str] | None = None) -> int:
     options = parse_options(prog, args)
     ml, al, xl, yl, wl, hl, die_width, die_height, hyper, max_ratio, og_names = compute_options(options)
     m = Model(ml, al, xl, yl, wl, hl, die_width, die_height, hyper, max_ratio, og_names)
+    turn_off_flag(1)
 
     print("Initial cost: ", m.objective().evaluate())
 
@@ -680,25 +760,35 @@ def main(prog: str | None = None, args: list[str] | None = None) -> int:
     start = time()
 
     # noinspection PyBroadException
-    try:
-        print("Beginning legalization phase")
-        m.solve(options['verbose'])
-        print("Legalization done")
-        print("Beginning optimization phase")
+    #try:
+    if True:
         m.apply_objective_function()
-        m.solve(options['verbose'])
-        print("Optimization done")
-    except Exception:
-        print("No solution was found!")
+        for i in range(0, 100, 1):  # type: ignore
+            t = m.time.evaluate()
+            print("time t =", t)
+            print("epsilon =", get_epsilon())
+
+            m.set_fixed_t(i + 1)
+            m.build_model()
+            m.solve(options['verbose'])
+            ntuple = netlist_to_utils(m.get_netlist())
+            ml = ntuple[0]
+            m.set_ml(ml)
+
+            #m.time_advance(1)
+            if options['plot']:
+                m.interactive_draw()
+            if m.is_solved():
+                print("")
+                break
+    #except Exception:
+    #    print("No solution was found!")
 
     end = time()
     print("Final cost: ", m.objective().evaluate())
     print("Elapsed time: ", end - start, "s")
 
-    if options['plot']:
-        m.interactive_draw()
-
-    m.get_netlist()
+    print(m.get_netlist())
     return 0
 
 

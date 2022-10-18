@@ -292,3 +292,9 @@ class Canvas:
         Shows the image.
         """
         self.canvas.show()
+
+    def save(self, path: str) -> None:
+        """
+        Saves the image.
+        """
+        self.canvas.save(path)

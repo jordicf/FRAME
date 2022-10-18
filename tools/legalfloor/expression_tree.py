@@ -6,6 +6,33 @@ from math import sqrt as math_sqrt
 from typing import Any, Callable
 from enum import IntEnum
 
+epsilon: ExpressionTree
+debug_print: int = 0xFF
+
+
+def turn_off_flag(flag: int):
+    global debug_print
+    debug_print &= ~flag
+
+
+def turn_on_flag(flag: int):
+    global debug_print
+    debug_print |= flag
+
+
+def debug(*values, flag: int = 0xFF):
+    if flag & debug_print > 0:
+        print(values)
+
+
+def set_epsilon(new_epsilon: ExpressionTree):
+    global epsilon
+    epsilon = new_epsilon
+
+
+def get_epsilon() -> float:
+    return epsilon.evaluate()
+
 
 class Cmp(IntEnum):
     LE = 0
@@ -13,37 +40,47 @@ class Cmp(IntEnum):
     EQ = 2
 
 
-def add_equation(gekko: GEKKO, lhs: ExpressionTree, cmp: Cmp, rhs: ExpressionTree, name: str):
-    epsilon = 1e-18
+def add_equation(gekko: GEKKO, lhs: ExpressionTree, cmp: Cmp, rhs: ExpressionTree, name: str, hard: bool = False):
     lhs_expr = lhs.get_gekko_expression(lambda x: x, None, False)
     rhs_expr = rhs.get_gekko_expression(lambda x: x, None, False)
+    e = epsilon.get_gekko_expression()
     lhs_val = lhs.evaluate()
     rhs_val = rhs.evaluate()
+    e_val = epsilon.evaluate()
     if isinstance(lhs_expr, ExpressionTree) or isinstance(rhs_expr, ExpressionTree):
         raise Exception("?")
     if cmp is Cmp.LE:
-        gekko.Equation(lhs_expr <= rhs_expr + epsilon)
-        if lhs.evaluate() > rhs.evaluate():
-            print("WARNING: Equation " + name + " is not met: ", lhs_val, "<=", rhs_val)
+        if hard:
+            gekko.Equation(lhs_expr <= rhs_expr)
+        else:
+            gekko.Equation(lhs_expr <= rhs_expr + e)
+        if lhs_val > rhs_val + e_val:
+            debug("WARNING: Equation " + name + " is not met: ", lhs_val, "<=", rhs_val, flag=1)
         """
         else:
             print("Equation " + name + " is met: ", lhs_val, "<=", rhs_val, "(slack =",
                   rhs_val + epsilon - lhs_val, ")")
         """
     elif cmp is Cmp.GE:
-        gekko.Equation(lhs_expr >= rhs_expr - epsilon)
-        if lhs.evaluate() < rhs.evaluate():
-            print("WARNING: Equation " + name + " is not met", lhs_val, ">=", rhs_val)
+        if hard:
+            gekko.Equation(lhs_expr >= rhs_expr)
+        else:
+            gekko.Equation(lhs_expr >= rhs_expr - e)
+        if lhs_val < rhs_val - e_val:
+            debug("WARNING: Equation " + name + " is not met", lhs_val, ">=", rhs_val, flag=1)
         """
         else:
             print("Equation " + name + " is met: ", lhs_val, ">=", rhs_val, "(slack =",
                   lhs_val - rhs_val + epsilon, ")")
         """
     elif cmp is Cmp.EQ:
-        gekko.Equation(lhs_expr >= rhs_expr - epsilon)
-        gekko.Equation(lhs_expr <= rhs_expr + epsilon)
-        if abs(lhs.evaluate() - rhs.evaluate()) > epsilon:
-            print("WARNING: Equation " + name + " is not met", lhs_val, "==", rhs_val)
+        if hard:
+            gekko.Equation(lhs_expr == rhs_expr)
+        else:
+            gekko.Equation(lhs_expr >= rhs_expr - e)
+            gekko.Equation(lhs_expr <= rhs_expr + e)
+        if abs(lhs_val - rhs_val) > e_val:
+            debug("WARNING: Equation " + name + " is not met", lhs_val, "==", rhs_val, flag=1)
         """
         else:
             print("Equation " + name + " is met: ", lhs_val, "==", rhs_val, "(slack = ",
@@ -103,6 +140,14 @@ class ExpressionTree:
                 self.size = 1
             else:
                 self.size = sum(map(lambda x: x.size, value)) + 1
+
+    def assign(self, value: float):
+        if self.type is not NodeType.VAR:
+            raise Exception("You can only assign a value to a variable")
+        self.value.value = [value]
+
+    def fix_as_lower_bound(self):
+        add_equation(self.gekko, self, Cmp.GE, ExpressionTree(self.gekko, self.evaluate()), "lower bound", hard=True)
 
     def get_string(self) -> str:
         symbols: list[str] = ["_", "_", "+", "-", "*", "/", "**", "_"]
