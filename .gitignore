@@ -3,6 +3,7 @@
 
 __pycache__
 venv
+venv10
 frame.egg-info
 
 *.pyd

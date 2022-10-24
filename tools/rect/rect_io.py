@@ -126,7 +126,7 @@ def solution_to_netlist(netlist: Netlist, result: dict[str, list[SimpleBox]]):
             netlist_string += ",\n    hard: true"
         netlist_string += "\n  }"
     netlist_string += "}\n\nNets: ["
-    first = False
+    first = True
     if len(netlist.edges) == 0:
         netlist_string += "]\n"
     else:
@@ -135,11 +135,11 @@ def solution_to_netlist(netlist: Netlist, result: dict[str, list[SimpleBox]]):
                 netlist_string += ","
             first = False
             netlist_string += "\n  ["
-            f2 = False
+            f2 = True
             for module in hyper_edge.modules:
                 if not f2:
                     netlist_string += ", "
-                f2 = True
+                f2 = False
                 netlist_string += module.name
             netlist_string += "]"
         netlist_string += "\n]\n"
