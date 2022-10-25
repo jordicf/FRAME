@@ -61,6 +61,10 @@ def parse_options(prog: str | None = None, args: list[str] | None = None) -> dic
                         help="Plots the problem together with the solutions found")
     parser.add_argument("--verbose", dest="verbose", const=True, default=False, action="store_const",
                         help="Shows additional debug information")
+    parser.add_argument("--ini_temp", dest="t0", type=float, default=0.9,
+                        help="Initial annealing temperature")
+    parser.add_argument("--alpha_temp", dest="dt", type=float, default=0.3,
+                        help="Temperature annealing factor")
     return vars(parser.parse_args(args))
 
 
@@ -289,6 +293,9 @@ class Model:
     hue_array: list[str]
     output_counter: int
 
+    temperature_decay: float
+    temperature_ini: float
+
     def time_advance(self, amount: float):
         if amount <= 0:
             raise Exception("The amount of time must be > 0")
@@ -298,7 +305,7 @@ class Model:
     def define_time(self) -> None:
         t = self.gekko.Var([0])
         self.time = ExpressionTree(self.gekko, t)
-        set_epsilon(ExpressionTree(self.gekko, 0.01) ** self.time)
+        set_epsilon((ExpressionTree(self.gekko, self.temperature_decay) ** self.time) * self.temperature_ini)
         self.time_advance(self.fixed_t)
         print("")
 
@@ -527,8 +534,12 @@ class Model:
                  die_height: float,
                  hyper: HyperGraph,
                  max_ratio: float,
-                 og_names: list[str]):
+                 og_names: list[str],
+                 temp0: float,
+                 alpha_temp: float):
         assert len(ml) == len(al), "M and A need to have the same length!"
+        self.temperature_decay = temp0 #0.9
+        self.temperature_ini = alpha_temp #0.3
         self.ml = ml
         self.al = al
         self.xl = xl
@@ -607,7 +618,7 @@ class Model:
 
     def solve(self, verbose=False) -> None:
         self.gekko.options.COLDSTART = 1
-        self.gekko.options.MAX_ITER += 10
+        self.gekko.options.MAX_ITER += 1000
         self.gekko.solve(disp=verbose, debug=0)
         self.reinforce_fixed()
 
@@ -747,7 +758,7 @@ def main(prog: str | None = None, args: list[str] | None = None) -> int:
     """
     options = parse_options(prog, args)
     ml, al, xl, yl, wl, hl, die_width, die_height, hyper, max_ratio, og_names = compute_options(options)
-    m = Model(ml, al, xl, yl, wl, hl, die_width, die_height, hyper, max_ratio, og_names)
+    m = Model(ml, al, xl, yl, wl, hl, die_width, die_height, hyper, max_ratio, og_names, options['t0'], options['dt'])
     turn_off_flag(1)
 
     print("Initial cost: ", m.objective().evaluate())
@@ -778,7 +789,7 @@ def main(prog: str | None = None, args: list[str] | None = None) -> int:
             #m.time_advance(1)
             if options['plot']:
                 m.interactive_draw()
-            if m.is_solved():
+            if m.is_solved() and get_epsilon() < 1e-10:
                 print("")
                 break
     #except Exception:
