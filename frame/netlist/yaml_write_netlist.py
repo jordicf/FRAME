@@ -42,6 +42,7 @@ def dump_yaml_module(module: Module) -> dict:
     """
     info: dict[str, float | bool | list | dict] = {}
 
+    # Dump all the information
     if not module.is_hard:
         if len(module.area_regions) == 1 and KW_GROUND in module.area_regions:
             info[KW_AREA] = module.area(KW_GROUND)
@@ -54,11 +55,13 @@ def dump_yaml_module(module: Module) -> dict:
         if module.aspect_ratio is not None:
             info[KW_ASPECT_RATIO] = [module.aspect_ratio.min_wh, module.aspect_ratio.max_wh]
 
+    # If it is fixed, no need to say it is hard
     if module.is_fixed:
         info[KW_FIXED] = True
     elif module.is_hard:
         info[KW_HARD] = True
 
+    # In case it is a terminal, no need to say it is hard. The terminal can be written (if it exists)
     if module.is_terminal:
         info[KW_TERMINAL] = True
         info.pop(KW_HARD, None)
