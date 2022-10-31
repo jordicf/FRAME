@@ -128,7 +128,8 @@ class Spectral(Netlist):
                 if not m.is_fixed:  # it is a hard module (movable)
                     m.recenter_rectangles()
                 # Remove the center of the hard block
-                m.center = None
+                if not m.is_terminal: # Need to keep the center for the terminals
+                    m.center = None
 
         return 0
 
