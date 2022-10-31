@@ -61,7 +61,7 @@ def dump_yaml_module(module: Module) -> dict:
 
     if module.is_terminal:
         info[KW_TERMINAL] = True
-        del info[KW_HARD]
+        info.pop(KW_HARD, None)
 
     if len(module.rectangles) > 0:
         info[KW_RECTANGLES] = dump_yaml_rectangles(module.rectangles)
