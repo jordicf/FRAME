@@ -20,6 +20,7 @@ class Module:
     _name: str  # Name of the module
     _center: Point | None  # Center of the module (if defined)
     _aspect_ratio: AspectRatio | None  # interval of the aspect ratio
+    _terminal: bool  # It is a terminal
     _hard: bool  # Must be a hard module (but movable if not fixed)
     _fixed: bool  # Must be fixed in the layout
     _flip: bool  # May be flipped (only for hard modules, not fixed)
@@ -258,11 +259,15 @@ class Module:
         area_defined = len(self.area_regions) > 0
         assert self.is_hard or area_defined, f"No area defined for a soft module {self.name}."
 
+        # terminal imlies hard
+        assert not self.is_terminal or self.is_hard, f"Terminal module {self.name} is not hard."
+
         if self.is_hard:
             # Check that neither area, nor center nor min_shape are defined.
             # It also checks that at least has one rectangle
             assert not area_defined, f"Inconsistent hard module {self.name}: cannot specify area."
-            assert self.center is None, f"Inconsistent hard module {self.name}: cannot specify center."
+            assert self.center is None or self.is_terminal,\
+                f"Inconsistent hard module {self.name}: cannot specify center."
             assert self.aspect_ratio is None,\
                 f"Inconsistent hard module {self.name}: cannot specify aspect ratio."
             assert self.is_terminal or self.num_rectangles > 0, \
