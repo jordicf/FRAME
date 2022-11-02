@@ -39,7 +39,7 @@ def parse_options(prog: str | None = None, args: list[str] | None = None) -> dic
                              "and incompatible with --aspect-ratio and --num-rectangles)")
     parser.add_argument("-r", "--aspect-ratio", type=float)  # TODO: write help
     parser.add_argument("-n", "--num-rectangles", type=int)  # TODO: write help
-    parser.add_argument("-a", "--alpha", type=float, required=True,
+    parser.add_argument("-a", "--alpha", type=float, default=0.3,
                         help="tradeoff hyperparameter between 0 and 1 to control the balance between dispersion and "
                              "wire length. Smaller values will reduce the dispersion and increase the wire length, and "
                              "greater ones the other way around")
