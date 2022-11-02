@@ -73,7 +73,7 @@ def fruchterman_reingold_layout(die: Die, kappa: float = 1.0, verbose: bool = Fa
         return w * x**2 / k
 
     def f_rep(x, w):
-        return w * k**2 / max(x, 0.01)
+        return w * k**2 / max(x, 1e-6)
 
     def die_repelling(p: Point, w: float) -> Point:
         repelling = Point(0, 0)
@@ -102,7 +102,7 @@ def fruchterman_reingold_layout(die: Die, kappa: float = 1.0, verbose: bool = Fa
             for u in range(die.netlist.num_modules):
                 if u != v:
                     diff = pos[v] - pos[u]
-                    diff_norm = max(diff.norm(), 0.01)
+                    diff_norm = max(diff.norm(), 1e-6)
                     disp[v] += diff / diff_norm * f_rep(diff_norm, die.netlist.modules[v].area()) \
                         + die_repelling(pos[v], die.netlist.modules[v].area())
 
@@ -110,13 +110,13 @@ def fruchterman_reingold_layout(die: Die, kappa: float = 1.0, verbose: bool = Fa
             for v_mod, u_mod in combinations(hyperedge.modules, 2):
                 v, u = mod2idx[v_mod], mod2idx[u_mod]
                 diff = pos[v] - pos[u]
-                diff_norm = max(diff.norm(), 0.01)
+                diff_norm = max(diff.norm(), 1e-6)
                 disp[v] -= diff / diff_norm * f_att(diff_norm, hyperedge.weight)
                 disp[u] += diff / diff_norm * f_att(diff_norm, hyperedge.weight)
 
         for v in range(die.netlist.num_modules):
             if not die.netlist.modules[v].is_fixed:
-                disp_norm = max(disp[v].norm(), 0.01)
+                disp_norm = max(disp[v].norm(), 1e-6)
                 pos[v] += disp[v] / disp_norm * min(disp_norm, t)
                 pos[v].x = min(die.width / 2, max(-die.width / 2, pos[v].x))
                 pos[v].y = min(die.height / 2, max(-die.height / 2, pos[v].y))
