@@ -88,7 +88,7 @@ def check_modules(modules: list[Module]) -> None:
         if m.num_rectangles > 0:
             continue
         assert m.center is not None, f'module {m.name} is not drawable. It has neither center nor rectangles.'
-        assert m.area() > 0, f'module {m.name} is not drawable (no area specified).'
+        assert m.area() > 0 or m.is_terminal, f'module {m.name} is not drawable (no area specified).'
 
 
 def calculate_bbox(netlist: Netlist) -> Shape:
