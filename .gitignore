@@ -11,6 +11,7 @@ frame.egg-info
 *.exe
 
 tools/glbfloor/ignore
+tools/legalfloor/example_visuals/*
 
 tools/rect/bestbox.txt
 tools/rect/tofind.txt

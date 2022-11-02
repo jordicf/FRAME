@@ -65,6 +65,8 @@ def parse_options(prog: str | None = None, args: list[str] | None = None) -> dic
                         help="Initial annealing temperature")
     parser.add_argument("--alpha_temp", dest="dt", type=float, default=0.3,
                         help="Temperature annealing factor")
+    parser.add_argument("--outfile", type=str, dest='file', default=None,
+                        help="The output file path (yaml)")
     return vars(parser.parse_args(args))
 
 
@@ -799,7 +801,13 @@ def main(prog: str | None = None, args: list[str] | None = None) -> int:
     print("Final cost: ", m.objective().evaluate())
     print("Elapsed time: ", end - start, "s")
 
-    print(m.get_netlist())
+    net = m.get_netlist()
+    if options['file'] is None:
+        print(net)
+    else:
+        f = open(options['file'], "w")
+        f.write(net)
+        f.close()
     return 0
 
 
