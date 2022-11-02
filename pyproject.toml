@@ -52,7 +52,8 @@ packages = [
     "tools.force",
     "tools.glbfloor",
     "tools.rect",
-    "tools.legalfloor"
+    "tools.legalfloor",
+    "tools.all"
 ]
 
 [tool.mypy]

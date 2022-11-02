@@ -85,6 +85,7 @@ def parse_options(prog: str | None = None, args: list[str] | None = None) -> dic
                         help="The module to optimize. If none is introduced, it optimizes all of them")
     parser.add_argument("--threshold", type=float, dest='threshold', default=0.80,
                         help="The quality threshold. The algorithm will cease to refine once this quality is ensured.")
+    parser.add_argument("-v", "--verbose", action="store_true")
 
     return vars(parser.parse_args(args))
 

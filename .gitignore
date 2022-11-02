@@ -10,7 +10,7 @@ frame.egg-info
 *.pyc
 *.exe
 
-tools/glbfloor/ignore
+ignore
 tools/legalfloor/example_visuals/*
 
 tools/rect/bestbox.txt

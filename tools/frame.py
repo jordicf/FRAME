@@ -14,6 +14,7 @@ import tools.force.force  # To improve the initial position of modules using for
 import tools.glbfloor.glbfloor  # To find the allocation of the modules using optimization methods
 import tools.rect.rect  # To normalize fuzzy module assignments
 import tools.legalfloor.legalfloor  # To legalize the floorplan
+import tools.all.all  # To execute the whole flow
 
 # Tool names and the entry function they execute.
 # The functions must accept two parameters: the tool name and the command-line arguments passed to it.
@@ -24,7 +25,8 @@ TOOLS = {"hello": tools.hello.hello.main,
          "force": tools.force.force.main,
          "glbfloor": tools.glbfloor.glbfloor.main,
          "rect": tools.rect.rect.main,
-         "legalfloor": tools.legalfloor.legalfloor.main
+         "legalfloor": tools.legalfloor.legalfloor.main,
+         "all": tools.all.all.main
          }
 
 
