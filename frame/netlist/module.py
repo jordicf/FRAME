@@ -292,7 +292,7 @@ class Module:
         """
         assert self.center is not None, f"Cannot calculate square for module {self.name}. Missing center."
         area = self.area()
-        assert area > 0, f"Cannot calculate square for module {self.name}. Area is zero."
+        assert area >= 0, f"Cannot calculate square for module {self.name}. Area is zero."
         side = math.sqrt(area)
         self._rectangles = []
         self.add_rectangle(Rectangle(**{KW_CENTER: self.center, KW_SHAPE: Shape(side, side)}))
