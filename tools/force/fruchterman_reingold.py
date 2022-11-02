@@ -90,6 +90,12 @@ def fruchterman_reingold_layout(die: Die, kappa: float = 1.0, verbose: bool = Fa
     pos: list[Point] = [module.center - Point(die.width, die.height) / 2 if module.center is not None else Point()
                         for module in die.netlist.modules]  # The die is recentered to the origin
     disp = [Point()] * die.netlist.num_modules
+
+    if visualize is not None:
+        for v, module in enumerate(die.netlist.modules):
+            module.center = pos[v] + Point(die.width, die.height) / 2
+        vis_imgs.append(get_floorplan_plot(die.netlist, die.bounding_box.shape))
+
     for i in range(max_iter):
         for v in range(die.netlist.num_modules):
             disp[v] = Point()
