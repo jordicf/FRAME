@@ -13,6 +13,7 @@ from dataclasses import dataclass
 
 from PIL import Image, ImageDraw, ImageFont
 from distinctipy import distinctipy
+from matplotlib import font_manager
 
 from frame.die.die import Die
 from frame.geometry.geometry import Point, Shape, Rectangle, BoundingBox
@@ -76,6 +77,11 @@ def calculate_scaling(original: Shape, width: int, height: int, frame: int = 20,
         width = round(original.w * height / original.h)
 
     return Scaling(width / original.w, height / original.h, width, height, frame)
+
+
+def get_font(font_size: int) -> ImageFont.FreeTypeFont:
+    font_file = font_manager.findfont(font_manager.FontProperties())
+    return ImageFont.truetype(font_file, font_size)
 
 
 def check_modules(modules: list[Module]) -> None:
@@ -187,7 +193,7 @@ def draw_geometry(im: Image.Image, bb: BoundingBox, color, scaling: Scaling,
         drawing.rectangle((ll.x, ur.y, ur.x, ll.y), fill=color)
     # Now the name
     if fontsize > 0:
-        font = ImageFont.truetype("arial.ttf", fontsize)
+        font = get_font(fontsize)
         ccolor = distinctipy.get_text_color((color[0] / 255, color[1] / 255, color[2] / 255), threshold=0.6)[0]
         ccolor = round(ccolor * 255)
         ccolor = (ccolor, ccolor, ccolor)
@@ -242,7 +248,7 @@ def get_floorplan_plot(netlist: Netlist, die_shape: Shape, allocation: Allocatio
             color = (round(color[0]), round(color[1]), round(color[2]), 128)
             drawing.rectangle((ll.x, ur.y, ur.x, ll.y), fill=color)
         # Draw the module names
-        font = ImageFont.truetype("arial.ttf", fontsize)
+        font = get_font(fontsize)
         for m in netlist.modules:
             center = scale(allocation.center(m.name), scaling)
             txt_w, txt_h = drawing.textsize(m.name, font=font)  # To center the text

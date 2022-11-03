@@ -9,7 +9,7 @@ from math import ceil
 
 from PIL import Image, ImageDraw, ImageFont
 from distinctipy import get_text_color
-from matplotlib import cm
+from matplotlib import cm, font_manager
 
 from frame.geometry.geometry import Point
 from frame.die.die import Die
@@ -86,10 +86,10 @@ def get_separated_floorplan_plot(die: Die, allocation: Allocation, dispersions: 
 
     margin = 40
     scale_factor = 150
-    font_name = "arial.ttf"
-    cell_font = ImageFont.truetype(font_name, round(scale_factor / 10))
-    medium_font = ImageFont.truetype(font_name, round(scale_factor / 8))
-    large_font = ImageFont.truetype(font_name, round(scale_factor / 6))
+    font_file = font_manager.findfont(font_manager.FontProperties())
+    cell_font = ImageFont.truetype(font_file, round(scale_factor / 10))
+    medium_font = ImageFont.truetype(font_file, round(scale_factor / 8))
+    large_font = ImageFont.truetype(font_file, round(scale_factor / 6))
     color_map = "Blues"
 
     grid_width, grid_height = map(ceil, astuple(die.bounding_box.shape))
