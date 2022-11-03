@@ -1,6 +1,5 @@
 # `frame force`
 
-Relocate the modules of the netlist using a force-directed algorithm to obtain better initial values
-for the next stages.
+Compute the global floorplan assigning the allocation of each module of the netlist.
 
 Execute `frame force --help` for help.
