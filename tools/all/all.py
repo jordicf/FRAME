@@ -37,7 +37,7 @@ def execute_command(command: list[str], verbose: bool) -> None:
         command.append("--verbose")
         print(f"Executing \"{' '.join(command)}\"")
         start_time = time()
-    subprocess_info = subprocess.run(command, shell=True)
+    subprocess_info = subprocess.run(command)
     if verbose:
         print(f"Finished! Elapsed time: {time() - start_time:.3f} s")
         print("-" * 80)
