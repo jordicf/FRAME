@@ -16,7 +16,7 @@ def parse_options(prog: str | None = None, args: list[str] | None = None) -> dic
     :param args: command-line arguments
     :return: a dictionary with the arguments
     """
-    parser = argparse.ArgumentParser(prog=prog, description="Execute the whole frame flow.")
+    parser = argparse.ArgumentParser(prog=prog, description="Run the whole FRAME flow.")
     parser.add_argument("--netlist", required=True,
                         help="input netlist filename")
     parser.add_argument("-d", "--die", metavar="<WIDTH>x<HEIGHT> or FILENAME", required=True,
