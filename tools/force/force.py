@@ -10,6 +10,7 @@ from frame.die.die import Die
 from frame.netlist.netlist import Netlist
 
 from tools.force.fruchterman_reingold import force_algorithm
+from tools.force.kamada_kawai import kamada_kawai_layout
 
 
 def parse_options(prog: str | None = None, args: list[str] | None = None) -> dict[str, Any]:
@@ -50,6 +51,7 @@ def main(prog: str | None = None, args: list[str] | None = None) -> None:
     if verbose:
         start_time = time()
 
+    die = kamada_kawai_layout(die, verbose=verbose)  # TODO: visualize
     die = force_algorithm(die, verbose=verbose, visualize=visualize)
 
     if verbose:
