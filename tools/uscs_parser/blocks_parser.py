@@ -40,8 +40,6 @@ def word_split(line: str) -> list[str]:
 
 
 def parse_terminals(lines: list[str], i: int, modules: Modules):
-    # For now, I don't know what to do with this
-    # So, TODO, this.
     if blank_line(lines[i]):
         return True
     words = word_split(lines[i])
@@ -69,9 +67,41 @@ def parse_rectangles(lines: list[str], i: int, modules: Modules) -> bool:
         }
         return True
     elif len(words) == 11 and words[1] == "hard" + "rectilinear":
-        # TODO: This.
-        raise Exception("TODO")
-        # return True
+        num_vertices = int(words[2])
+        joint_string = ""
+        for i in range(3, len(words)):
+            joint_string += " " + words[i]
+        vertices = []
+        index = 0
+        for i in range(0, num_vertices):
+            while index < len(joint_string) and joint_string[index] != '(':
+                index += 1
+            index += 1
+            point_string = ""
+            while index < len(joint_string) and joint_string[index] != ')':
+                point_string += joint_string[index]
+                index += 1
+            if index >= len(joint_string) or joint_string[index] != ')':
+                raise Exception("Runaway argument at line " + str(i))
+            point_split = point_string.split(",")
+            if len(point_split) != 2:
+                raise Exception("Point on line " + str(i) + " has the wrong number of dimensions")
+            x, y = float(point_split[0]), float(point_split[1])
+            vertices.append((x, y))
+        if len(vertices) != 4:
+            raise Exception("Shape not tolerated on line " + str(i) + ": Only quads allowed")
+        # TODO: Check whether the input shape is actually an *orthogonal* quad
+        min_x = min(vertices[0][0], vertices[1][0], vertices[2][0], vertices[3][0])
+        max_x = max(vertices[0][0], vertices[1][0], vertices[2][0], vertices[3][0])
+        min_y = min(vertices[0][1], vertices[1][1], vertices[2][1], vertices[3][1])
+        max_y = max(vertices[0][1], vertices[1][1], vertices[2][1], vertices[3][1])
+        center = ((min_x + max_x) / 2, (min_y + max_y) / 2)
+        dims = (max_x - min_x, max_y - min_y)
+        modules[words[0]] = {
+            'rectangles': [[center[0], center[1], dims[0], dims[1]]],
+            'fixed': True
+        }
+        return True
     else:
         return False
 
