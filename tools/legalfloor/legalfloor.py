@@ -805,9 +805,7 @@ def main(prog: str | None = None, args: list[str] | None = None) -> int:
     if options['file'] is None:
         print(net)
     else:
-        f = open(options['file'], "w")
-        f.write(net)
-        f.close()
+        net.write_yaml(options['file'])
     return 0
 
 
