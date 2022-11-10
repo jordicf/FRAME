@@ -32,6 +32,8 @@ def execute_command(command: list[str], verbose: bool) -> None:
     :param command: the command to execute
     :param verbose: if True, print the elapsed time
     """
+    # TODO: visualize the execution of the command
+    # TODO: make it more configurable
     start_time = 0.0
     if verbose:
         command.append("--verbose")
@@ -68,7 +70,7 @@ def main(prog: str | None = None, args: list[str] | None = None) -> None:
                      "--die", options['die'],
                      "--out-netlist", "glbfloor-" + netlist,
                      "--out-allocation", "glbfloor-allocation.yml",
-                     "--max-iter", "2",
+                     "--max-iter", "10",
                      "--aspect-ratio", "2",
                      "--num-rectangles", "16"], verbose)
     execute_command(["frame", "rect",
