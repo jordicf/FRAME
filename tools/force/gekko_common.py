@@ -4,6 +4,7 @@
 
 from typing import Union
 
+from PIL import Image
 from gekko import GEKKO
 from gekko.gk_variable import GKVariable
 
@@ -79,7 +80,7 @@ def extract_solution(model: Model, die: Die) -> Die:
 
 
 def solve_and_extract_solution(model: Model, die: Die, verbose: bool = False, visualize: str | None = None,
-                               max_iter: int = 100) -> Die:
+                               max_iter: int = 100) -> tuple[Die, list[Image.Image]]:
     """
     Solves the model's optimization problem, extracts the solution from it, and returns it
     :param model: the model
@@ -117,6 +118,4 @@ def solve_and_extract_solution(model: Model, die: Die, verbose: bool = False, vi
         else:
             print(f"Maximum number of iterations ({max_iter}) reached! The solution was not found.")
 
-        vis_imgs[0].save(f"{visualize}.gif", save_all=True, append_images=vis_imgs[1:], duration=100)
-
-    return die
+    return die, vis_imgs

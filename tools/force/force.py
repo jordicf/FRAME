@@ -13,7 +13,7 @@ from tools.force.fruchterman_reingold import force_algorithm
 from tools.force.kamada_kawai import kamada_kawai_layout
 
 
-def add_noise(die: Die, sd: float = 0.1) -> Die:
+def add_noise(die: Die, sd: float = 0.01) -> Die:
     """
     Add some noise to the positions of the modules
     :param die: the die
@@ -68,8 +68,11 @@ def main(prog: str | None = None, args: list[str] | None = None) -> None:
         start_time = time()
 
     die = add_noise(die)
-    die = kamada_kawai_layout(die, verbose=verbose)  # TODO: visualize
-    die = force_algorithm(die, verbose=verbose, visualize=visualize)
+    die, kk_vis_imgs = kamada_kawai_layout(die, verbose=verbose, visualize=visualize)
+    die, fa_vis_imgs = force_algorithm(die, verbose=verbose, visualize=visualize)
+    if visualize:
+        vis_imgs = kk_vis_imgs + fa_vis_imgs
+        vis_imgs[0].save(f"{visualize}.gif", save_all=True, append_images=vis_imgs[1:], duration=100)
 
     if verbose:
         print(f"Elapsed time: {time() - start_time:.3f} s")

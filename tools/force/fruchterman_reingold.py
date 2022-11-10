@@ -6,6 +6,8 @@ from copy import deepcopy
 from itertools import combinations
 import math
 
+from PIL import Image
+
 from frame.die.die import Die
 from frame.geometry.geometry import Point
 from tools.draw.draw import get_floorplan_plot
@@ -48,7 +50,7 @@ def total_intersection_area(die: Die) -> float:
 
 
 def fruchterman_reingold_layout(die: Die, kappa: float = 1.0, verbose: bool = False, visualize: str | None = None,
-                                max_iter: int = 100) -> Die:
+                                max_iter: int = 100) -> tuple[Die, list[Image.Image]]:
     """
     Computes a layout for the die netlist using a modified version of the Fruchterman-Reingold algorithm
     :param die: the die, with the netlist with the modules with the centers initialized
@@ -137,13 +139,12 @@ def fruchterman_reingold_layout(die: Die, kappa: float = 1.0, verbose: bool = Fa
     if visualize is None:
         for v, module in enumerate(die.netlist.modules):
             module.center = pos[v] + Point(die.width, die.height) / 2
-    else:
-        vis_imgs[0].save(f"{visualize}.gif", save_all=True, append_images=vis_imgs[1:], duration=100)
 
-    return die
+    return die, vis_imgs
 
 
-def force_algorithm(die: Die, verbose: bool = False, visualize: str | None = None, max_iter: int = 100) -> Die:
+def force_algorithm(die: Die, verbose: bool = False, visualize: str | None = None, max_iter: int = 100) \
+        -> tuple[Die, list[Image.Image]]:
     """
     Computes multiple layouts for the die netlist by changing the kappa hyperparameter, and returns the one with the
     smallest cost, which is defined as the sum of the areas of the intersections of the circles of the modules plus half
@@ -159,7 +160,7 @@ def force_algorithm(die: Die, verbose: bool = False, visualize: str | None = Non
     for kappa in [i / 10 for i in range(4, 16)]:
         if verbose:
             print(f"Kappa: {kappa}")
-        new_die = fruchterman_reingold_layout(deepcopy(die), kappa, verbose, None, max_iter)
+        new_die, _ = fruchterman_reingold_layout(deepcopy(die), kappa, verbose, None, max_iter)
         assert new_die.netlist is not None  # Assertion to suppress Mypy error
         intersection_area = total_intersection_area(new_die)
         wire_length = new_die.netlist.wire_length

@@ -4,6 +4,7 @@
 
 from itertools import combinations
 
+from PIL import Image
 import numpy as np
 from numpy import typing as npt
 
@@ -51,7 +52,8 @@ def get_all_shortest_path_lengths(graph: AdjacencyMatrix) -> AdjacencyMatrix:
     return dist_mat
 
 
-def kamada_kawai_layout(die: Die, verbose: bool = False, visualize: str | None = None, max_iter: int = 150) -> Die:
+def kamada_kawai_layout(die: Die, verbose: bool = False, visualize: str | None = None, max_iter: int = 150) \
+        -> tuple[Die, list[Image.Image]]:
     """
     Relocate the modules of the netlist using and adaptation of the algorithm proposed
     by Kamada & Kawai in "An algorithm for drawing general undirected graphs" (1989).
@@ -91,6 +93,6 @@ def kamada_kawai_layout(die: Die, verbose: bool = False, visualize: str | None =
         g.Minimize(0.5 *
                    (1 / m.x[i]**2 + 1 / (m.x[i] - die.width)**2 + 1 / m.y[i]**2 + 1 / (m.y[i] - die.height)**2))
 
-    die = solve_and_extract_solution(m, die, verbose, visualize, max_iter)
+    die, vis_imgs = solve_and_extract_solution(m, die, verbose, visualize, max_iter)
 
-    return die
+    return die, vis_imgs
