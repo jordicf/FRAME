@@ -13,6 +13,22 @@ from tools.force.fruchterman_reingold import force_algorithm
 from tools.force.kamada_kawai import kamada_kawai_layout
 
 
+def add_noise(die: Die, sd: float = 0.1) -> Die:
+    """
+    Add some noise to the positions of the modules
+    :param die: the die
+    :param sd: standard deviation of the noise
+    :return: the die with the noise added
+    """
+    import random
+    assert die.netlist is not None, "No netlist associated to the die"  # Assertion to suppress Mypy error
+    for module in die.netlist.modules:
+        assert module.center is not None, "Module has no center"  # Assertion to suppress Mypy error
+        module.center.x += random.gauss(0, sd)
+        module.center.y += random.gauss(0, sd)
+    return die
+
+
 def parse_options(prog: str | None = None, args: list[str] | None = None) -> dict[str, Any]:
     """
     Parse the command-line arguments for the tool
@@ -51,6 +67,7 @@ def main(prog: str | None = None, args: list[str] | None = None) -> None:
     if verbose:
         start_time = time()
 
+    die = add_noise(die)
     die = kamada_kawai_layout(die, verbose=verbose)  # TODO: visualize
     die = force_algorithm(die, verbose=verbose, visualize=visualize)
 
