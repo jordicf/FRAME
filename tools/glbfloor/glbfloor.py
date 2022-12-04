@@ -37,8 +37,10 @@ def parse_options(prog: str | None = None, args: list[str] | None = None) -> dic
                         help="size of the initial grid (rows x columns) "
                              "(only supported if there are no fixed modules nor blockages, "
                              "and incompatible with --aspect-ratio and --num-rectangles)")
-    parser.add_argument("-r", "--aspect-ratio", type=float)  # TODO: write help
-    parser.add_argument("-n", "--num-rectangles", type=int)  # TODO: write help
+    parser.add_argument("-n", "--num-rectangles", type=int,
+                        help="number of refinable rectangles that are required in the initial die grid")
+    parser.add_argument("-r", "--aspect-ratio", type=float,
+                        help="the maximum aspect ratio of the rectangles (must be greater than > sqrt(2))")
     parser.add_argument("-a", "--alpha", type=float, default=0.3,
                         help="tradeoff hyperparameter between 0 and 1 to control the balance between dispersion and "
                              "wire length. Smaller values will reduce the dispersion and increase the wire length, and "
