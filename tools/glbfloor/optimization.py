@@ -276,7 +276,7 @@ def optimize_allocation(die: Die, allocation: Allocation, dispersions: dict[str,
             # "fake" modules
             for r, rectangle in enumerate(module.rectangles):
                 mr = f"{m}_{r}"
-                fake_module = Module(mr, hard=True, fixed=False)
+                fake_module = Module(mr, hard=True)
                 fake_module.add_rectangle(rectangle)
                 fake_module.setup()
                 fake_module.calculate_center_from_rectangles()
