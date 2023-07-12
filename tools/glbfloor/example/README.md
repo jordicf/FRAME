@@ -86,3 +86,18 @@ Full optimization animation:
 |            Module-by-module             |                Joint                |
 |:---------------------------------------:|:-----------------------------------:|
 | ![](2/plot-separated-visualization.gif) | ![](2/plot-joint-visualization.gif) |
+
+
+## Example 3
+
+This example includes a hard block.
+
+```
+frame draw --die die.yml initial-netlist.yml -o initial.gif
+```
+
+<img src="3/initial.gif" style="width: 200px;" alt="initial"/>
+
+```
+frame glbfloor --netlist initial-netlist.yml --die 2x3 -r 2 -n 16 -a 0.3 -i 10 --out-netlist final-netlist.yml --out-allocation final-alloc.yml --verbose --separated-plot --joint-plot --visualize
+```
