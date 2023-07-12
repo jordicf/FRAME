@@ -197,7 +197,8 @@ def draw_geometry(im: Image.Image, bb: BoundingBox, color, scaling: Scaling,
         ccolor = distinctipy.get_text_color((color[0] / 255, color[1] / 255, color[2] / 255), threshold=0.6)[0]
         ccolor = round(ccolor * 255)
         ccolor = (ccolor, ccolor, ccolor)
-        txt_w, txt_h = drawing.textsize(name, font=font)  # To center the text
+        left, top, right, bottom = drawing.multiline_textbbox(xy=(0, 0), text=name, font=font)  # To center the text
+        txt_w, txt_h = right - left, bottom - top
         txt_x, txt_y = round((ll.x + ur.x - txt_w) / 2), round((ll.y + ur.y - txt_h) / 2)
         drawing.text((txt_x, txt_y), name, fill=ccolor, font=font, align="center",
                      anchor="ms", stroke_width=1, stroke_fill=ccolor)
@@ -251,7 +252,8 @@ def get_floorplan_plot(netlist: Netlist, die_shape: Shape, allocation: Allocatio
         font = get_font(fontsize)
         for m in netlist.modules:
             center = scale(allocation.center(m.name), scaling)
-            txt_w, txt_h = drawing.textsize(m.name, font=font)  # To center the text
+            left, top, right, bottom = drawing.multiline_textbbox(xy=(0, 0), text=m.name, font=font)  # To center the text
+            txt_w, txt_h = right - left, bottom - top
             txt_x, txt_y = center.x - txt_w / 2, center.y - txt_h / 2
             drawing.text((txt_x, txt_y), m.name, fill=COLOR_WHITE, font=font, align="center",
                          anchor="ms", stroke_width=1, stroke_fill=COLOR_WHITE)

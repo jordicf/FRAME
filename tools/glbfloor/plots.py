@@ -53,10 +53,10 @@ class Scaling:
     grid_width: int
     grid_height: int
 
-    def scale(self, p: Point) -> tuple[int, int]:
+    def scale(self, p: Point) -> Point:
         """Scale a point to an image coordinate"""
-        return (round(p.x * self.scale_factor + self.x_offset),
-                round(self.grid_height - p.y * self.scale_factor + self.y_offset))
+        return Point(round(p.x * self.scale_factor + self.x_offset),
+                     round(self.grid_height - p.y * self.scale_factor + self.y_offset))
 
 
 def get_color(ratio: float, color_map: str) -> tuple[int, int, int, int]:
@@ -108,7 +108,8 @@ def get_separated_floorplan_plot(die: Die, allocation: Allocation, dispersions: 
     for module in die.netlist.modules:
         for rect in refinable + fixed:
             unscaled_bbox = rect.bounding_box
-            draw.rectangle((s.scale(unscaled_bbox.ll), s.scale(unscaled_bbox.ur)),
+            bbox_min, bbox_max = s.scale(unscaled_bbox.ll), s.scale(unscaled_bbox.ur)
+            draw.rectangle((bbox_min.x, bbox_max.y, bbox_max.x, bbox_min.y),
                            fill=get_color(0, color_map),
                            outline="Black" if draw_borders else None)
 
@@ -121,25 +122,25 @@ def get_separated_floorplan_plot(die: Die, allocation: Allocation, dispersions: 
             color = get_color(ratio, color_map)
 
             # Draw cells
-            draw.rectangle((bbox_min, bbox_max),
+            draw.rectangle((bbox_min.x, bbox_max.y, bbox_max.x, bbox_min.y),
                            fill=color,
                            outline="Black" if draw_borders else None)
 
             # Draw cell annotations
             if draw_ratios:
-                cell_width, cell_height = bbox_max[0] - bbox_min[0], bbox_min[1] - bbox_max[1]
+                cell_width, cell_height = bbox_max.x - bbox_min.x, bbox_min.y - bbox_max.y
                 assert cell_width > 0 and cell_height > 0
                 cell_text = f"{ratio:.2f}"
                 text_bbox = cell_font.getbbox(cell_text, anchor="mm")  # left, top, left + width, top + height
                 text_width, text_height = text_bbox[2] - text_bbox[0], text_bbox[3] - text_bbox[1]
                 if text_width <= cell_width and text_height <= cell_height:
                     text_color = (round(get_text_color((color[0] / 255, color[1] / 255, color[2] / 255))[0] * 255),) * 3
-                    draw.text(s.scale(rect.center), cell_text, anchor="mm", font=cell_font, fill=text_color)
+                    draw.text(tuple(s.scale(rect.center)), cell_text, anchor="mm", font=cell_font, fill=text_color)
 
         # Draw centroids
         centroid = die.netlist.get_module(module.name).center
         assert centroid is not None
-        draw.text(s.scale(centroid), "X", anchor="mm", font=medium_font)
+        draw.text(tuple(s.scale(centroid)), "X", anchor="mm", font=medium_font)
 
         # Draw module subtitles
         if draw_text:
