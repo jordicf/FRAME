@@ -80,7 +80,7 @@ def kamada_kawai_layout(die: Die, verbose: bool = False, visualize: str | None =
     modules = die.netlist.modules
     for i in range(die.netlist.num_modules):
         for j in range(i, die.netlist.num_modules):
-            if i != j:
+            if i != j and not (modules[i].is_terminal or modules[j].is_terminal) and not (modules[i].is_fixed and modules[j].is_fixed):
                 if spring_strength[i][j] != 0.0:
                     # Original Kamada-Kawai objective function
                     g.Minimize(spring_strength[i][j] *
@@ -90,7 +90,8 @@ def kamada_kawai_layout(die: Die, verbose: bool = False, visualize: str | None =
                 g.Maximize(0.01 *
                            ((m.x[i] - m.x[j])**2 + (m.y[i] - m.y[j])**2) / (modules[i].area() * modules[j].area()))
         # Repel modules from the die boundaries
-        g.Minimize(0.5 *
+        if not modules[i].is_fixed:
+            g.Minimize(0.5 *
                    (1 / m.x[i]**2 + 1 / (m.x[i] - die.width)**2 + 1 / m.y[i]**2 + 1 / (m.y[i] - die.height)**2))
 
     die, vis_imgs = solve_and_extract_solution(m, die, verbose, visualize, max_iter)
