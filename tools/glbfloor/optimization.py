@@ -75,12 +75,13 @@ def calculate_dispersions(modules: list[Module], allocation: Allocation, dispers
     for module in modules:
         m = module.name
         assert module.center is not None
-        dispersions[m] = 0.0
-        for module_alloc in allocation.allocation_module(m):
-            cell = allocation.allocation_rectangle(module_alloc.rect_index).rect
-            area = cell.area * module_alloc.area_ratio
-            dispersions[m] += area * dispersion_function(module.center.x - cell.center.x,
-                                                         module.center.y - cell.center.y)
+        dispersions[m] = 0.0 
+        if not module.is_fixed:
+            for module_alloc in allocation.allocation_module(m):
+                cell = allocation.allocation_rectangle(module_alloc.rect_index).rect
+                area = cell.area * module_alloc.area_ratio
+                dispersions[m] += area * dispersion_function(module.center.x - cell.center.x,
+                                                            module.center.y - cell.center.y)
 
     return dispersions
 
@@ -126,6 +127,7 @@ def extract_solution(model: Model, die: Die, cells: list[Rectangle], threshold: 
                 alloc[m] = a_mc_val
         if alloc:  # add only if not empty
             allocation_list.append((cell, alloc, 0))
+
     allocation = Allocation(allocation_list)
 
     dispersions = {}
@@ -183,6 +185,7 @@ def solve_and_extract_solution(model: Model, die: Die, cells: list[Rectangle], t
         model.gekko.options.MAX_ITER = max_iter
         model.gekko.solve(disp=verbose)
         die, allocation, dispersions = extract_solution(model, die, cells, threshold)
+  
     else:
         # See https://stackoverflow.com/a/73196238/10152624 for the method used here
         i = 0
@@ -258,19 +261,18 @@ def optimize_allocation(die: Die, allocation: Allocation, dispersions: dict[str,
 
     n_cells = allocation.num_rectangles
     cells = [alloc.rect for alloc in allocation.allocations]
-
     die_bb = die.bounding_box.bounding_box
-
+    
     model = Model()
     g = model.gekko  # Shortcut (reference)
-
     modules = []
-    nonfixed_hard_modules = []
+    nonfixed_hard_modules = [] 
+
     for module in die.netlist.modules:
         m = module.name
         if not module.is_hard or module.is_fixed:
             modules.append(module)
-        else:
+        else: 
             nonfixed_hard_modules.append(module)
 
             # "fake" modules
@@ -313,9 +315,10 @@ def optimize_allocation(die: Die, allocation: Allocation, dispersions: dict[str,
             else:
                 model.a[m][c] = g.Var(value=a_mc, lb=0, ub=1, name=f"a_{m}_{c}")
 
+
     # Cell constraints
     for c in range(n_cells):
-        # Cells cannot be over-occupied
+        # Cells cannot be over-occupied 
         g.Equation(g.sum([model.a[m][c] for m in model.a.keys()]) <= 1)
 
     # Module constraints
@@ -324,19 +327,21 @@ def optimize_allocation(die: Die, allocation: Allocation, dispersions: dict[str,
 
         # Modules must have sufficient area
         g.Equation(g.sum([cells[c].area * model.a[m][c] for c in range(n_cells)]) >= module.area())
-
-        # Centroid of modules
-        g.Equation(1 / module.area() * g.sum([cells[c].area * cells[c].center.x * model.a[m][c]
-                                              for c in range(n_cells)]) == model.x[m])
-        g.Equation(1 / module.area() * g.sum([cells[c].area * cells[c].center.y * model.a[m][c]
-                                              for c in range(n_cells)]) == model.y[m])
+        
+        if not module.is_terminal:
+            # Centroid of modules
+            g.Equation(1 / module.area() * g.sum([cells[c].area * cells[c].center.x * model.a[m][c]
+                                                for c in range(n_cells)]) == model.x[m])
+            g.Equation(1 / module.area() * g.sum([cells[c].area * cells[c].center.y * model.a[m][c]
+                                                for c in range(n_cells)]) == model.y[m])
 
         # Dispersion of soft modules
         if not module.is_hard:
             g.Equation(6 / module.area()**(3 / 2) *
-                       g.sum([cells[c].area * model.a[m][c] *
-                              dispersion_function(model.x[m] - cells[c].center.x, model.y[m] - cells[c].center.y)
-                              for c in range(n_cells)]) == model.d[m])
+                    g.sum([cells[c].area * model.a[m][c] *
+                            dispersion_function(model.x[m] - cells[c].center.x, model.y[m] - cells[c].center.y)
+                            for c in range(n_cells)]) == model.d[m])
+
 
     for module in nonfixed_hard_modules:
         m = module.name
