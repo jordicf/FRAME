@@ -1,0 +1,92 @@
+Modules:
+  IO_cluster_B0:
+    center:
+    - 53.33333333333333
+    - 0.0
+    fixed: true
+    terminal: true
+  IO_cluster_B1:
+    center:
+    - 26.666666666666664
+    - 0.0
+    fixed: true
+    terminal: true
+  IO_cluster_B2:
+    center:
+    - 0.0
+    - 0.0
+    fixed: true
+    terminal: true
+  M_0:
+    area: 637.6461600000429
+    aspect_ratio: 9.123620109430345
+    center:
+    - 0.23736529072348314
+    - 0.1442609853528579
+  M_1:
+    area: 625.821780000041
+    aspect_ratio: 8.954433563792627
+    center:
+    - 0.23526926605504755
+    - 0.14457110091742637
+  M_2:
+    area: 615.5720400000315
+    aspect_ratio: 8.807777408942556
+    center:
+    - 0.20044886363636197
+    - 0.14346793831168309
+  M_3:
+    area: 637.6607400000466
+    aspect_ratio: 9.123828724159914
+    center:
+    - 0.2283565328778829
+    - 0.14390905209222377
+Nets:
+- - IO_cluster_B2
+  - M_2
+  - 74
+- - IO_cluster_B2
+  - M_1
+  - 2
+- - IO_cluster_B2
+  - M_3
+  - 2
+- - IO_cluster_B2
+  - M_0
+  - 2
+- - M_0
+  - M_2
+  - 15552.0
+- - IO_cluster_B1
+  - M_2
+  - 43
+- - M_1
+  - M_2
+  - 15094.0
+- - IO_cluster_B0
+  - M_2
+  - 41
+- - M_2
+  - M_3
+  - 15469.0
+- - IO_cluster_B0
+  - M_3
+  - 2
+- - M_0
+  - M_3
+  - 8827.0
+- - M_0
+  - M_1
+  - 7954.0
+- - IO_cluster_B1
+  - M_0
+  - 2
+- - M_1
+  - M_3
+  - 14043.0
+- - IO_cluster_B1
+  - M_3
+  - 1
+- - IO_cluster_B0
+  - M_0
+  - 1
