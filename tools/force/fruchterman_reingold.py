@@ -69,7 +69,7 @@ def fruchterman_reingold_layout(die: Die, kappa: float = 1.0, verbose: bool = Fa
     t = max(die.width, die.height) * 0.1
     dt = t / (max_iter + 1)
 
-    k = kappa * (die.width * die.height / die.netlist.num_modules)**(1 / 2)
+    k = kappa * (die.width * die.height / die.netlist.num_modules)**(1 / 2) 
 
     def f_att(x, w):
         return w * x**2 / k
@@ -92,10 +92,12 @@ def fruchterman_reingold_layout(die: Die, kappa: float = 1.0, verbose: bool = Fa
     pos: list[Point] = [module.center - Point(die.width, die.height) / 2 if module.center is not None else Point()
                         for module in die.netlist.modules]  # The die is recentered to the origin
     disp = [Point()] * die.netlist.num_modules
-
+    
     if visualize is not None:
         for v, module in enumerate(die.netlist.modules):
             module.center = pos[v] + Point(die.width, die.height) / 2
+            if module.is_hard and not module.is_fixed:
+                module.recenter_rectangles()
         vis_imgs.append(get_floorplan_plot(die.netlist, die.bounding_box.shape))
 
     for i in range(max_iter):
@@ -105,9 +107,10 @@ def fruchterman_reingold_layout(die: Die, kappa: float = 1.0, verbose: bool = Fa
                 if u != v:
                     diff = pos[v] - pos[u]
                     diff_norm = max(diff.norm(), 1e-6)
-                    disp[v] += diff / diff_norm * f_rep(diff_norm, die.netlist.modules[v].area()) \
-                        + die_repelling(pos[v], die.netlist.modules[v].area())
+                    disp[v] += diff / diff_norm * f_rep(diff_norm, die.netlist.modules[u].area())
+            disp[v] += die_repelling(pos[v], die.netlist.modules[v].area())
 
+        # attraction forces
         for hyperedge in die.netlist.edges:
             for v_mod, u_mod in combinations(hyperedge.modules, 2):
                 v, u = mod2idx[v_mod], mod2idx[u_mod]
@@ -116,12 +119,28 @@ def fruchterman_reingold_layout(die: Die, kappa: float = 1.0, verbose: bool = Fa
                 disp[v] -= diff / diff_norm * f_att(diff_norm, hyperedge.weight)
                 disp[u] += diff / diff_norm * f_att(diff_norm, hyperedge.weight)
 
+        max_x, max_y = 0, 0
         for v in range(die.netlist.num_modules):
             if not die.netlist.modules[v].is_fixed:
                 disp_norm = max(disp[v].norm(), 1e-6)
                 pos[v] += disp[v] / disp_norm * min(disp_norm, t)
-                pos[v].x = min(die.width / 2, max(-die.width / 2, pos[v].x))
-                pos[v].y = min(die.height / 2, max(-die.height / 2, pos[v].y))
+                if die.netlist.modules[v].is_hard:
+                    max_x = max(max_x, abs(pos[v].x) + die.netlist.modules[v].rectangles[0].shape.w/2)
+                    max_y = max(max_y, abs(pos[v].y) + die.netlist.modules[v].rectangles[0].shape.h/2)
+                else:
+                    radius = math.sqrt(die.netlist.modules[v].area() / math.pi)
+                    max_x = max(max_x, abs(pos[v].x) + radius)
+                    max_y = max(max_y, abs(pos[v].y) + radius)
+
+        if max_x > die.width / 2:
+            factor_x = die.width / 2 / max_x
+            for v in range(die.netlist.num_modules):
+                pos[v].x = factor_x * pos[v].x
+
+        if max_y > die.height / 2:    
+            factor_y = die.width / 2 / max_y
+            for v in range(die.netlist.num_modules):
+                pos[v].y = factor_y * pos[v].y
 
         t -= dt
 
@@ -131,6 +150,8 @@ def fruchterman_reingold_layout(die: Die, kappa: float = 1.0, verbose: bool = Fa
         if visualize is not None:
             for v, module in enumerate(die.netlist.modules):
                 module.center = pos[v] + Point(die.width, die.height) / 2
+                if module.is_hard and not module.is_fixed:
+                    module.recenter_rectangles()
             vis_imgs.append(get_floorplan_plot(die.netlist, die.bounding_box.shape))
 
     if verbose:
@@ -139,6 +160,8 @@ def fruchterman_reingold_layout(die: Die, kappa: float = 1.0, verbose: bool = Fa
     if visualize is None:
         for v, module in enumerate(die.netlist.modules):
             module.center = pos[v] + Point(die.width, die.height) / 2
+            if module.is_hard and not module.is_fixed:
+                module.recenter_rectangles()
 
     return die, vis_imgs
 
@@ -157,7 +180,8 @@ def force_algorithm(die: Die, verbose: bool = False, visualize: str | None = Non
     """
     best_cost = float("inf")
     best_kappa = 0.0
-    for kappa in [i / 10 for i in range(4, 16)]:
+    # TODO: find better kappas
+    for kappa in [k/10 for k in range(4,10)]:
         if verbose:
             print(f"Kappa: {kappa}")
         new_die, _ = fruchterman_reingold_layout(deepcopy(die), kappa, verbose, None, max_iter)
@@ -179,5 +203,5 @@ def force_algorithm(die: Die, verbose: bool = False, visualize: str | None = Non
             print(" and creating the visualization", end="")
         print("...")
 
+    print(f"Best cost (1): {best_cost}")
     return fruchterman_reingold_layout(die, best_kappa, verbose, visualize, max_iter)
-

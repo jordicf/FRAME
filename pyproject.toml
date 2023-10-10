@@ -15,7 +15,9 @@ dependencies = [
     "matplotlib",
     "distinctipy",
     "Pillow",
-    "python-sat"
+    "python-sat",
+    "tqdm",
+    "networkx",
 ]
 
 [project.optional-dependencies]

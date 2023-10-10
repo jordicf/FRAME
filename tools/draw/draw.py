@@ -14,6 +14,8 @@ from dataclasses import dataclass
 from PIL import Image, ImageDraw, ImageFont
 from distinctipy import distinctipy
 from matplotlib import font_manager
+import networkx as nx
+import matplotlib.pyplot as plt
 
 from frame.die.die import Die
 from frame.geometry.geometry import Point, Shape, Rectangle, BoundingBox
@@ -206,7 +208,7 @@ def draw_geometry(im: Image.Image, bb: BoundingBox, color, scaling: Scaling,
 
 
 def get_floorplan_plot(netlist: Netlist, die_shape: Shape, allocation: Allocation | None = None, width: int = 0,
-                       height: int = 0, frame: int = 20, fontsize: int = 20) -> Image.Image:
+                       height: int = 0, frame: int = 20, fontsize: int = 20, draw_net: bool = True) -> Image.Image:
     """
     Generates the plot of the floorplan
     :param netlist: the netlist with the modules and the hyperedges
@@ -216,6 +218,7 @@ def get_floorplan_plot(netlist: Netlist, die_shape: Shape, allocation: Allocatio
     :param height: desired height (0 if aspect ratio must be preserved)
     :param frame: size of the frame around the canvas
     :param fontsize: text font size
+    :param draw_net: if False no edges are drawn
     :return: PIL Image containing the floorplan plot
     """
     # Check that all modules are drawable
@@ -251,7 +254,11 @@ def get_floorplan_plot(netlist: Netlist, die_shape: Shape, allocation: Allocatio
         # Draw the module names
         font = get_font(fontsize)
         for m in netlist.modules:
-            center = scale(allocation.center(m.name), scaling)
+            if not m.is_terminal:
+                center = scale(allocation.center(m.name), scaling)
+            else:
+                center = scale(m.center, scaling)
+
             left, top, right, bottom = drawing.multiline_textbbox(xy=(0, 0), text=m.name, font=font)  # To center the text
             txt_w, txt_h = right - left, bottom - top
             txt_x, txt_y = center.x - txt_w / 2, center.y - txt_h / 2
@@ -269,19 +276,48 @@ def get_floorplan_plot(netlist: Netlist, die_shape: Shape, allocation: Allocatio
                     rname = name if m.num_rectangles == 1 else f"{name}[{i}]"
                     draw_rectangle(im, r, rname, color, scaling, fontsize)
 
-    # Draw edges
-    for e in netlist.edges:
-        list_points: list[Point] = calculate_centers(e, allocation)
-        canvas_points = [scale(p, scaling) for p in list_points]
-        center = canvas_points[0]
-        for pin in canvas_points[1:]:
-            drawing.line([(center.x, center.y), (pin.x, pin.y)], fill=COLOR_WHITE, width=3)
-        if len(canvas_points) > 3:  # Circle in the center
-            rad = 8
-            drawing.ellipse([center.x - rad, center.y - rad, center.x + rad, center.y + rad],
-                            outline=COLOR_WHITE, width=3)
+    if draw_net:
+        # Draw edges
+        for e in netlist.edges:
+            list_points: list[Point] = calculate_centers(e, allocation)
+            canvas_points = [scale(p, scaling) for p in list_points]
+            center = canvas_points[0]
+            for pin in canvas_points[1:]:
+                drawing.line([(center.x, center.y), (pin.x, pin.y)], fill=COLOR_WHITE, width=3)
+            if len(canvas_points) > 3:  # Circle in the center
+                rad = 8
+                drawing.ellipse([center.x - rad, center.y - rad, center.x + rad, center.y + rad],
+                                outline=COLOR_WHITE, width=3)
 
     return im
+
+
+def get_graph_plot(netlist: Netlist, out_file):
+    """
+    Generate graph plot using networkx.
+    """
+
+    G = nx.Graph()
+    for module in netlist.modules:
+        G.add_node(module.name)
+    
+    for edge in netlist.edges:
+        G.add_weighted_edges_from([(edge.modules[0].name, edge.modules[1].name, edge.weight)])    
+    
+    try:
+        pos_dict = {module.name : [module.center.x, module.center.y] for module in netlist.modules}
+    except:
+        pos_dict = {module.name : [module.center[0], module.center[1]] for module in netlist.modules}
+
+    s = [5 for module in netlist.modules]
+
+    plt.figure()
+
+    nx.draw_networkx(G, pos_dict, node_size=s, node_color="black", edge_color="black", with_labels=False)
+
+    plt.draw()
+    plt.savefig(out_file)
+    plt.close()
 
 
 def parse_options(prog: str | None = None, args: list[str] | None = None) -> dict[str, Any]:
@@ -302,6 +338,7 @@ def parse_options(prog: str | None = None, args: list[str] | None = None) -> dic
     parser.add_argument("--height", type=int, default=0, help="height of the picture (in pixels)")
     parser.add_argument("--frame", type=int, default=40, help="frame around the die (in pixels). Default: 40")
     parser.add_argument("--fontsize", type=int, default=20, help="text font size. Default: 20")
+    parser.add_argument("--draw_net", type=bool, default=False)
     return vars(parser.parse_args(args))
 
 
@@ -336,7 +373,7 @@ def main(prog: str | None = None, args: list[str] | None = None) -> None:
     assert alloc_die.w <= die_shape.w and alloc_die.h <= die_shape.h
 
     im = get_floorplan_plot(netlist, die_shape, allocation, options['width'], options['height'], options['frame'],
-                            options['fontsize'])
+                            options['fontsize'], options["draw_net"])
 
     # Output file
     outfile = options['outfile']

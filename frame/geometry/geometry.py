@@ -10,6 +10,7 @@ from collections import deque
 from enum import Enum
 import heapq
 import math
+import numpy as np
 from typing import Any, Union, Sequence, Optional
 from dataclasses import dataclass, field
 
@@ -18,6 +19,9 @@ from frame.utils.keywords import KW_FIXED, KW_HARD, KW_CENTER, KW_SHAPE, KW_REGI
 from frame.utils.utils import valid_identifier, almost_eq
 
 RectDescriptor = tuple[float, float, float, float, str]  # (x,y,w,h, region)
+
+NCoord = float
+NCoords = np.ndarray[NCoord]
 
 
 class Point:
@@ -136,6 +140,146 @@ class Point:
     def __iter__(self):
         yield self.x
         yield self.y
+
+
+class NPoint:
+    """
+    A class to represent two-dimensional points and operate with them
+    """
+    _x: NCoords # the n coordinates 
+
+    def __init__(self, x: Union['NPoint', Point, NCoords, list[NCoord], None] = None, n: int | None = None) -> None:
+        """
+        Constructor of a Point. See the example for ways of constructing it
+        :param x: a Point or tuple[float, float], a float, or None
+        :param y: None if x is a Point, tuple[float, float] or None, or a float if x is a float
+
+        :Example:
+        >>> NPoint()
+        NPoint([0])
+        >>> NPoint([1, 2, 3])
+        NPoint([1, 2, 3])
+        >>> NPoint([1, 1], 4)
+        NPoint([1, 1, 0, 0])
+        """
+
+        if isinstance(x, np.ndarray):
+            self._x = x.copy()
+        elif isinstance(x, NPoint):
+            self._x = x._x.copy()
+        elif isinstance(x, Point):
+            self._x = np.array([x.x, x.y], dtype=NCoord)
+        elif isinstance(x, list):
+            if len(x) == 0:
+                self._x = np.array([0.0], dtype=NCoord)
+            else:
+                self._x = np.array(x, dtype=NCoord)
+        else: # x is None
+            self._x = np.array([0.0], dtype=NCoord)
+
+        if n is not None:
+            assert n >= 1
+            self._x.resize(n)
+
+
+    @property
+    def x(self) -> NCoords:
+        return self._x
+
+    @property
+    def n(self) -> int:
+        return self._x.size
+
+    def copy(self) -> 'NPoint':
+        return NPoint(self._x.copy())
+
+    @x.setter
+    def x(self, coords: Union[list[NCoord], NCoords]):
+        if isinstance(coords, list):
+            self._x = np.array(coords, dtype=NCoord)
+        else:
+            self._x = coords.copy()
+
+    def __getitem__(self, key: int) -> NCoord:
+        return self._x[key]
+    
+    def __setitem__(self, key: int, value: NCoord):
+        self._x[key] = value
+
+    def __eq__(self, other: 'NPoint') -> bool:
+        """Return self == other."""
+        return np.array_equal(self._x, other._x)
+
+    def __neg__(self) -> 'NPoint':
+        """Return -self."""
+        return NPoint(-self._x)
+
+    def __add__(self, other: Union['NPoint', list[NCoord], NCoords, NCoord, int]) -> 'NPoint':
+        """Return self + other."""
+        if isinstance(other, (NCoord, int)):
+            return NPoint(self._x + other)
+        else:
+            other = NPoint(other, self.n)
+            return NPoint(self._x + other._x)
+
+    __radd__ = __add__
+
+    def __sub__(self, other: Union['NPoint', list[NCoord], NCoords]) -> 'NPoint':
+        """Return self - other."""
+        other = NPoint(other, self.n)
+        return NPoint(self._x - other._x)
+
+    def __rsub__(self, other: Union['NPoint', list[NCoord]]) -> 'NPoint':
+        """Return other - self."""
+        other = NPoint(other, self.n)
+        return NPoint(other._x - self._x)
+
+    def __mul__(self, other: Union['NPoint', list[NCoord], NCoord, int]) -> 'NPoint':
+        """Return self*other using component-wise multiplication. other can either be a number or another point."""
+        if isinstance(other, (NCoord, int)):
+            return NPoint(self._x * other)
+        else:
+            other = NPoint(other, self.n)
+            return NPoint(self._x * other._x)
+
+    __rmul__ = __mul__
+
+    def __pow__(self, exponent: NCoord) -> 'NPoint':
+        """Return self**exponent using component-wise exponentiation."""
+        return NPoint(self._x ** exponent)
+
+    def __truediv__(self, other: Union['NPoint', list[NCoord], NCoord, int]) -> 'NPoint':
+        """Return self / other using component-wise true division. other can either be a number or another point."""
+        if isinstance(other, (NCoord, int)):
+            return NPoint(self._x / other)
+        else:
+            other = NPoint(other, self.n)
+            return NPoint(self._x / other._x)
+
+    def __rtruediv__(self, other: Union['NPoint', list[NCoord], NCoord, int]):
+        """Return other / self using component-wise true division. other can either be a number or another point."""
+        if isinstance(other, (NCoord, int)):
+            return NPoint(other / self._x)
+        else:
+            other = NPoint(other)
+            assert self.n == other.n
+            return NPoint(other._x / self._x)
+
+    def __and__(self, other: Union['NPoint', list[NCoord]]) -> NCoord:
+        """Dot product between self and other."""
+        other = NPoint(other, self.n)
+        return np.dot(self._x, other._x)
+
+    def norm(self) -> NCoord:
+        return np.sqrt(np.dot(self._x, self._x))
+
+    def __str__(self) -> str:
+        return f"NPoint({list(self.x)})"
+
+    __repr__ = __str__
+
+    def __iter__(self):
+        return self._x.__iter__()
 
 
 @dataclass
