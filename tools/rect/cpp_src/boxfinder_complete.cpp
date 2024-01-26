@@ -378,7 +378,10 @@ namespace complete {
 		if( segset.find(lft) == segset.end() ) return false;
 		if( segset.find(rgt) == segset.end() ) return false;
 		
-		double juice = intmap[ point {tmp.x2, tmp.y2} ] - intmap[ point {tmp.x1, tmp.y2} ] - intmap[ point {tmp.x2, tmp.y1} ] + intmap[ point {tmp.x1, tmp.y1} ];
+		double juice = intmap[ point {tmp.x2, tmp.y2} ]
+		             - intmap[ point {tmp.x1, tmp.y2} ]
+		             - intmap[ point {tmp.x2, tmp.y1} ]
+		             + intmap[ point {tmp.x1, tmp.y1} ];
 		tmp.p = juice / area(tmp);
 		
 		allBoxes.push_back(tmp);

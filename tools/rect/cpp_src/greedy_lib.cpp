@@ -47,6 +47,8 @@ extern "C" {
 		h = hh;
 		nboxes = nb;
 		proportion = pr;
+
+		if(proportion < 1) METHOD = MIN_AREA;
 		
 		inputProblem = std::vector<boxfinder::box>( nboxes, boxfinder::box { 0.0, 0.0, 0.0, 0.0, 0.0 } );
 		for(int i = 0; i < nboxes; ++i){

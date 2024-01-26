@@ -1,0 +1,164 @@
+Modules: {
+  Mid0: {
+    rectangles: [[2.5, 4.0, 4.9, 7.7]],
+    hard: true
+  },
+  Mid1: {
+    rectangles: [[8.5, 4.0, 4.9, 7.7]],
+    hard: true
+  },
+  Mid2: {
+    rectangles: [[14.5, 4.0, 4.9, 7.7]],
+    hard: true
+  },
+  Mid3: {
+    rectangles: [[20.5, 4.0, 4.9, 7.7]],
+    hard: true
+  },
+  Mid4: {
+    rectangles: [[2.5, 13.0, 4.9, 7.7]],
+    hard: true
+  },
+  Mid5: {
+    rectangles: [[8.5, 13.0, 4.9, 7.7]],
+    hard: true
+  },
+  Mid6: {
+    rectangles: [[14.5, 13.0, 4.9, 7.7]],
+    hard: true
+  },
+  Mid7: {
+    rectangles: [[20.5, 13.0, 4.9, 7.7]],
+    hard: true
+  },
+  Mid8: {
+    rectangles: [[2.5, 22.0, 4.9, 7.7]],
+    hard: true
+  },
+  Mid9: {
+    rectangles: [[8.5, 22.0, 4.9, 7.7]],
+    hard: true
+  },
+  MidA: {
+    rectangles: [[14.5, 22.0, 4.9, 7.7]],
+    hard: true
+  },
+  MidB: {
+    rectangles: [[20.5, 22.0, 4.9, 7.7]],
+    hard: true
+  },
+  MidC: {
+    rectangles: [[2.5, 31.0, 4.9, 7.7]],
+    hard: true
+  },
+  MidD: {
+    rectangles: [[8.5, 31.0, 4.9, 7.7]],
+    hard: true
+  },
+  MidE: {
+    rectangles: [[14.5, 31.0, 4.9, 7.7]],
+    hard: true
+  },
+  MidF: {
+    rectangles: [[20.5, 31.0, 4.9, 7.7]],
+    hard: true
+  },
+  Big0: {
+    rectangles: [[40.4, 12.0, 7.6, 24.0]],
+    hard: true
+  },
+  Big1: {
+    rectangles: [[48.0, 12.0, 7.6, 24.0]],
+    hard: true
+  },
+  Big2: {
+    rectangles: [[55.6, 12.0, 7.6, 24.0]],
+    hard: true
+  },
+  Big3: {
+    rectangles: [[63.2, 12.0, 7.6, 24.0]],
+    hard: true
+  },
+  Big4: {
+    rectangles: [[40.4, 36.0, 7.6, 24.0]],
+    hard: true
+  },
+  Big5: {
+    rectangles: [[48.0, 36.0, 7.6, 24.0]],
+    hard: true
+  },
+  Big6: {
+    rectangles: [[55.6, 36.0, 7.6, 24.0]],
+    hard: true
+  },
+  Big7: {
+    rectangles: [[63.2, 36.0, 7.6, 24.0]],
+    hard: true
+  },
+  Sml0: {
+    rectangles: [[32.2, 39.4, 2.8, 6.2]],
+    hard: true
+  },
+  Sml1: {
+    rectangles: [[35.0, 39.4, 2.8, 6.2]],
+    hard: true
+  },
+  Sml2: {
+    rectangles: [[32.2, 45.6, 2.8, 6.2]],
+    hard: true
+  },
+  Sml3: {
+    rectangles: [[35.0, 45.6, 2.8, 6.2]],
+    hard: true 
+  },
+  Pink: {
+    rectangles: [[28.5, 6.2, 15.8, 10.8], [23.6, 16.7, 6.6, 10.2]],
+    area: 180.00
+  },
+  Cyan: {
+    rectangles: [[28.9, 23.9, 16.2, 4.7], [31.1, 16.3, 9.5, 10.5], [23.2, 28.6, 6.2, 4.7]],
+    area: 180.00
+  },
+  Tan: {
+    rectangles: [[30.4, 32.1, 8.4, 9.5], [22.9, 33.4, 6.6, 4.7]],
+    area: 130.00
+  },
+  Blue: {
+    rectangles: [[35.4, 32.0, 1.6, 9.5]],
+    area: 15.00
+  },
+  Indigo: {
+    rectangles: [[22.2, 43.9, 2.8, 4.4], [19.8, 42.8, 2.0, 2.1]],
+    area: 12.00
+  },
+  Purple: {
+    rectangles: [[15.4, 38.7, 30.8, 5.8], [6.2, 43.8, 11.1, 4.4], [27.0, 44.2, 6.9, 5.2]],
+    area: 180.00
+  },
+  Yellow: {
+    rectangles: [[14.0, 47.2, 4.9, 1.8]],
+    area: 6.00
+  },
+  Ocher: {
+    rectangles: [[15.2, 44.0, 7.3, 4.4]],
+    area: 40.00
+  },
+  Green: {
+    rectangles: [[20.1, 47.1, 7.2, 2.1], [19.8, 44.9, 1.9, 2.3]],
+    area: 18.00
+  },
+  Port: {
+    rectangles: [[14.9, 47.6, 24.6, 0.8]],
+    fixed: true
+  }
+}
+
+Nets: [
+  [Mid0, Mid1, Mid2, Mid3, Mid4, Mid5, Mid6, Mid7, Mid8, Mid9, MidA, MidB, MidC, MidD, MidE, MidF],
+  [Big0, Big1, Big2, Big3, Big4, Big5, Big6, Big7],
+  [Sml0, Sml1, Sml2, Sml3, Blue],
+  [Purple, Yellow, Green, Ocher, Port, Indigo],
+  [Blue, Tan, Big0, Big4],
+  [Blue, Pink, Mid3, Mid7, MidB, MidF],
+  [Cyan, Tan, Purple, Pink],
+]

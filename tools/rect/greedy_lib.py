@@ -17,7 +17,9 @@ class BOX(Structure):
 class GreedyManager:
 
     def __init__(self):
-        self.mylib = CDLL(os.path.abspath(os.path.join(os.path.dirname(__file__), "rect_greedy.pyd")))
+        # path = os.path.abspath(os.path.join(os.path.dirname(__file__), "rect_greedy.pyd"))
+        path = "C:/Users/Lenovo/Documents/GitHub/FRAME/tools/rect/rect_greedy.pyd"
+        self.mylib = CDLL(path)
         self.mylib.find_best_box.restype = BOX
         self.mylib.find_best_box.argtypes = [POINTER(BOX), c_double, c_double, c_long, c_double]
 

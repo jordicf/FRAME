@@ -186,6 +186,8 @@ def solve(carrier: Carrier,
     input_problem: InputProblem = carrier.input_problem
     factor: float = carrier.factor
     theoretical_best_area: float = carrier.theoreticalBestArea
+    print("DEBUG 0")
+    blockarea = 0
     selarea = pseudobool.Expr()
     allblocks = pseudobool.Expr()
     vars_b = []
@@ -198,19 +200,22 @@ def solve(carrier: Carrier,
             sm.imply([sm.newvar("b" + str(i) + "_" + str(b), "")], sm.newvar("b_" + str(b), ""))
             lst.append(- sm.newvar("b" + str(i) + "_" + str(b), ""))
         sm.imply(lst, - sm.newvar("b_" + str(b), ""))
+    print("DEBUG 1")
     vars_b.sort(key=lambda x: x.v)
     realarea = pseudobool.Expr()
     for b in blocks:
         realarea = realarea + sm.newvar("b_" + str(b), "") * int(area(carrier, b, False))
+        blockarea += area(carrier, b, True)
     obj: pseudobool.Expr = ratio * selarea - realarea
+    print("Total area:       " + str(blockarea / float(factor)))
 
     # Have at least one block, please
     sm.pseudoboolencoding(allblocks >= 1)
 
     # Min area approach
     if ratio < 1:
-        sm.pseudoboolencoding(realarea >= round(theoretical_best_area * ratio))
-        sm.pseudoboolencoding(selarea * dif[1] - realarea * dif[0] >= 0)
+        sm.pseudoboolencoding(selarea >= round(theoretical_best_area * ratio) * realarea)
+        sm.pseudoboolencoding(selarea * dif[1] - blockarea * dif[0] >= 0)
     # Min error approach
     else:
         sm.pseudoboolencoding(obj >= dif[0])
@@ -387,7 +392,12 @@ def findbestgreedy(carrier: Carrier, ifile, f: float) -> str:
     h = ifile['Height']
     nb = len(carrier.input_problem)
     carrier.inibox = carrier.gm.find_best_box(w, h, nb, f, carrier.input_problem)
-    print(carrier.inibox)
+    ra = (carrier.inibox[2] - carrier.inibox[0]) * (carrier.inibox[3] - carrier.inibox[1])
+    sa = ra * carrier.inibox[4]
+    factor = 1
+    print("f:                " + str(f))
+    print("Selected area:    " + str(float(sa) / float(factor)))
+    print("Real area:        " + str(float(ra) / float(factor)))
     return str(carrier.inibox[4])
 
 

@@ -2,8 +2,16 @@
 # For the FRAME Project.
 # Licensed under the MIT License (see https://github.com/jordicf/FRAME/blob/master/LICENSE.txt).
 from math import sqrt
+from typing import Literal
+import matplotlib.font_manager as fontman
+import os
 
-from PIL import Image, ImageDraw
+from PIL import Image, ImageFont, ImageDraw
+
+
+def find_font_file(query: str):
+    matches = list(filter(lambda path: query in os.path.basename(path), fontman.findSystemFonts()))
+    return matches
 
 
 def rgb(r: int, g: int, b: int) -> str:
@@ -241,6 +249,16 @@ class Canvas:
         c, r = self.interpolate(center), (radii[0] / width_ratio, radii[1] / height_ratio)
         self.context.ellipse([(c[0] - r[0], c[1] - r[1]), (c[0] + r[0], c[1] + r[1])],
                              fill=fill, outline=outline, width=width)
+        self.portray_changes()
+
+    def draw_text(self, center: tuple[float, float], text:str, fill=None, font_name: str = 'arial.ttf',
+                  font_size: int = 20, anchor=None, spacing: float = 0,
+                  align: Literal['left', 'right', 'center'] = 'left'):
+        font_list = find_font_file(font_name)
+        if len(font_list) == 0:
+            raise Exception("Font not found %s" % font_name)
+        font = ImageFont.truetype(font_list[0], font_size)
+        self.context.text(center, text, fill=fill, font=font, anchor=anchor, spacing=spacing, align=align)
         self.portray_changes()
 
     def portray_changes(self):
