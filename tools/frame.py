@@ -6,6 +6,8 @@
 
 import argparse
 
+import tools.floorset_parser
+import tools.floorset_parser.floorset_handler
 import tools.hello.hello  # Fake tool
 import tools.draw.draw  # To draw floorplans
 import tools.netgen.netgen  # Netlist generator
@@ -26,6 +28,7 @@ TOOLS = {"hello": tools.hello.hello.main,
          "glbfloor": tools.glbfloor.glbfloor.main,
          "rect": tools.rect.rect.main,
          "legalfloor": tools.legalfloor.legalfloor.main,
+         "floorset": tools.floorset_parser.floorset_handler.main,
          "all": tools.all.all.main
          }
 
