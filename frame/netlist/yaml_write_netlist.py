@@ -4,7 +4,7 @@
 
 from typing import Any
 from .module import Module
-from .netlist_types import HyperEdge
+from .netlist_types import HyperEdge, NamedHyperEdge
 from ..geometry.geometry import Rectangle
 from ..utils.keywords import KW_AREA, KW_FIXED, KW_HARD, KW_TERMINAL, KW_CENTER, KW_ASPECT_RATIO,\
     KW_RECTANGLES, KW_GROUND
@@ -87,3 +87,17 @@ def dump_yaml_rectangles(rectangles: list[Rectangle]) -> list[list[float | str]]
             list_rect.append(r.region)
         rects.append(list_rect)
     return rects
+
+def dump_yaml_namededges(named_edges: list[NamedHyperEdge]) -> list:
+    """
+    Generates a data structure for the named edges that can be dumped in YAML
+    :param named_edges: list of named hyper edges (see Netlist types)
+    :return: the data structure
+    """
+    out_edges: list = []
+    for e in named_edges:
+        edge = e.modules
+        if e.weight != 1:
+            edge.append(e.weight)
+        out_edges.append(edge)
+    return out_edges
