@@ -28,35 +28,11 @@ class Point:
     _x: float  # x coordinate
     _y: float  # y coordinate
 
-    def __init__(self, x: Union['Point', tuple[float, float], float, None] = None, y: float | None = None) -> None:
+    def __init__(self, x: float = 0, y: float = 0) -> None:
         """
-        Constructor of a Point. See the example for ways of constructing it
-        :param x: a Point or tuple[float, float], a float, or None
-        :param y: None if x is a Point, tuple[float, float] or None, or a float if x is a float
-
-        :Example:
-        >>> Point()
-        Point(x=0, y=0)
-        >>> Point(1)
-        Point(x=1, y=1)
-        >>> Point(1, 2)
-        Point(x=1, y=2)
-        >>> Point((1, 2))
-        Point(x=1, y=2)
+        Constructor of a Point.
         """
-
-        if x is None:  # x and y are None
-            self.x, self.y = 0, 0
-        elif y is None:  # x is a Point or a number and y is None
-            if isinstance(x, Point):
-                self.x, self.y = x.x, x.y
-            elif isinstance(x, tuple):
-                self.x, self.y = x
-            else:
-                self.x, self.y = x, x
-        else:  # x and y are numbers
-            assert isinstance(x, (int, float)) and isinstance(y, (int, float))
-            self.x, self.y = x, y
+        self.x, self.y = x, y
 
     @property
     def x(self) -> float:
