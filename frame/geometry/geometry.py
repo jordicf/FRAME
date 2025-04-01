@@ -77,7 +77,7 @@ class Point:
         return other - self
 
     def __mul__(self, other: Union['Point', tuple[float, float], float]) -> 'Point':
-        """Return self*other using component-wise multiplication. other can either be a number or another point."""
+        """Return self*other using component-wise multiplication. other can be a number or another point."""
         other = Point(other)
         return Point(self.x * other.x, self.y * other.y)
 
@@ -88,12 +88,12 @@ class Point:
         return Point(self.x ** exponent, self.y ** exponent)
 
     def __truediv__(self, other: Union['Point', tuple[float, float], float]) -> 'Point':
-        """Return self / other using component-wise true division. other can either be a number or another point."""
+        """Return self / other using component-wise true division. other can be a number or another point."""
         other = Point(other)
         return Point(self.x / other.x, self.y / other.y)
 
     def __rtruediv__(self, other: Union['Point', tuple[float, float], float]):
-        """Return other / self using component-wise true division. other can either be a number or another point."""
+        """Return other / self using component-wise true division. other can be a number or another point."""
         other = Point(other)
         return Point(other.x / self.x, other.y / self.y)
 
@@ -219,7 +219,7 @@ class Rectangle:
 
     @staticmethod
     def undefine_epsilon() -> None:
-        """Undefines epsilon for the class"""
+        """Makes epsilon undefined for the class"""
         Rectangle._distance_epsilon = Rectangle._area_epsilon = -1.0
 
     @staticmethod
@@ -664,11 +664,11 @@ def split_rectangles(rectangles: list[Rectangle], aspect_ratio: float, n: int) -
 def create_stog(rectangles: list[Rectangle]) -> bool:
     """
     Identifies the rectangles of a Single-Trunk Orthogon. At the end of the function, the location of
-    each rectangle is defined (in case the STOG has been identifed). In case more than one rectangle
+    each rectangle is defined (in case the STOG has been identified). In case more than one rectangle
     can be a trunk, the one with the largest area is selected. The selected trunk is put at the front of the list.
     If no STOG can be identified, it returns False
     :param rectangles: list of rectangles of the polygon
-    :return: True if the STOG is identifed, and False otherwise
+    :return: True if the STOG is identified, and False otherwise
     """
     assert len(rectangles) > 0
 
