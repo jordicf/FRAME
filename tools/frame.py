@@ -11,9 +11,12 @@ import tools.floorset_parser.floorset_handler
 import tools.hello.hello  # Fake tool
 import tools.draw.draw  # To draw floorplans
 import tools.netgen.netgen  # Netlist generator
-import tools.spectral.spectral  # To find an initial position of modules using spectral methods
-import tools.force.force  # To improve the initial position of modules using force-directed methods
-import tools.glbfloor.glbfloor  # To find the allocation of the modules using optimization methods
+# To find an initial position of modules using spectral methods
+import tools.spectral.spectral
+# To improve the initial position of modules using force-directed methods
+import tools.force.force
+# To find the allocation of the modules using optimization methods
+import tools.glbfloor.glbfloor
 import tools.rect.rect  # To normalize fuzzy module assignments
 import tools.legalfloor.legalfloor  # To legalize the floorplan
 import tools.all.all  # To execute the whole flow
@@ -36,7 +39,8 @@ TOOLS = {"hello": tools.hello.hello.main,
 def main() -> None:
     """Main function."""
     parser = argparse.ArgumentParser(prog="frame")
-    parser.add_argument("tool", choices=TOOLS.keys(), nargs=argparse.REMAINDER, help="tool to execute")
+    parser.add_argument("tool", choices=TOOLS.keys(),
+                        nargs=argparse.REMAINDER, help="tool to execute")
     args = parser.parse_args()
 
     if args.tool:

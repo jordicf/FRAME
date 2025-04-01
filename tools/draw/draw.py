@@ -6,6 +6,12 @@
 Package to draw a netlist in which the modules are represented by rectangles
 """
 
+from frame.allocation.allocation import Allocation
+from frame.netlist.netlist_types import HyperEdge
+from frame.netlist.netlist import Netlist
+from frame.netlist.module import Module
+from frame.geometry.geometry import Point, Shape, Rectangle, BoundingBox
+from frame.die.die import Die
 import math
 from argparse import ArgumentParser
 from typing import Any
@@ -14,13 +20,6 @@ from dataclasses import dataclass
 from PIL import Image, ImageDraw, ImageFont
 from distinctipy import distinctipy
 from matplotlib import font_manager
-
-from frame.die.die import Die
-from frame.geometry.geometry import Point, Shape, Rectangle, BoundingBox
-from frame.netlist.module import Module
-from frame.netlist.netlist import Netlist
-from frame.netlist.netlist_types import HyperEdge
-from frame.allocation.allocation import Allocation
 
 
 # Tuple to represent the scaling factors for a drawing
@@ -94,7 +93,8 @@ def check_modules(modules: list[Module]) -> None:
         if m.num_rectangles > 0:
             continue
         assert m.center is not None, f'module {m.name} is not drawable. It has neither center nor rectangles.'
-        assert m.area() > 0 or m.is_terminal, f'module {m.name} is not drawable (no area specified).'
+        assert m.area(
+        ) > 0 or m.is_terminal, f'module {m.name} is not drawable (no area specified).'
 
 
 def calculate_bbox(netlist: Netlist) -> Shape:
@@ -136,7 +136,8 @@ def create_canvas(s: Scaling):
     Generates the canvas of the drawing
     :param s: scaling of the layout
     """
-    im = Image.new('RGBA', (s.width + 2 * s.frame, s.height + 2 * s.frame), (0, 0, 0, 255))
+    im = Image.new('RGBA', (s.width + 2 * s.frame,
+                   s.height + 2 * s.frame), (0, 0, 0, 255))
     drawing = ImageDraw.Draw(im)
     return im, drawing
 
@@ -194,12 +195,15 @@ def draw_geometry(im: Image.Image, bb: BoundingBox, color, scaling: Scaling,
     # Now the name
     if fontsize > 0:
         font = get_font(fontsize)
-        ccolor = distinctipy.get_text_color((color[0] / 255, color[1] / 255, color[2] / 255), threshold=0.6)[0]
+        ccolor = distinctipy.get_text_color(
+            (color[0] / 255, color[1] / 255, color[2] / 255), threshold=0.6)[0]
         ccolor = round(ccolor * 255)
         ccolor = (ccolor, ccolor, ccolor)
-        left, top, right, bottom = drawing.multiline_textbbox(xy=(0, 0), text=name, font=font)  # To center the text
+        left, top, right, bottom = drawing.multiline_textbbox(
+            xy=(0, 0), text=name, font=font)  # To center the text
         txt_w, txt_h = right - left, bottom - top
-        txt_x, txt_y = round((ll.x + ur.x - txt_w) / 2), round((ll.y + ur.y - txt_h) / 2)
+        txt_x, txt_y = round((ll.x + ur.x - txt_w) /
+                             2), round((ll.y + ur.y - txt_h) / 2)
         drawing.text((txt_x, txt_y), name, fill=ccolor, font=font, align="center",
                      anchor="ms", stroke_width=1, stroke_fill=ccolor)
     im.paste(Image.alpha_composite(im, transp))
@@ -223,7 +227,8 @@ def get_floorplan_plot(netlist: Netlist, die_shape: Shape, allocation: Allocatio
 
     # Assignment of a color to each block
     colors = distinctipy.get_colors(netlist.num_modules, rng=0)
-    colors = [(round(r * 255), round(g * 255), round(b * 255), 128) for (r, g, b) in colors]
+    colors = [(round(r * 255), round(g * 255), round(b * 255), 128)
+              for (r, g, b) in colors]
     module2color = {b: colors[i] for i, b in enumerate(netlist.modules)}
 
     # Scaling factors
@@ -232,9 +237,11 @@ def get_floorplan_plot(netlist: Netlist, die_shape: Shape, allocation: Allocatio
     im, drawing = create_canvas(scaling)
 
     # Outer frame
-    drawing.rectangle((0, 0, scaling.width + 2 * frame, scaling.height + 2 * frame), outline=COLOR_GREY, width=4)
+    drawing.rectangle((0, 0, scaling.width + 2 * frame,
+                      scaling.height + 2 * frame), outline=COLOR_GREY, width=4)
     # Inner frame
-    drawing.rectangle((frame, frame, scaling.width + frame, scaling.height + frame), outline=COLOR_WHITE, width=2)
+    drawing.rectangle((frame, frame, scaling.width + frame,
+                      scaling.height + frame), outline=COLOR_WHITE, width=2)
 
     if allocation is not None:
         for rect_alloc in allocation.allocations:
@@ -245,14 +252,16 @@ def get_floorplan_plot(netlist: Netlist, die_shape: Shape, allocation: Allocatio
             color = (0, 0, 0, 128)
             for module, ratio in a.items():
                 mcolor = module2color[netlist.get_module(module)]
-                color = (color[0] + mcolor[0] * ratio, color[1] + mcolor[1] * ratio, color[2] + mcolor[2] * ratio, 128)
+                color = (color[0] + mcolor[0] * ratio, color[1] +
+                         mcolor[1] * ratio, color[2] + mcolor[2] * ratio, 128)
             color = (round(color[0]), round(color[1]), round(color[2]), 128)
             drawing.rectangle((ll.x, ur.y, ur.x, ll.y), fill=color)
         # Draw the module names
         font = get_font(fontsize)
         for m in netlist.modules:
             center = scale(allocation.center(m.name), scaling)
-            left, top, right, bottom = drawing.multiline_textbbox(xy=(0, 0), text=m.name, font=font)  # To center the text
+            left, top, right, bottom = drawing.multiline_textbbox(
+                xy=(0, 0), text=m.name, font=font)  # To center the text
             txt_w, txt_h = right - left, bottom - top
             txt_x, txt_y = center.x - txt_w / 2, center.y - txt_h / 2
             drawing.text((txt_x, txt_y), m.name, fill=COLOR_WHITE, font=font, align="center",
@@ -275,7 +284,8 @@ def get_floorplan_plot(netlist: Netlist, die_shape: Shape, allocation: Allocatio
         canvas_points = [scale(p, scaling) for p in list_points]
         center = canvas_points[0]
         for pin in canvas_points[1:]:
-            drawing.line([(center.x, center.y), (pin.x, pin.y)], fill=COLOR_WHITE, width=3)
+            drawing.line([(center.x, center.y), (pin.x, pin.y)],
+                         fill=COLOR_WHITE, width=3)
         if len(canvas_points) > 3:  # Circle in the center
             rad = 8
             drawing.ellipse([center.x - rad, center.y - rad, center.x + rad, center.y + rad],
@@ -291,17 +301,22 @@ def parse_options(prog: str | None = None, args: list[str] | None = None) -> dic
     :param args: command-line arguments
     :return: a dictionary with the arguments
     """
-    parser = ArgumentParser(prog=prog, description="A floorplan drawing tool.", usage='%(prog)s [options]')
+    parser = ArgumentParser(
+        prog=prog, description="A floorplan drawing tool.", usage='%(prog)s [options]')
     parser.add_argument("netlist", help="input file (netlist)")
     parser.add_argument("-d", "--die", metavar="<WIDTH>x<HEIGHT> or FILENAME",
                         help="size of the die (width x height) or name of the file")
     parser.add_argument("--alloc", metavar="FILENAME",
                         help="allocation file of modules to rectangles", )
     parser.add_argument("-o", "--outfile", help="output file (gif)")
-    parser.add_argument("--width", type=int, default=0, help="width of the picture (in pixels)")
-    parser.add_argument("--height", type=int, default=0, help="height of the picture (in pixels)")
-    parser.add_argument("--frame", type=int, default=40, help="frame around the die (in pixels). Default: 40")
-    parser.add_argument("--fontsize", type=int, default=20, help="text font size. Default: 20")
+    parser.add_argument("--width", type=int, default=0,
+                        help="width of the picture (in pixels)")
+    parser.add_argument("--height", type=int, default=0,
+                        help="height of the picture (in pixels)")
+    parser.add_argument("--frame", type=int, default=40,
+                        help="frame around the die (in pixels). Default: 40")
+    parser.add_argument("--fontsize", type=int, default=20,
+                        help="text font size. Default: 20")
     return vars(parser.parse_args(args))
 
 
