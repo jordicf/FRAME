@@ -54,6 +54,7 @@ packages = [
     "tools.rect",
     "tools.legalfloor",
     "tools.floorset_parser",
+    "tools.rect.cpp_src",
     "tools.all"
 ]
 
