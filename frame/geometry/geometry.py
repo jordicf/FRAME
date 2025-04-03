@@ -32,7 +32,7 @@ class Point:
         """
         Constructor of a Point.
         """
-        self.x, self.y = x, y
+        self._x, self._y = x, y
 
     @property
     def x(self) -> float:

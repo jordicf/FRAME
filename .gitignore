@@ -10,6 +10,9 @@ venv10
 *.pyc
 *.exe
 
+# Python specific files
+.flake8
+
 ignore
 tools/legalfloor/example_visuals/*
 

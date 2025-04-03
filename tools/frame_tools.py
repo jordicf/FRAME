@@ -6,7 +6,6 @@
 
 import argparse
 
-import tools.floorset_parser
 import tools.floorset_parser.floorset_handler
 import tools.hello.hello  # Fake tool
 import tools.draw.draw  # To draw floorplans
@@ -19,7 +18,8 @@ import tools.force.force
 import tools.glbfloor.glbfloor
 import tools.rect.rect  # To normalize fuzzy module assignments
 import tools.legalfloor.legalfloor  # To legalize the floorplan
-import tools.all.all  # To execute the whole flow
+import tools.all.all # To execute the whole flow
+import tools.uscs_parser.uscs_parser
 
 # Tool names and the entry function they execute.
 # The functions must accept two parameters: the tool name and the command-line arguments passed to it.
@@ -31,7 +31,8 @@ TOOLS = {"hello": tools.hello.hello.main,
          "glbfloor": tools.glbfloor.glbfloor.main,
          "rect": tools.rect.rect.main,
          "legalfloor": tools.legalfloor.legalfloor.main,
-         "floorset": tools.floorset_parser.floorset_handler.main,
+         "parse_floorset": tools.floorset_parser.floorset_handler.main,
+         "uscs_parser": tools.uscs_parser.uscs_parser.main,
          "all": tools.all.all.main
          }
 
