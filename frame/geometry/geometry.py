@@ -5,7 +5,7 @@
 """
 Module to represent points, shapes and rectangles
 """
-
+from __future__ import annotations
 from collections import deque
 from enum import Enum
 import heapq
