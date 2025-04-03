@@ -11,14 +11,6 @@ venv10
 *.exe
 
 # Python specific files
-__pycache__/
-*.pyc
-*.pyo
-*.pyd
-.Python
-build/
-dist/
-*.egg-info/
 .flake8
 
 ignore

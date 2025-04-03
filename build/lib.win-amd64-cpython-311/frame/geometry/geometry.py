@@ -10,7 +10,7 @@ from collections import deque
 from enum import Enum
 import heapq
 import math
-from typing import Union, Sequence, Optional
+from typing import Any, Union, Sequence, Optional
 from dataclasses import dataclass, field
 
 from frame.utils.keywords import KW_FIXED, KW_HARD, KW_CENTER, KW_SHAPE, KW_REGION, KW_NAME, \
