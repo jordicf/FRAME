@@ -15,7 +15,8 @@ dependencies = [
     "matplotlib",
     "distinctipy",
     "Pillow",
-    "python-sat"
+    "python-sat",
+    "ortools"
 ]
 
 [project.optional-dependencies]
@@ -34,7 +35,7 @@ jupyter = [
 homepage = "https://github.com/jordicf/FRAME"
 
 [project.scripts]
-frame = "tools.frame:main"
+frame = "tools.frame_tools:main"
 
 [tool.setuptools]
 packages = [
@@ -55,6 +56,7 @@ packages = [
     "tools.legalfloor",
     "tools.floorset_parser",
     "tools.rect.cpp_src",
+    "tools.uscs_parser",
     "tools.all"
 ]
 
