@@ -101,7 +101,7 @@ def parse_yaml_center(center: list[float], name: str) -> Point:
 def parse_yaml_aspect_ratio(aspect_ratio: float | list[float], name: str) -> AspectRatio:
     """
     Parses the aspect ratio of the module. If only one value is given, the aspect ratio is computed
-    as the inverval [value, 1/value] or [1/value, value] in such a way that the first component is smaller
+    as the interval [value, 1/value] or [1/value, value] in such a way that the first component is smaller
     than the second
     :param aspect_ratio: module attribute
     :param name: name of the module

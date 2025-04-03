@@ -59,43 +59,13 @@ class Point:
         """Return -self."""
         return Point(-self.x, -self.y)
 
-    def __add__(self, other: Union['Point', tuple[float, float], float]) -> 'Point':
+    def __add__(self, other: 'Point') -> 'Point':
         """Return self + other."""
-        other = Point(other)
         return Point(self.x + other.x, self.y + other.y)
 
-    __radd__ = __add__
-
-    def __sub__(self, other: Union['Point', tuple[float, float], float]) -> 'Point':
+    def __sub__(self, other: 'Point') -> 'Point':
         """Return self - other."""
-        other = Point(other)
-        return Point(self.x, self.y) + -other
-
-    def __rsub__(self, other: Union['Point', tuple[float, float], float]) -> 'Point':
-        """Return other - self."""
-        other = Point(other)
-        return other - self
-
-    def __mul__(self, other: Union['Point', tuple[float, float], float]) -> 'Point':
-        """Return self*other using component-wise multiplication. other can be a number or another point."""
-        other = Point(other)
-        return Point(self.x * other.x, self.y * other.y)
-
-    __rmul__ = __mul__
-
-    def __pow__(self, exponent: float) -> 'Point':
-        """Return self**exponent using component-wise exponentiation."""
-        return Point(self.x ** exponent, self.y ** exponent)
-
-    def __truediv__(self, other: Union['Point', tuple[float, float], float]) -> 'Point':
-        """Return self / other using component-wise true division. other can be a number or another point."""
-        other = Point(other)
-        return Point(self.x / other.x, self.y / other.y)
-
-    def __rtruediv__(self, other: Union['Point', tuple[float, float], float]):
-        """Return other / self using component-wise true division. other can be a number or another point."""
-        other = Point(other)
-        return Point(other.x / self.x, other.y / self.y)
+        return Point(self.x - other.x, self.y - other.y)
 
     def __and__(self, other: 'Point') -> float:
         """Dot product between self and other."""
