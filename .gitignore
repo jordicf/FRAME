@@ -10,6 +10,17 @@ venv10
 *.pyc
 *.exe
 
+# Python specific files
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+build/
+dist/
+*.egg-info/
+.flake8
+
 ignore
 tools/legalfloor/example_visuals/*
 
