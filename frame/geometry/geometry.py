@@ -184,7 +184,7 @@ class Rectangle:
     _distance_epsilon: float = -1.0  # epsilon used for distances
     _area_epsilon: float = -1.0  # epsilon used for area
 
-    def __init__(self, **kwargs: Any):
+    def __init__(self, **kwargs: dict[str, Any]):
         """
         Constructor
         :param kwargs: center (Point), shape (Shape), fixed (bool), region (str)
@@ -195,7 +195,8 @@ class Rectangle:
         self._shape: Shape = Shape(-1, -1)  # Shape: width and height
         self._fixed: bool = False  # Is the rectangle fixed?
         self._hard: bool = False  # Is the rectangle hard?
-        self._region: str = KW_GROUND  # Region of the layout to which the rectangle belongs to
+        # Region of the layout to which the rectangle belongs to
+        self._region: str = KW_GROUND
         self._location: Rectangle.StogLocation = Rectangle.StogLocation.NO_POLYGON
 
         # Reading parameters and type checking
@@ -203,18 +204,22 @@ class Rectangle:
             assert key in [KW_CENTER, KW_SHAPE, KW_FIXED, KW_HARD, KW_REGION, KW_NAME], \
                 "Unknown rectangle attribute"
             if key == KW_CENTER:
-                assert isinstance(value, Point), "Incorrect point associated to the center of the rectangle"
+                assert isinstance(
+                    value, Point), "Incorrect point associated to the center of the rectangle"
                 self._center = value
             elif key == KW_SHAPE:
-                assert isinstance(value, Shape), "Incorrect shape associated to the rectangle"
+                assert isinstance(
+                    value, Shape), "Incorrect shape associated to the rectangle"
                 assert value.w > 0, "Incorrect rectangle width"
                 assert value.h > 0, "Incorrect rectangle height"
                 self._shape = value
             elif key == KW_FIXED:
-                assert isinstance(value, bool), "Incorrect value for fixed (should be a boolean)"
+                assert isinstance(
+                    value, bool), "Incorrect value for fixed (should be a boolean)"
                 self._fixed = value
             elif key == KW_HARD:
-                assert isinstance(value, bool), "Incorrect value for hard (should be a boolean)"
+                assert isinstance(
+                    value, bool), "Incorrect value for hard (should be a boolean)"
                 self._hard = value
             elif key == KW_REGION:
                 assert valid_identifier(value) or value == KW_BLOCKAGE, \
@@ -239,7 +244,8 @@ class Rectangle:
         :param area_epsilon: epsilon used for area. If negative, sqrt(distance_epsilon) is taken
         """
         Rectangle._distance_epsilon = distance_epsilon
-        Rectangle._area_epsilon = area_epsilon if area_epsilon >= 0 else math.sqrt(distance_epsilon)
+        Rectangle._area_epsilon = area_epsilon if area_epsilon >= 0 else math.sqrt(
+            distance_epsilon)
 
     @staticmethod
     def undefine_epsilon() -> None:
@@ -595,18 +601,21 @@ def parse_yaml_rectangle(r: Sequence[float | int | str],
 
     if isinstance(r, list):
         r = tuple(r)
-    assert isinstance(r, tuple) and 4 <= len(r) <= 5, "Incorrect format for rectangle"
+    assert isinstance(r, tuple) and 4 <= len(
+        r) <= 5, "Incorrect format for rectangle"
     for i in range(4):
         x = r[i]
-        assert isinstance(x, (int, float)) and x >= 0, "Incorrect value for rectangle"
+        assert isinstance(
+            x, (int, float)) and x >= 0, "Incorrect value for rectangle"
     if len(r) == 5:
         assert isinstance(r[4], str) and valid_identifier(r[4])
 
     # Hard or fixed rectangles must not be assigned to any region
-    assert len(r) == 4 or not (fixed or hard), "Hard rectangles cannot be assigned to any region"
+    assert len(r) == 4 or not (
+        fixed or hard), "Hard rectangles cannot be assigned to any region"
 
     assert isinstance(r[0], (int, float)) and isinstance(r[1], (int, float)) and \
-           isinstance(r[2], (int, float)) and isinstance(r[3], (int, float))
+        isinstance(r[2], (int, float)) and isinstance(r[3], (int, float))
     kwargs = {KW_CENTER: Point(r[0], r[1]), KW_SHAPE: Shape(r[2], r[3]),
               KW_FIXED: fixed, KW_HARD: hard}
     if len(r) == 5:
