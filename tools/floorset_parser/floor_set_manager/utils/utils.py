@@ -200,8 +200,8 @@ def strop_decomposition(vertices: Polygon) -> list[Rectangle]:
             x_min, x_max = x_coords[j], x_coords[j + 1]
             y_max, y_min = y_coords[i], y_coords[i + 1]
             # Determine the center of the rectangle
-            center_x = (x_min + x_max) / 2
-            center_y = (y_min + y_max) / 2
+            center_x = float((x_min + x_max) / 2)
+            center_y = float((y_min + y_max) / 2)
             # Check if the center is inside the polygon
             if is_point_inside_polygon(Point(center_x, center_y), vertices):
                 m += '1'
@@ -244,9 +244,9 @@ def is_point_inside_polygon(point: Point, vertices: Polygon) -> bool:
         p2 = vertices[(i + 1) % n]
         # p1 p2 are Points or ndarrays
         if isinstance(p1, np.ndarray):
-            p1 = Point(p1[0], p1[1])
+            p1 = Point(float(p1[0]), float(p1[1]))
         if isinstance(p2, np.ndarray):
-            p2 = Point(p2[0], p2[1])
+            p2 = Point(float(p2[0]), float(p2[1]))
 
         if (p1.y <= point.y < p2.y) or (p2.y <= point.y < p1.y):
             intersect_x = p1.x + (point.y - p1.y) * (p2.x - p1.x) / (p2.y - p1.y)

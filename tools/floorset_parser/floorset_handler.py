@@ -4,6 +4,10 @@
 
 import argparse
 from typing import Any
+try:
+    from torch.utils.data import DataLoader
+except ImportError:
+    print("PyTorch is not installed. To use this tool it is a tool requirment")
 
 from tools.floorset_parser.floor_set_manager.manager import FloorSetInstance
 from tools.floorset_parser.floor_set_manager.loaders.lite import FloorplanDatasetLite
@@ -74,9 +78,9 @@ def main(prog: str | None = None, args: list[str] | None = None) -> None:
     datasettype: str = options['dataset']
     inputdatapath: str = options['input']
     outfilepath: str = options['output']
-    density: float = options['connection_density']
+    density: float|None = options['connection_density']
     term2mod:bool = options['store_terminals']
-    fpef_ids:bool = options['fpef-ids']
+    fpef_ids:bool|None = options['fpef_ids']
 
     if datasettype == "PrimeTraining":
         ds = FloorplanDatasetPrime(inputdatapath)
@@ -118,7 +122,7 @@ def main(prog: str | None = None, args: list[str] | None = None) -> None:
 
         for i in range(len(area_targets)): # Extract each floorplan
             curr_id = batch_idx * len(area_targets) + i
-            if (len(fpef_ids) != 0) and (not curr_id in fpef_ids):
+            if fpef_ids and (not curr_id in fpef_ids):
                 continue
 
             # Preprocess tensors to remove invalid data (-1)
@@ -151,8 +155,4 @@ def main(prog: str | None = None, args: list[str] | None = None) -> None:
 
 
 if __name__ == "__main__":
-    try:
-        from torch.utils.data import DataLoader
-    except ImportError:
-        print("PyTorch is not installed. To use this tool it is a tool requirment")
     main()

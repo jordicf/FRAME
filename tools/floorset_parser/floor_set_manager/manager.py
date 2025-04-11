@@ -195,13 +195,13 @@ class FloorSetInstance():
 
         for b2b_edge in self._fp_data['b2b_connectivity']:
             b1, b2, w = b2b_edge
-            wei = w*self._alpha
+            wei = float(w*self._alpha)
             net = NamedHyperEdge(modules=[f"M{int(b1)}", f"M{int(b2)}"], weight= wei if wei>0 else 1)
             self._nets.append(net)
 
         for p2b_edge in self._fp_data['p2b_connectivity']:
             pin, bl, w = p2b_edge
-            wei = w*self._alpha
+            wei = float(w*self._alpha)
             net = NamedHyperEdge(modules=[f"T{int(pin)}", f"M{int(bl)}"], weight= wei if wei>0 else 1)
             self._nets.append(net)
 
