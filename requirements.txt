@@ -8,3 +8,4 @@ setuptools~=65.5.1
 python-sat
 ruamel.yaml
 ortools
+torch

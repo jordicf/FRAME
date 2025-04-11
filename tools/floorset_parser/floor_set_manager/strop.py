@@ -76,7 +76,7 @@ EMPTY_INTERVAL = Interval(-1, -1)
 
 
 @dataclass
-class Rectangle:
+class StropRectangle:
     """Represents a rectangle (interval of rows and interval of columns)"""
     rows: Interval
     columns: Interval
@@ -169,19 +169,19 @@ class Strop:
         for tree in self._instances:
             yield tree
 
-    def _get_potential_trunks(self) -> set[Rectangle]:
+    def _get_potential_trunks(self) -> set[StropRectangle]:
         """Returns a set of rectangles that could be potentially
         trunks of the polygon"""
         Mt = [[self._m[j][i]
                for j in range(self._nrows)] for i in range(self._ncols)]
         return {
             t for t in Strop._get_trunks_matrix(self._m).intersection(
-                {Rectangle(r.columns, r.rows)
+                {StropRectangle(r.columns, r.rows)
                  for r in Strop._get_trunks_matrix(Mt)})
             if self._empty_corners(t)
         }
 
-    def _empty_corners(self, R: Rectangle) -> bool:
+    def _empty_corners(self, R: StropRectangle) -> bool:
         """It indicates if the NE, NW, SE, SW corners of the rectangle are
         empty in the matrix"""
 
@@ -200,7 +200,7 @@ class Strop:
         )
 
     @staticmethod
-    def _get_trunks_matrix(M: BoolMatrix) -> set[Rectangle]:
+    def _get_trunks_matrix(M: BoolMatrix) -> set[StropRectangle]:
         """Returns a list of rectangles that could potentially be the trunk
         of the polygon"""
         nrows = len(M)
@@ -227,7 +227,7 @@ class Strop:
             for row in range(column, 0, -1):
                 if rect[row][column] == rect[row-1][column]:
                     rect[row][column] = EMPTY_INTERVAL
-        return {Rectangle(Interval(row, column), rect[row][column])
+        return {StropRectangle(Interval(row, column), rect[row][column])
                 for row in range(nrows)
                 for column in range(row, nrows)
                 if rect[row][column] != EMPTY_INTERVAL}
@@ -260,15 +260,15 @@ class Strop:
 class StropInstance:
     """Class to represent an instance of a STrOP"""
     _poly: Strop  # Representation of the orthogonal polygon
-    _trunk: Rectangle  # Trunk
-    _north: list[Rectangle]  # North branches
-    _south: list[Rectangle]  # South branches
-    _east: list[Rectangle]  # East branches
-    _west: list[Rectangle]  # West branches
+    _trunk: StropRectangle  # Trunk
+    _north: list[StropRectangle]  # North branches
+    _south: list[StropRectangle]  # South branches
+    _east: list[StropRectangle]  # East branches
+    _west: list[StropRectangle]  # West branches
     _num_cells: int  # number of cells of the OrthoTree
     _valid: bool  # Is the OrthoTree a Strop?
 
-    def __init__(self, p: Strop, trunk: Rectangle):
+    def __init__(self, p: Strop, trunk: StropRectangle):
         self._poly = p
         self._trunk = trunk
         m = p.matrix
@@ -321,13 +321,13 @@ class StropInstance:
         for c in range(trunk.columns.low + 1, trunk.columns.high+1):
             if h_north[c] != v:
                 if v != 0:
-                    self._north.append(Rectangle(
+                    self._north.append(StropRectangle(
                         Interval(trunk.rows.low-v, trunk.rows.low-1),
                         Interval(init_c, c-1)))
                 init_c = c
                 v = h_north[c]
         if v != 0:  # Last rectangle
-            self._north.append(Rectangle(
+            self._north.append(StropRectangle(
                 Interval(trunk.rows.low-v, trunk.rows.low-1),
                 Interval(init_c, trunk.columns.high)))
 
@@ -336,13 +336,13 @@ class StropInstance:
         for c in range(trunk.columns.low + 1, trunk.columns.high+1):
             if h_south[c] != v:
                 if v != 0:
-                    self._south.append(Rectangle(
+                    self._south.append(StropRectangle(
                         Interval(trunk.rows.high+1, trunk.rows.high+v),
                         Interval(init_c, c-1)))
                 init_c = c
                 v = h_south[c]
         if v != 0:  # Last rectangle
-            self._south.append(Rectangle(
+            self._south.append(StropRectangle(
                 Interval(trunk.rows.high+1, trunk.rows.high+v),
                 Interval(init_c, trunk.columns.high)))
 
@@ -351,13 +351,13 @@ class StropInstance:
         for r in range(trunk.rows.low + 1, trunk.rows.high+1):
             if h_west[r] != v:
                 if v != 0:
-                    self._west.append(Rectangle(
+                    self._west.append(StropRectangle(
                         Interval(init_r, r-1),
                         Interval(trunk.columns.low-v, trunk.columns.low-1)))
                 init_r = r
                 v = h_west[r]
         if v != 0:  # Last rectangle
-            self._west.append(Rectangle(
+            self._west.append(StropRectangle(
                 Interval(init_r, trunk.rows.high),
                 Interval(trunk.columns.low-v, trunk.columns.low-1)))
 
@@ -366,13 +366,13 @@ class StropInstance:
         for r in range(trunk.rows.low + 1, trunk.rows.high+1):
             if h_east[r] != v:
                 if v != 0:
-                    self._east.append(Rectangle(
+                    self._east.append(StropRectangle(
                         Interval(init_r, r-1),
                         Interval(trunk.columns.high+1, trunk.columns.high+v)))
                 init_r = r
                 v = h_east[r]
         if v != 0:  # Last rectangle
-            self._east.append(Rectangle(
+            self._east.append(StropRectangle(
                 Interval(init_r, trunk.rows.high),
                 Interval(trunk.columns.high+1, trunk.columns.high+v)))
 
@@ -380,11 +380,11 @@ class StropInstance:
         """Reports whether it is a valid Strop"""
         return self._valid
 
-    def trunk(self) -> Rectangle:
+    def trunk(self) -> StropRectangle:
         """Returns the trunk of the tree"""
         return self._trunk
 
-    def rectangles(self, which: str = '') -> Iterator[Rectangle]:
+    def rectangles(self, which: str = '') -> Iterator[StropRectangle]:
         """Returns the rectangles of the STrOP instance depending on the
         value of which.
         '' -> all rectangles (default)
@@ -422,7 +422,7 @@ class StropInstance:
         return '\n'.join([''.join(row).rstrip() for row in grid])
 
     @staticmethod
-    def _str_rectangle(grid: list[list[str]], rect: Rectangle,
+    def _str_rectangle(grid: list[list[str]], rect: StropRectangle,
                        idx: int) -> None:
         """Defines the cells of the grid with the rectangle rect and
         index idx"""

@@ -16,7 +16,8 @@ dependencies = [
     "distinctipy",
     "Pillow",
     "python-sat",
-    "ortools"
+    "ortools",
+    "torch"
 ]
 
 [project.optional-dependencies]

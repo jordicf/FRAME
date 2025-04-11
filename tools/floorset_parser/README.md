@@ -1,6 +1,7 @@
-Title: Floorplan Dataset Parser
-Description: This tool processes and saves individual floorplan data from .npz files to YAML file. 
-The `floorplan_data` dictionary loaded from the .npz file is expected to have the following structure:
+# Floorplan Dataset Parser
+This tool processes and saves individual floorplan data from .npz files to YAML file.
+To process the FloorSet it needs the python libraries torch.
+The `floorplan_data` dictionary loaded from the FloorSet dataset folder is expected to have the following structure:
 
 - `area_blocks`: (n_blocks,) ndarray containing the area targets for each block. 
    * Values must be non-negative.
@@ -44,12 +45,12 @@ Validation is enforced for:
 3. Expected keys in the dictionary must be a subset of: 
    `['area_blocks', 'b2b_connectivity', 'p2b_connectivity', 'pins_pos', 'placement_constraints', 'vertex_blocks', 'b_tree', 'metrics']`.
 
-The density parameter $d$:
-- A float in the range [0, 1] representing a percentage to stress the floorplan connections. It is computed as follows:
-    * For each block $B_i$ we compute the total weight $W_i = \sum_{e\in b2b or p2b} e.w$.
-    * We take the maximum $\max W_i$ and compute the perimeter $P$ of the block  with maximum weight $B_k$
-    * Then the scalar factor $\alpha$ is 
-    $$\alpha = \frac{d \cdot P}{ \max W_i}$$
+The density parameter $d$ acts as a float in the range [0, 1] representing a percentage to stress the floorplan connections:
+ * For each block $B_i$ we compute the total weight $W_i = \sum_{e\in b2b \bigcup p2b} e.weight$.
+ * Compute the perimeter for each block $P_i$.
+ * We take the block $B_k$ with highest congestion $\max_{B_i} \frac{W_i}{P_i}$
+ * Then scale all net weights with the factor $\alpha$ as
+ $$\alpha = \frac{d \cdot P_k}{W_k}$$
 
 
 Author: Antoni Pech Alberich
