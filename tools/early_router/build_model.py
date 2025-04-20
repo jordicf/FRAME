@@ -553,10 +553,10 @@ class FeedThrough:
 
         with open(f"{filepath}{filename}{extension}", 'w') as f:
             for netid, route in self.solution.routes.items():
-                f.write(f"{netnames.get(netid, "n")} {netid} {len(route)}")
+                f.write(f"{netnames.get(netid, 'n')} {netid} {len(route)}")
                 for r in route:
                     f.write(f"({r[0][0]},{r[0][1]},{r[0][2]})-({r[1][0]},{r[1][1]},{r[1][2]})")
-                f.write(f"!")
+                f.write("!")
 
     def set_capacity_adjustments(self, cap_adjust:dict[EdgeID, float|int]):
         self._graph.apply_capacity_adjustments(cap_adjust)
