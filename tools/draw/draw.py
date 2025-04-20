@@ -40,7 +40,8 @@ COLOR_BLACK = (0, 0, 0)
 
 def scale(p: Point, s: Scaling) -> Point:
     """
-    Scales a point according to the scaling factors
+    Scales a point according to the scaling factors.
+
     :param p: the point
     :param s: the scaling tuple
     :return: the new point (with integer values)
@@ -51,7 +52,8 @@ def scale(p: Point, s: Scaling) -> Point:
 def calculate_scaling(original: Shape, width: int, height: int, frame: int = 20, default: int = 1000) -> Scaling:
     """
     Calculates the scaling factor for a picture. If both width and height are zero,
-    then the scaling preserves the aspect ratio and the max dimension is 1000
+    then the scaling preserves the aspect ratio and the max dimension is 1000.
+
     :param original: original width and height of the picture
     :param width: desired width (0 if aspect ratio must be preserved)
     :param height: desired height (0 if aspect ratio must be preserved)
@@ -85,7 +87,8 @@ def get_font(font_size: int) -> ImageFont.FreeTypeFont:
 
 def check_modules(modules: list[Module]) -> None:
     """
-    Check that all modules are drawable, i.e., we either have a list of rectangles or a center and an area
+    Check that all modules are drawable, i.e., we either have a list of rectangles or a center and an area.
+
     :param modules: list of modules
     :raises exception: if some module is not drawable
     """
@@ -100,7 +103,8 @@ def check_modules(modules: list[Module]) -> None:
 def calculate_bbox(netlist: Netlist) -> Shape:
     """
     Calculates the bounding box of the netlist using the rectangles. Only xmax and ymax are returned.
-    The ll corner of the bounding box is assumed to be (0,0)
+    The ll corner of the bounding box is assumed to be (0,0).
+
     :param netlist: the netlist
     :return: the bounding box
     """
@@ -120,7 +124,8 @@ def calculate_bbox(netlist: Netlist) -> Shape:
 def gen_out_filename(name: str, suffix: str = "gif") -> str:
     """
     Generates the output filename by substituting the extension by the suffix.
-    If the name has no extension ('.' is not found), the suffix is added at the end of the name
+    If the name has no extension ('.' is not found), the suffix is added at the end of the name.
+
     :param name: name of the input file
     :param suffix: suffix of the output file
     :return: the output filename
@@ -133,7 +138,8 @@ def gen_out_filename(name: str, suffix: str = "gif") -> str:
 
 def create_canvas(s: Scaling):
     """
-    Generates the canvas of the drawing
+    Generates the canvas of the drawing.
+
     :param s: scaling of the layout
     """
     im = Image.new('RGBA', (s.width + 2 * s.frame,
@@ -144,7 +150,8 @@ def create_canvas(s: Scaling):
 
 def calculate_centers(e: HyperEdge, alloc: Allocation | None) -> list[Point]:
     """
-    Calculates a list of points to be connected from a hyperedge. The first point acts as the center of the star
+    Calculates a list of points to be connected from a hyperedge. The first point acts as the center of the star.
+
     :param e: The hyperedge
     :param alloc: an allocation of modules to rectangles
     :return: the list of points (the first point is the center of the star)
@@ -213,6 +220,7 @@ def get_floorplan_plot(netlist: Netlist, die_shape: Shape, allocation: Allocatio
                        height: int = 0, frame: int = 20, fontsize: int = 20) -> Image.Image:
     """
     Generates the plot of the floorplan
+    
     :param netlist: the netlist with the modules and the hyperedges
     :param allocation: allocation of modules to rectangles
     :param die_shape: the shape of the die

@@ -6,6 +6,7 @@
 
 import argparse
 
+import tools.early_router.main_router
 import tools.floorset_parser.floorset_handler
 import tools.hello.hello  # Fake tool
 import tools.draw.draw  # To draw floorplans
@@ -33,6 +34,7 @@ TOOLS = {"hello": tools.hello.hello.main,
          "legalfloor": tools.legalfloor.legalfloor.main,
          "parse_floorset": tools.floorset_parser.floorset_handler.main,
          "uscs_parser": tools.uscs_parser.uscs_parser.main,
+         "early_router": tools.early_router.main_router.main,
          "all": tools.all.all.main
          }
 

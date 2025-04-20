@@ -12,6 +12,7 @@ venv10
 
 # Python specific files
 .flake8
+/outputs/*
 
 ignore
 tools/legalfloor/example_visuals/*
