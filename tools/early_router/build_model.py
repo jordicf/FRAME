@@ -209,9 +209,15 @@ class FeedThrough:
             out_var = [net_variables[(e.source._id, e.target._id, net_id)] for e in in_out_edges["out"] if (e.source._id, e.target._id) in net_edges]
             self._solver.add_linear_constraint(sum(in_var) - sum(out_var) == 0)
 
-    def _add_multipin_net(self, net_id:int, net: HyperEdge):
+    def _add_multipin_net(self, net_id:int, net: HyperEdge| NamedHyperEdge):
+        
+        if isinstance(net, HyperEdge):
+            modulenames = [m.name for m in net.modules]
+        elif isinstance(net, NamedHyperEdge):
+            modulenames = net.modules
+        else:
+            assert False, "Net is neither HyperEdge not NamedHyperEdge"
 
-        modulenames = [m.name for m in net.modules]
         wei = net.weight # wires to connect
 
         net_nodes = self._graph.get_net_boundingbox(net, 0) ######################### CHANGE HERE

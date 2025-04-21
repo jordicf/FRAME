@@ -7,6 +7,8 @@ from frame.netlist.netlist import Netlist
 from tools.draw.draw import get_floorplan_plot, calculate_bbox
 from tools.early_router.draw import draw_congestion, draw_solution2D, draw_solution3D
 from tools.early_router.build_model import FeedThrough
+from tools.early_router.isdp_parser import parse_isdp_file, convert_to_hanangrid
+from tools.early_router.hanan import HananGrid
 import random
 import time
 import csv
@@ -22,18 +24,29 @@ def file_manager(file_path:Path, options):
     line = '################################################'
     dashed = '-----------------------------------------------'
     print(f"{line}\n\t\tRouting: {filename} ...")
-
-    netlist = Netlist(str(file_path)) # too much time for ISDP files
-    nets = netlist.edges
-
-    if options['draw_congestion']:
-        # Image with all net connections
-        die_shape = calculate_bbox(netlist)
-        im = get_floorplan_plot(netlist, die_shape)
-        im.save(f"{output}/{filename}image.gif", quality=95)
-
     start_time = time.perf_counter()
-    ft = FeedThrough(netlist)
+
+    if file_path.suffix.lower() == ".yaml":
+        netlist = Netlist(str(file_path)) # too much time for ISDP files
+        ft = FeedThrough(netlist)
+        nets = netlist.edges
+        
+        if options['draw_congestion']:
+            # Image with all net connections
+            die_shape = calculate_bbox(netlist)
+            im = get_floorplan_plot(netlist, die_shape)
+            im.save(f"{output}/{filename}image.gif", quality=95)
+    else:
+        isdp_data = parse_isdp_file(str(file_path))
+        data = convert_to_hanangrid(isdp_data)
+        hg = HananGrid(data['HananCells'])
+        ft = FeedThrough(hg, layers=data['Layers'])
+        nets = list(data['Nets'].values())
+        if isdp_data['capacity_adjustments']:
+            ft.set_capacity_adjustments({(
+                (a['row'], a['column'], a['layer']), (a['target_row'],a['target_column'], a['target_layer'])
+                ): a['reduced_capacity'] for a in isdp_data['capacity_adjustments']})
+
     ft.add_nets(nets)
     # ##################################### 
     # # from frame.netlist.netlist_types import HyperEdge
@@ -149,16 +162,12 @@ def main(prog: str | None = None, args: list[str] | None = None) -> None:
     output_path.mkdir(parents=True, exist_ok=True)  # Ensure output dir exists
 
     if input_path.is_file():
-        if input_path.suffix.lower() == ".yaml":
-            file_path = input_path
-            try:
-                floorplans.append(file_manager(file_path, options))
-            except Exception as e:
-                warnings.warn(f"could not process {file_path.name}", UserWarning)
-                traceback.print_exc()
-        else:
-            # Call ISPD parser, raise error
-            pass
+        file_path = input_path
+        try:
+            floorplans.append(file_manager(file_path, options))
+        except Exception as e:
+            warnings.warn(f"Could not process {file_path.name} due to \n{traceback.print_exc()}", UserWarning)
+            
     elif input_path.is_dir():
         for file in input_path.iterdir():
             if file.is_file() and file.name.startswith("FPEF") and file.suffix.lower() == ".yaml":
@@ -170,8 +179,8 @@ def main(prog: str | None = None, args: list[str] | None = None) -> None:
                 try:
                     floorplans.append(file_manager(file_path, options))
                 except Exception as e:
-                    warnings.warn(f"could not process {file_path.name}", UserWarning)
-                    traceback.print_exc()
+                    warnings.warn(f"Could not process {file_path.name} due to \n{traceback.print_exc()}")
+                    #traceback.print_exc()
     else:
         raise ValueError(f"Input path {input_path} does not exist or is invalid.")
     

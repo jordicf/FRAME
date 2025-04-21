@@ -366,51 +366,6 @@ class HananGraph3D:
         if (source_id in self._adj_list) and (target_id in self._adj_list[source_id]):
             return self._adj_list[source_id][target_id]
         return None
-
-    # def get_net_boundingbox(self, net: HyperEdge | NamedHyperEdge, augmentation: int = 0) -> list[HananNode3D]:
-    #     """
-    #     Given a net and an augmentation, create an augmented bounding box.
-        
-    #     Args:
-    #         net (HyperEdge | NamedHyperEdge): The 2-pin net.
-    #         augmentation (int): The amount to expand the bounding box.
-        
-    #     Returns:
-    #         list[HananNode3D]: A list with nodes inside the augmented bounding box.
-    #     """
-    #     selected = []
-    #     starting_nodes = []
-
-    #     for m in net.modules:
-    #         modules = self.get_nodes_by_modulename(m if isinstance(m, str) else m.name)
-    #         if any(self.is_terminal(n) for n in modules):
-    #             terminal = modules[0]
-    #             selected.append(terminal)
-    #             starting_nodes.append([self.get_adj_nodes(terminal)[0]])
-    #         else:
-    #             starting_nodes.append(modules)
-
-    #     assert len(net.modules) == 2, "Getting bounding box for non 2-pin connection"
-
-    #     # Find closest (start, target) pair using Manhattan distance
-    #     start, target = min(
-    #         ((s, t) for s in starting_nodes[0] for t in starting_nodes[1]),
-    #         key=lambda pair: abs(pair[0].center.x - pair[1].center.x) + abs(pair[0].center.y - pair[1].center.y),
-    #     )
-
-    #     # Compute bounding box coordinates
-    #     min_x = max(min(start._id[0], target._id[0]) - augmentation, 0)
-    #     min_y = max(min(start._id[1], target._id[1]) - augmentation, 0)
-    #     max_x = max(start._id[0], target._id[0]) + augmentation
-    #     max_y = max(start._id[1], target._id[1]) + augmentation
-
-    #     # Collect nodes inside the bounding box
-    #     selected.extend(
-    #         node for node in self.nodes
-    #         if min_x <= node._id[0] <= max_x and min_y <= node._id[1] <= max_y
-    #     )
-
-    #     return selected
     
     def get_net_boundingbox(self, net: HyperEdge | NamedHyperEdge, augmentation: int = 0) -> list[HananNode3D]:
         """
