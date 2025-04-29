@@ -34,7 +34,7 @@ class FloorSetInstance():
     _height: float
     "Die height"
 
-    def __init__(self, floorplan_data: dict[np.ndarray], density: float|None, terminals_as_modules:bool) -> None:
+    def __init__(self, floorplan_data: dict[np.ndarray], density: float|None, factor: float|None, terminals_as_modules:bool) -> None:
         """
         :Args:
         :param dict[np.ndarray] floorplan_data: The raw floorplan data stored in a dictionary with keys: 
@@ -47,6 +47,7 @@ class FloorSetInstance():
         keys = ['area_blocks', 'b2b_connectivity', 'p2b_connectivity',\
                  'pins_pos', 'placement_constraints', 'vertex_blocks', 'b_tree', 'metrics']
         
+        assert (density and not factor) or (not density and factor), "density and factor are mutually exclusive"
         assert isinstance(floorplan_data, dict), "Error floorplan data type. Has to be a dict."
         for k in floorplan_data.keys():
             assert k in keys, \
@@ -97,7 +98,11 @@ class FloorSetInstance():
             self._d = float(density)
         else:
             self._d = density
-        
+        if factor:
+            self._alpha = float(factor)
+        else:
+            self._alpha = factor
+
         self._parse_modules(terminals_as_modules)
         self._parse_connections()
 
@@ -190,7 +195,7 @@ class FloorSetInstance():
                 if max_f < f:
                     max_f = f        
             self._alpha = float(self._d / max_f)
-        else:
+        elif not self._alpha:
             self._alpha = 1
 
         for b2b_edge in self._fp_data['b2b_connectivity']:

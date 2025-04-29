@@ -56,12 +56,20 @@ def parse_options(prog: str | None = None, args: list[str] | None = None) -> dic
         nargs="*",
         help="List of floorplan IDs to parse. Provide space-separated values."
     )
-    parser.add_argument(
+    group = parser.add_mutually_exclusive_group()
+    group.add_argument(
         "-d",
         "--connection_density",
         type=float,
         default= None,
         help="Percentage for connection density between 0 and 1 (default: No changes)."
+    )
+    group.add_argument(
+        "-f",
+        "--scale_factor",
+        type=float,
+        default= None,
+        help="Scaling factor for net weights (default: No changes)."
     )
     parser.add_argument(
         "--store-terminals",
@@ -79,6 +87,7 @@ def main(prog: str | None = None, args: list[str] | None = None) -> None:
     inputdatapath: str = options['input']
     outfilepath: str = options['output']
     density: float|None = options['connection_density']
+    factor: float|None = options['scale_factor']
     term2mod:bool = options['store_terminals']
     fpef_ids:bool|None = options['fpef_ids']
 
@@ -144,7 +153,7 @@ def main(prog: str | None = None, args: list[str] | None = None) -> None:
                 'metrics': metrics
             } #TODO b_tree only for Lite Training
 
-            fp = FloorSetInstance(data, density, term2mod)
+            fp = FloorSetInstance(data, density, factor, term2mod)
 
             # Create a filename for the item
             filename = f"_{curr_id}"
