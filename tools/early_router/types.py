@@ -2,6 +2,9 @@
 
 from typing import Tuple
 
+# Cell identifier as a tuple of two integers representing cell position
+CellId = Tuple[int,int]
+
 # Node identifier as a tuple of three integers representing cell position and layer
 NodeId = Tuple[int,int,int]
 

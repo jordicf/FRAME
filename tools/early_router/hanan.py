@@ -5,7 +5,7 @@ from frame.geometry.geometry import Point, Shape
 from dataclasses import dataclass
 from tools.early_router.types import NodeId, EdgeID
 import itertools
-from tools.early_router.utils import rescale, to_scientific_notation
+
 
 def manhattan_dist(p:Point, q:Point)-> float:
     return (abs(p.x - q.x) + abs(p.y - q.y))
@@ -180,8 +180,6 @@ class HananGraph3D:
     def __init__(self, hanan_grid:HananGrid, layers:list[Layer],netlist: Netlist=None, **kwargs):
         """
         **kwargs: 
-        Only if netlist
-        reweight_nets: bool, default False
         asap7: whether to use the pitches in asap7 tech (assumes microns)
         """
         self._hanan_grid = hanan_grid
@@ -191,17 +189,7 @@ class HananGraph3D:
     
         assert all([isinstance(l, Layer) for l in layers]), "layers values are not instances of Layer class"
         self._layers = {i:l for i,l in enumerate(layers)}
-
         asap7 = kwargs.get('asap7',False)
-        if netlist:
-            weigths = [net.weight for net in netlist.edges]
-            if kwargs.get('reweight_nets',False):
-                print("Rescaling net weights to be in the interval [500,1500]")
-                old_min = min(weigths)
-                old_max = max(weigths)
-                for net in netlist.edges:
-                    new_w = rescale(net.weight, old_min, old_max)
-                    net.weight = new_w
 
         # Each cell become a Hanan node
         for cell in hanan_grid.cells:

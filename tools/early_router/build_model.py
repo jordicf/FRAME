@@ -4,6 +4,7 @@ from collections import defaultdict
 from tools.early_router.hanan import HananGrid, HananEdge3D, HananGraph3D, Layer, HananNode3D
 from tools.early_router.utils import kruskal, compute_node_degrees
 from tools.early_router.types import NetId, VarId, EdgeID, NodeId
+from tools.early_router.utils import rescale
 import warnings
 
 
@@ -118,9 +119,10 @@ class FeedThrough:
         
         self._nets: dict[int,NamedHyperEdge] = {}
         self._m: dict[str, list] = {} # Metrics
+        self.reweight = kwargs.get('reweight_nets_range', None)
     
-        l = kwargs.get('layers',[Layer('H',pitch=76), Layer('V',pitch=76)]) # TODO
-        #l = kwargs.get('layers',[Layer('H',pitch=1), Layer('V',pitch=1)])
+        #l = kwargs.get('layers',[Layer('H',pitch=76), Layer('V',pitch=76)]) # TODO
+        l = kwargs.get('layers',[Layer('H',pitch=1), Layer('V',pitch=1)])
         # pitch for a sub 10nm technology M6 to M12 for the feedthrough
         # l = [Layer('H',pitch=76,name='M6'), Layer('V',pitch=76, name='M7'),Layer('H',pitch=76, name='M8'),
         #      Layer('V',pitch=76, name='M9'),Layer('H',pitch=76, name='M10'),Layer('V',pitch=76, name='M11'),
@@ -155,7 +157,7 @@ class FeedThrough:
             else:
                 modules = net.modules
             if net.weight < 1:
-                warnings.warn("Converting a net weight lower than 1 to an int!", UserWarning)
+                warnings.warn(f"Converting netid ({net_id}) weight lower than 1 to an int!", UserWarning)
                 wei = net.weight
             else:
                 wei = int(net.weight)
@@ -408,7 +410,16 @@ class FeedThrough:
         self.nets_bb = defaultdict(int)
         self._solver = mathopt.Model()
 
-        self._compute_norms()
+        if self.reweight:
+            weigths = [net.weight for net in self._nets.values()]
+            low, high = self.reweight
+            print(f"Rescaling net weights to be in the interval ({low}, {high})")
+            old_min = min(weigths)
+            old_max = max(weigths)
+            for net in self._nets.values():
+                new_w = rescale(net.weight, old_min, old_max)
+                net.weight = int(new_w)
+
         # Add to the model the varaibles and constraints
         self.model_components:dict[NetId]={}
         for net_id, net in self._nets.items():
@@ -418,6 +429,8 @@ class FeedThrough:
                 self.model_components[net_id] = self._add_2pin_net(net_id, net)
                 #net_vars, net_constraints, net_eq_constraints
         self.model_components[-1] = self._add_capacity_constraints()
+        
+        self._compute_norms()
         if optimize_bbox:
             if not self._find_opt_bb(max_depth= max_depth):
                 self.is_build = False
@@ -508,14 +521,14 @@ class FeedThrough:
                 return True
         return False
 
-    def save(self, netnames:dict[NetId,str], filepath="./", filename='routes',extension='.txt'):
+    def save(self, netnames:dict[NetId,str]={}, filepath="./", filename='routes',extension='.txt'):
 
         with open(f"{filepath}{filename}{extension}", 'w') as f:
             for netid, route in self.solution.routes.items():
-                f.write(f"{netnames.get(netid, 'n')} {netid} {len(route)}")
-                for r in route:
-                    f.write(f"({r[0][0]},{r[0][1]},{r[0][2]})-({r[1][0]},{r[1][1]},{r[1][2]})")
-                f.write("!")
+                f.write(f"{netnames.get(netid, 'n')} {netid} {len(route)} {self._nets[netid].weight}\n")
+                for r in self.get_route_path(route):
+                    f.write(f"{list(r.keys())[0][0]}-{list(r.keys())[0][1]}\n")
+                f.write("!\n")
 
     def has_solution(self, status:SolveResult|None=None)->bool:
         if status is None:
@@ -560,3 +573,42 @@ class FeedThrough:
             print("Unknown status returned!")
             return False
        
+    def get_route_path(self, identifiers: list[dict[EdgeID, float]]) -> list[dict[EdgeID, float]]:
+        """return path for a route"""
+        # Step 1: Build graph and in-degree map
+        graph = {}
+        in_degree = defaultdict(int)
+        edge_weights = {
+            list(edge_dict.keys())[0]: list(edge_dict.values())[0]
+            for edge_dict in identifiers
+        }
+
+        for identifier in identifiers:
+            if len(identifier) != 1:
+                raise ValueError("Each identifier must contain exactly one edge.")
+            edge = list(identifier.items())[0]  # ((from, to), weight)
+            fromid, toid = edge[0]
+            graph[fromid] = toid
+            in_degree[toid] += 1
+            in_degree[fromid] += 0  # ensure it's in the map
+
+        # Step 2: Find the start node (in-degree == 0)
+        start_nodes = [node for node in in_degree if in_degree[node] == 0]
+        if not start_nodes:
+            return None  # No valid start, maybe a cycle
+        start_node = start_nodes[0]
+
+        # Step 3: Walk the path
+        path = []
+        current = start_node
+        visited = set()
+
+        while current in graph:
+            next_node = graph[current]
+            path.append({(current, next_node): edge_weights[(current, next_node)]})
+            if current in visited:
+                return None  # Cycle detected
+            visited.add(current)
+            current = next_node
+
+        return path if len(path) == len(identifiers) else None

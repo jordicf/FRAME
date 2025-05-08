@@ -5,7 +5,7 @@ from pathlib import Path
 from typing import Any
 from frame.netlist.netlist import Netlist
 from tools.draw.draw import get_floorplan_plot, calculate_bbox
-from tools.early_router.draw import draw_congestion, draw_solution2D, draw_solution3D
+from tools.early_router.draw import draw_congestion, draw_solution2D, draw_solution3D, plot_net_distribution
 from tools.early_router.build_model import FeedThrough
 from tools.early_router.isdp_parser import parse_isdp_file, convert_to_hanangrid
 from tools.early_router.hanan import HananGrid
@@ -25,7 +25,6 @@ def file_manager(file_path:Path, options:dict[str, Any]):
     line = '################################################'
     dashed = '-----------------------------------------------'
     print(f"{line}\n\t\tRouting: {filename} ...")
-    start_time = time.perf_counter()
 
     if file_path.suffix.lower() == ".yaml":
         netlist = Netlist(str(file_path)) # too much time for ISDP files
@@ -55,11 +54,12 @@ def file_manager(file_path:Path, options:dict[str, Any]):
     # multiple_pins=0
     # # n = HyperEdge([netlist.get_module(name) for name in ['M1', 'M3', 'M6']], 4)
     # # ft.add_nets([n])
-    ft.build(options["optimize-bbox"])
+    start_time = time.perf_counter()
+    ft.build(options["optimize_bbox"])
     set_up_time = time.perf_counter()
-    print(f"Set-up time: {set_up_time - start_time:.6f} seconds")
+    print(f"Build time: {set_up_time - start_time:.6f} seconds")
     
-    if options['analysis']:
+    if options['importance_analysis']:
         results = []
         epsilon = 1e-2
         alpha_vals = np.linspace(epsilon, 1 - epsilon, 10)
@@ -90,7 +90,7 @@ def file_manager(file_path:Path, options:dict[str, Any]):
         print(f"Solving time: {solve_time - set_up_time:.6f} seconds")
         
         if ft.has_solution():
-            # TODO Save the solution in some type of format, which can later be readed if needed. To save time, check BoxRouter
+            ft.save(filepath=f"{output}/", filename=f"{filename}routes")
             print(f"{dashed}\nTotal WL={metrics['total_wl']}\nTotal Module Crossing={metrics['module_crossings']}\nTotal Via Usage={metrics['via_usage']}\n{dashed}")
             
             if options['draw_congestion']:
@@ -98,6 +98,8 @@ def file_manager(file_path:Path, options:dict[str, Any]):
                 congest_map.save(f"{output}/{filename}image_congestion_map.gif", quality=95)
 
             if not options['draw_nets'] is None:
+                # Draw the net weight distribution
+                plot_net_distribution(ft, filepath=f"{output}/{filename}wdistr")
                 if not options['draw_nets']:
                     # Random drawing 3 nets
                     num2draw = 3
@@ -138,7 +140,6 @@ def parse_options(prog: str | None = None, args: list[str] | None = None) -> dic
         description="An Early Global Routing router.",
         usage="%(prog)s [options]",
     )
-
     # Input file argument
     parser.add_argument(
         "--input",
@@ -154,14 +155,20 @@ def parse_options(prog: str | None = None, args: list[str] | None = None) -> dic
         help="Path folder to store data"
     )
     parser.add_argument(
-        "--draw-congestion",
-        action="store_true",
-        help="Draw the congestion map"
+        "--importance",
+        nargs=3,
+        metavar=('wire_lenght', 'module_crossing', 'via_usage'),
+        type=float,
+        default=[0.4, 0.3, 0.3],  # or require=True if you want it mandatory
+        help="Three importance factors for wirelength, module interference, and via usage. Must be floats in [0,1] that sum to 1."
     )
+    parser.add_argument("--importance-analysis", action="store_true", help="Analyse the the best importance factors")
     parser.add_argument(
-        "--analysis",
-        action="store_true",
-        help="Analyse the the best importance factors"
+        "--reweight-nets-range",
+        type=float,
+        nargs=2,
+        metavar=('LOWER', 'UPPER'),
+        help="Specify the lower and upper bounds for the nets weight range"
     )
     parser.add_argument(
         "--draw-nets",
@@ -170,14 +177,7 @@ def parse_options(prog: str | None = None, args: list[str] | None = None) -> dic
         default=None,
         help="List of net IDs to draw. If omitted after the flag, 3 random nets will be chosen."
     )
-    parser.add_argument(
-        "--importance",
-        nargs=3,
-        metavar=('wire_lenght', 'module_crossing', 'via_usage'),
-        type=float,
-        default=[0.4, 0.3, 0.3],  # or require=True if you want it mandatory
-        help="Three importance factors for wirelength, module interference, and via usage. Must be floats in [0,1] that sum to 1."
-    )
+    parser.add_argument("--draw-congestion", action="store_true", help="Draw the congestion map")
     parser.add_argument("--asap7", action="store_true", help="Find optinal pre-routing bounding box for all nets.")
     parser.add_argument("--optimize-bbox", action="store_true", help="Compute the optimal bounding box")
     return vars(parser.parse_args(args))

@@ -2,21 +2,23 @@ from PIL import Image, ImageDraw
 from frame.netlist.netlist import Netlist
 from frame.geometry.geometry import Point
 from tools.draw.draw import get_floorplan_plot, calculate_bbox, scale, calculate_scaling, Scaling, get_font
-from tools.early_router.build_model_old import HananGraph3D
+from tools.early_router.hanan import HananGraph3D, HananNode3D
 from typing import Tuple
 import matplotlib.pyplot as plt
 import matplotlib.cm as cm
 import matplotlib.colors as mcolors
 from distinctipy import distinctipy
 import matplotlib.patheffects as path_effects
-from frame.netlist.netlist_types import HyperEdge
-from tools.early_router.types import NetId, EdgeID
+from frame.netlist.netlist_types import HyperEdge,NamedHyperEdge
+from tools.early_router.types import NetId, EdgeID, CellId
 from matplotlib.patches import Circle, Rectangle as MplRectangle
 import math
 import mpl_toolkits.mplot3d.art3d as art3d
 from PIL import Image, ImageDraw, ImageFont
 from typing import Tuple
 from frame.geometry.geometry import Shape, Rectangle
+from tools.early_router.build_model import FeedThrough
+import numpy as np
 
 # Some colors
 COLOR_GREY = (128, 128, 128)
@@ -50,7 +52,7 @@ def scale_coordinates(x1, y1, x2, y2, scaling: Scaling, image_height: int):
     return scaled_x1, scaled_y1, scaled_width, scaled_height
 
 
-def draw_solution3D(netlist: Netlist, route: list[dict[EdgeID, float]],net:HyperEdge, 
+def draw_solution3D(netlist: Netlist, route: list[dict[EdgeID, float]],net:NamedHyperEdge, 
                     hanan_graph:HananGraph3D, net_color:tuple[float, float, float, float], filepath:str="plot3D", 
                     width=0, height=0, frame=50, fontsize=10):
     """
@@ -85,7 +87,7 @@ def draw_solution3D(netlist: Netlist, route: list[dict[EdgeID, float]],net:Hyper
     ax.add_patch(p)
     art3d.pathpatch_2d_to_3d(p, z=0, zdir="z")
 
-    modulenames = [m.name for m in net.modules]
+    modulenames = net.modules
     for m in netlist.modules:
             color = module2color[m]
             if m.num_rectangles == 0:
@@ -346,12 +348,14 @@ def draw_congestion_legend(im: Image.Image,
 def draw_congestion(netlist: Netlist,
                     edge_congestion: dict[EdgeID, float],
                     hanan_graph: HananGraph3D,
+                    layer_id:list[int]=[],
                     title: str ="Congestion Map",
                     width: int = 0, height: int = 0,
                     frame: int = 80, fontsize: int = 30) -> Image.Image:
     """
     Overlay congestion on module outlines and append a legend.
     Low-congestion lines drawn first; edges are semi-transparent.
+    layer_id default drawing all
     """
     # Compute die bounding box and clear existing edges
     die_shape = hanan_graph.hanan_grid.shape
@@ -360,9 +364,30 @@ def draw_congestion(netlist: Netlist,
     # Base plot: module outlines only
     im = floorplan_plot(netlist, die_shape, width=width, height=height, frame=frame)
 
+    # Pre-Process: No vias, no congestion with < 1 wire
+    # Drawing all layers on a 2D
+    edge_map: dict[tuple[CellId,CellId], tuple[float,float]] = {}
+    for edge_id, congestion in edge_congestion.items():
+        if congestion < 1:
+            continue
+        edge = hanan_graph.get_edge(edge_id[0], edge_id[1])
+        from_node = hanan_graph.get_node(edge_id[0])
+        to_node = hanan_graph.get_node(edge_id[1])
+        # Skip vias
+        if from_node._id[-1] != to_node._id[-1]:
+            continue
+        elif layer_id and from_node._id[-1] in layer_id:
+            # Skip non-layer selecetd
+            continue
+
+        sum_con, sum_cap = edge_map.get((from_node._id[:2], to_node._id[:2]), (0,0))
+        sum_con += congestion
+        sum_cap += edge.capacity
+        edge_map[(from_node._id[:2], to_node._id[:2])] = (sum_con, sum_cap)
+
     # Sort edges by raw congestion (low to high)
     #sorted_edges = sorted(edge_congestion.items(), key=lambda kv: kv[1])
-    sorted_edges = sorted(edge_congestion.items(), key=lambda kv: kv[1]/hanan_graph.get_edge(kv[0][0], kv[0][1]).capacity)
+    sorted_edges = sorted(edge_map.items(), key=lambda kv: kv[1][0]/kv[1][1])
 
     # Transparent overlay for drawing edges
     transp = Image.new('RGBA', im.size, (0, 0, 0, 0))
@@ -370,20 +395,13 @@ def draw_congestion(netlist: Netlist,
     scaling = calculate_scaling(die_shape, width, height, frame)
 
     # Draw each edge
-    for edge_id, congestion in sorted_edges:
-        edge = hanan_graph.get_edge(edge_id[0], edge_id[1])
-        from_node = hanan_graph.get_node(edge_id[0])
-        to_node = hanan_graph.get_node(edge_id[1])
-        # Skip vias
-        if from_node.center == to_node.center:
-            continue
+    for cells, tcong in sorted_edges:
+        from_node = hanan_graph.get_node((cells[0][0],cells[0][1],0))
+        to_node= hanan_graph.get_node((cells[1][0],cells[1][1],0))
 
-        cell = hanan_graph.hanan_grid.get_cell((edge_id[0][0], edge_id[0][1]))
+        cell = hanan_graph.hanan_grid.get_cell(cells[0])
 
-        # Percent and width
-        if congestion == 0:
-            continue
-        pct = (congestion / edge.capacity) * 100
+        pct = (tcong[0] / tcong[1]) * 100
         if cell:
             if abs(from_node.center.x - to_node.center.x) < 1e-6:
                 lw = pct * scaling.xscale * cell.width_capacity/100
@@ -424,3 +442,49 @@ def draw_congestion(netlist: Netlist,
     size = (int(scaling.width/2), int(frame*0.2))
     im = draw_congestion_legend(im, position=(int((scaling.width + 2 * frame - size[0])/2), int(scaling.height + frame*1.2)), size=size, fontsize=fontsize)
     return im
+
+
+def plot_net_distribution(ft: FeedThrough, filepath: str | None = None):
+    """
+    Produces a histogram of net weights vs. frequency.
+    """
+    data = [net.weight for net in ft._nets.values()]
+
+    all_vals = np.array(data)
+    all_vals = all_vals[all_vals > 0]  # Remove zeros or negatives if present
+
+    bin_width = round((all_vals.max() - all_vals.min())/20, 2)
+    min_log = np.floor(all_vals.min() / bin_width) * bin_width
+    max_log = np.ceil(all_vals.max() / bin_width) * bin_width
+    bin_edges = np.arange(min_log, max_log + bin_width, bin_width)
+
+    # Compute histogram
+    counts, edges = np.histogram(all_vals, bins=bin_edges)
+
+    # Compute bin centers
+    bin_centers = (edges[:-1] + edges[1:]) / 2
+    bin_widths = np.diff(edges)
+
+    # Filter out bins with zero frequency
+    mask = counts > 0
+    counts = counts[mask]
+    bin_centers = bin_centers[mask]
+    bin_widths = bin_widths[mask]
+
+    # Plot
+    plt.figure(figsize=(8, 5))
+    plt.bar(bin_centers, counts, width=bin_widths, edgecolor='black', color='skyblue')
+
+    # Label axes
+    plt.xlabel("Net Weight")
+    plt.ylabel("Frequency")
+    plt.title("Histogram of Net Weight")
+
+    # Customize x-ticks
+    plt.xticks(bin_centers, [f"{b:.2f}" for b in bin_centers], rotation=45)
+    plt.tight_layout()
+
+    if filepath:
+        plt.savefig(f"{filepath}.png")
+    else:
+        plt.show()
