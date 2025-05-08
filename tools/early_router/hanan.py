@@ -11,8 +11,6 @@ def manhattan_dist(p:Point, q:Point)-> float:
     return (abs(p.x - q.x) + abs(p.y - q.y))
 
 
-
-
 @dataclass
 class HananCell:
     _id: tuple[int, int] # Identifier

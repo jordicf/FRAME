@@ -349,7 +349,7 @@ class FeedThrough:
         self.norms =(hpwl,mc,vu)
         return
 
-    def _find_opt_bb(self, unrouted_nets:list[NetId]=None, depth: int = 0, max_depth: int = 5):
+    def _find_opt_bb(self, unrouted_nets:list[NetId]=None, depth: int = 0, max_depth: int = 3):
         
         if unrouted_nets is None: # Solving call
             hpwl= self.norms[0]
@@ -404,7 +404,7 @@ class FeedThrough:
             self.model_components[-1] = self._add_capacity_constraints()
             return self._find_opt_bb(None, depth)
 
-    def build(self, optimize_bbox=False, max_depth= 5)-> bool:
+    def build(self, optimize_bbox=False, max_depth= 3)-> bool:
 
         self._variables = self.VariableStore()
         self.nets_bb = defaultdict(int)
@@ -526,7 +526,8 @@ class FeedThrough:
         with open(f"{filepath}{filename}{extension}", 'w') as f:
             for netid, route in self.solution.routes.items():
                 f.write(f"{netnames.get(netid, 'n')} {netid} {len(route)} {self._nets[netid].weight}\n")
-                for r in self.get_route_path(route):
+                #for r in self.get_route_path(route):
+                for r in route:
                     f.write(f"{list(r.keys())[0][0]}-{list(r.keys())[0][1]}\n")
                 f.write("!\n")
 

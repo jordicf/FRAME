@@ -4,6 +4,7 @@ from distinctipy import distinctipy
 from pathlib import Path
 from typing import Any
 from frame.netlist.netlist import Netlist
+from tools.early_router.hanan import Layer
 from tools.draw.draw import get_floorplan_plot, calculate_bbox
 from tools.early_router.draw import draw_congestion, draw_solution2D, draw_solution3D, plot_net_distribution
 from tools.early_router.build_model import FeedThrough
@@ -14,48 +15,75 @@ import time
 import csv
 import traceback
 import numpy as np
+import math
 
 
 def file_manager(file_path:Path, options:dict[str, Any]):
-
-    ############################### TODO add a flag for changing capacities, and reweighting the nets...? Or in the parser floorset?
 
     output = Path(options['output'])
     filename = file_path.stem
     line = '################################################'
     dashed = '-----------------------------------------------'
     print(f"{line}\n\t\tRouting: {filename} ...")
-
-    if file_path.suffix.lower() == ".yaml":
-        netlist = Netlist(str(file_path)) # too much time for ISDP files
-        ft = FeedThrough(netlist, **options)
-        nets = netlist.edges
-        
-        if options['draw_congestion']:
-            # Image with all net connections
-            die_shape = calculate_bbox(netlist)
-            im = get_floorplan_plot(netlist, die_shape)
-            im.save(f"{output}/{filename}image.gif", quality=95)
-    else:
-        isdp_data = parse_isdp_file(str(file_path))
-        data = convert_to_hanangrid(isdp_data)
-        hg = HananGrid(data['HananCells'])
-        ft = FeedThrough(hg, layers=data['Layers'])
-        nets = list(data['Nets'].values())
-        if isdp_data['capacity_adjustments']:
-            ft.set_capacity_adjustments({(
-                (a['row'], a['column'], a['layer']), (a['target_row'],a['target_column'], a['target_layer'])
-                ): a['reduced_capacity'] for a in isdp_data['capacity_adjustments']})
-
-    ft.add_nets(nets)
-    #ft.add_nets(nets, True)
-    # ##################################### 
-    # # from frame.netlist.netlist_types import HyperEdge
-    # multiple_pins=0
-    # # n = HyperEdge([netlist.get_module(name) for name in ['M1', 'M3', 'M6']], 4)
-    # # ft.add_nets([n])
     start_time = time.perf_counter()
-    ft.build(options["optimize_bbox"])
+
+    best_c = None
+    if options["optimize_nlayers"] and file_path.suffix.lower() == ".yaml":
+        # Binary search
+        low = 1.0       # Smallest possible c (avoid 0)
+        high = 130.0    # Max c to try
+        eps = 1       # Precision tolerance
+        while high - low > eps:
+            c = (low + high) / 2
+            print(f"Trying pitch layer with pitch c = {c})...")
+
+            options['layers'] = [Layer('H', pitch=c), Layer('V', pitch=c)]
+            netlist = Netlist(str(file_path))
+            ft = FeedThrough(netlist, **options)
+            nets = netlist.edges
+            ft.add_nets(nets)
+
+            if ft.build(options["optimize_bbox"]):
+                best_c = c
+                low = c  # try to find a smaller c
+            else:
+                high = c  # increase c
+
+        if best_c is not None:
+            print(f"Best working pitch found: {best_c}, with number of layers: {math.ceil(76/best_c)}")
+        else:
+            print("No suitable pitch found.")
+
+    else:
+        if file_path.suffix.lower() == ".yaml":
+            netlist = Netlist(str(file_path)) # too much time for ISDP files
+            ft = FeedThrough(netlist, **options)
+            nets = netlist.edges
+            
+            if options['draw_congestion']:
+                # Image with all net connections
+                die_shape = calculate_bbox(netlist)
+                im = get_floorplan_plot(netlist, die_shape)
+                im.save(f"{output}/{filename}image.gif", quality=95)
+        else:
+            isdp_data = parse_isdp_file(str(file_path))
+            data = convert_to_hanangrid(isdp_data)
+            hg = HananGrid(data['HananCells'])
+            ft = FeedThrough(hg, layers=data['Layers'])
+            nets = list(data['Nets'].values())
+            if isdp_data['capacity_adjustments']:
+                ft.set_capacity_adjustments({(
+                    (a['row'], a['column'], a['layer']), (a['target_row'],a['target_column'], a['target_layer'])
+                    ): a['reduced_capacity'] for a in isdp_data['capacity_adjustments']})
+
+        ft.add_nets(nets)
+        ##################################### 
+        # from frame.netlist.netlist_types import HyperEdge
+        # multiple_pins=0
+        # n = HyperEdge([netlist.get_module(name) for name in ['M1', 'M3', 'M6']], 4)
+        # ft.add_nets([n])
+        ft.build(options["optimize_bbox"])
+
     set_up_time = time.perf_counter()
     print(f"Build time: {set_up_time - start_time:.6f} seconds")
     
@@ -68,7 +96,6 @@ def file_manager(file_path:Path, options:dict[str, Any]):
 
         for alpha, beta, gamma in param_values:
             ft.solve(f_wl=alpha,f_mc=beta,f_vu=gamma)
-            #ft.solve(f_wl=alpha,f_mc=beta,f_vu=gamma)
             results.append(ft.metrics.copy())
 
         csv_filename = f"{output}/{filename}analysis.csv"
@@ -86,6 +113,8 @@ def file_manager(file_path:Path, options:dict[str, Any]):
         ft.solve(f_wl=fwl,f_mc=fmc,f_vu=fvu)
         metrics = ft.metrics
         metrics['name'] = filename
+        if best_c is not None:
+            metrics['best_nlayers'] = math.ceil(76/best_c)
         solve_time = time.perf_counter()
         print(f"Solving time: {solve_time - set_up_time:.6f} seconds")
         
@@ -180,6 +209,7 @@ def parse_options(prog: str | None = None, args: list[str] | None = None) -> dic
     parser.add_argument("--draw-congestion", action="store_true", help="Draw the congestion map")
     parser.add_argument("--asap7", action="store_true", help="Find optinal pre-routing bounding box for all nets.")
     parser.add_argument("--optimize-bbox", action="store_true", help="Compute the optimal bounding box")
+    parser.add_argument("--optimize-nlayers", action="store_true", help="Compute the optimal number of 76 pitch layers")
     return vars(parser.parse_args(args))
 
 
