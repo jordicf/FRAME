@@ -182,8 +182,9 @@ class HananGraph3D:
         **kwargs: 
         Only if netlist
         reweight_nets: bool, default False
-        normalize_capacities: 
+        asap7: whether to use the pitches in asap7 tech (assumes microns)
         """
+        self._hanan_grid = hanan_grid
         self._nodes = {}
         self._edges = []
         self._adj_list = {}
@@ -191,15 +192,10 @@ class HananGraph3D:
         assert all([isinstance(l, Layer) for l in layers]), "layers values are not instances of Layer class"
         self._layers = {i:l for i,l in enumerate(layers)}
 
-        norm_factor = None
+        asap7 = kwargs.get('asap7',False)
         if netlist:
-            # Dies should are between 1 and 2 cm^2 (let to be 10 max)
-            if kwargs.get('normalize_capacities',False) and not(1 <= hanan_grid.shape.w * hanan_grid.shape.h < 10):
-                v, x = to_scientific_notation(hanan_grid.shape.w * hanan_grid.shape.h)
-                norm_factor = math.sqrt(x)
-
             weigths = [net.weight for net in netlist.edges]
-            if kwargs.get('reweight_nets',False) and not(400 <= sum(weigths)/len(weigths) <= 3000):
+            if kwargs.get('reweight_nets',False):
                 print("Rescaling net weights to be in the interval [500,1500]")
                 old_min = min(weigths)
                 old_max = max(weigths)
@@ -230,21 +226,21 @@ class HananGraph3D:
                 for adj_cell in adj_cells:
                     if cell._id[0] == adj_cell._id[0]:
                         # They move vertical
-                        cap = cell.width_capacity
+                        cap = cell.width_capacity # Assuming microns
                         direction = 'V'
                         if self.layers[layer_id].v_cap:
                             cap = self.layers[layer_id].v_cap
                     else:
                         # They move horizontal
-                        cap = cell.height_capacity
+                        cap = cell.height_capacity # Assuming microns
                         direction = 'H'
                         if self.layers[layer_id].h_cap:
                             cap = self.layers[layer_id].h_cap
                     if direction in self.layers[layer_id].direction:
                         source_id = (cell._id[0], cell._id[1], layer_id)
                         target_id = (adj_cell._id[0], adj_cell._id[1], layer_id)                        
-                        if norm_factor:
-                            new_cap = int((cap/norm_factor)*1e7/self.layers[layer_id].pitch)
+                        if asap7:
+                            new_cap = int(cap*1000/self.layers[layer_id].pitch) # floor(4000/76) = 52 wires for 4 μm edge and 76nm pitch
                             self._adj_list.setdefault(source_id, {})[target_id] = self.add_edge3D(source_id, target_id, new_cap)
                         else:
                             self._adj_list.setdefault(source_id, {})[target_id] = self.add_edge3D(source_id, target_id, cap)
@@ -341,6 +337,10 @@ class HananGraph3D:
     @property
     def layers(self)->dict[int,Layer]:
         return self._layers
+    
+    @property
+    def hanan_grid(self)->HananGrid:
+        return self._hanan_grid
 
     def get_edges_from_node(self, node: HananNode3D)->dict[str,list[HananEdge3D]]:
         """Given a HananNode returns a dict with incoming and outcoming edges to that node"""
@@ -395,6 +395,7 @@ class HananGraph3D:
         best_bbox = None  # Will store tuple (min_x, max_x, min_y, max_y)
         
         # Iterate over every combination: one candidate from each module.
+        # TODO  think an heuristic to speed-up the process
         for combo in itertools.product(*all_nodes):
             xs = [n_id[0] for n_id in combo]
             ys = [n_id[1] for n_id in combo]
@@ -431,7 +432,7 @@ class HananGraph3D:
         return selected
 
  
-    def get_edgesid_subset(self, nodes: list[HananNode3D]) -> list[EdgeID]:
+    def get_edgesid_subset(self, nodes: list[HananNode3D]) -> set[EdgeID]:
         """
         Given a list of nodes, returns a list of edges where both endpoints are in the given node list.
 
@@ -442,7 +443,7 @@ class HananGraph3D:
             list[HananEdge3D]: List of edges connecting only the given nodes.
         """
         node_set = {n._id for n in nodes}
-        return [(e.source._id, e.target._id) for n in nodes for a, e in self.adjacent_list[n._id].items() if a in node_set]
+        return set((e.source._id, e.target._id) for n in nodes for a, e in self.adjacent_list[n._id].items() if a in node_set)
     
     def apply_capacity_adjustments(self, cap_adjust:dict[EdgeID, float|int])->None:
         for e_id in cap_adjust:

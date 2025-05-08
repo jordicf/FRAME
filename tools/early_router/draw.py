@@ -2,7 +2,7 @@ from PIL import Image, ImageDraw
 from frame.netlist.netlist import Netlist
 from frame.geometry.geometry import Point
 from tools.draw.draw import get_floorplan_plot, calculate_bbox, scale, calculate_scaling, Scaling, get_font
-from tools.early_router.build_model import HananGraph3D
+from tools.early_router.build_model_old import HananGraph3D
 from typing import Tuple
 import matplotlib.pyplot as plt
 import matplotlib.cm as cm
@@ -11,11 +11,16 @@ from distinctipy import distinctipy
 import matplotlib.patheffects as path_effects
 from frame.netlist.netlist_types import HyperEdge
 from tools.early_router.types import NetId, EdgeID
-from matplotlib.patches import Circle, Rectangle
+from matplotlib.patches import Circle, Rectangle as MplRectangle
 import math
 import mpl_toolkits.mplot3d.art3d as art3d
+from PIL import Image, ImageDraw, ImageFont
+from typing import Tuple
+from frame.geometry.geometry import Shape, Rectangle
 
-
+# Some colors
+COLOR_GREY = (128, 128, 128)
+COLOR_BLACK = (0, 0, 0)
 COLOR_WHITE = (255, 255, 255)
 
 
@@ -76,7 +81,7 @@ def draw_solution3D(netlist: Netlist, route: list[dict[EdgeID, float]],net:Hyper
     ax.set_ylim(height)
     # Adding a frame
     x, y, width, height = scale_coordinates(frame/2,frame/2, scaling.width + 1.5*frame, scaling.height + 1.5*frame, scaling, total_im_h)
-    p=Rectangle((x,y), width, height, edgecolor='black', fill=False, linewidth=3, alpha=0.3, zorder=1)
+    p=MplRectangle((x,y), width, height, edgecolor='black', fill=False, linewidth=3, alpha=0.3, zorder=1)
     ax.add_patch(p)
     art3d.pathpatch_2d_to_3d(p, z=0, zdir="z")
 
@@ -116,7 +121,7 @@ def draw_solution3D(netlist: Netlist, route: list[dict[EdgeID, float]],net:Hyper
                         ax.text(cx, cy, z, rname, fontsize=fontsize, color='black', ha="center", va="center", fontweight='bold',
                                    path_effects=[path_effects.withStroke(linewidth=1, foreground=ccolor)], zorder=5)
                     else:
-                        p = Rectangle((x,y), width, height, fc=color, fill=True, visible=True, alpha=0.3, zorder=1)
+                        p = MplRectangle((x,y), width, height, fc=color, fill=True, visible=True, alpha=0.3, zorder=1)
                         ax.add_patch(p)
                         art3d.pathpatch_2d_to_3d(p, z=0, zdir="z")
     # Plot the route
@@ -213,67 +218,209 @@ def draw_solution2D(netlist: Netlist, routes: dict[NetId, list[dict[EdgeID, floa
     return im
 
 
-def draw_congestion(netlist: Netlist, edge_congestion: dict[EdgeID,float], hanan_graph: HananGraph3D,
-                  width=0, height=0, frame=50, fontsize=20)->Image.Image:
-    # Do a cumsum for each edge. Comapre it to the edge capacity to get the %
-    die_shape = calculate_bbox(netlist)
-    # Remove un-routed nets
-    netlist._edges = []
-    # Create base plot
-    im = get_floorplan_plot(netlist, die_shape, None, width, height, frame, fontsize)
-    
+def create_canvas(s: Scaling):
+    """
+    Generates the canvas of the drawing.
+
+    :param s: scaling of the layout
+    """
+    im = Image.new('RGBA', (s.width + 2 * s.frame,
+                   s.height + 2 * s.frame), (255, 255, 255, 255))
+    drawing = ImageDraw.Draw(im)
+    return im, drawing
+
+
+def floorplan_plot(netlist: Netlist, die_shape: Shape,
+                       width: int = 0, height: int = 0,
+                       frame: int = 20) -> Image.Image:
+    """
+    Draws only the outlines of modules on a blank canvas.
+    """
+    # Compute scaling for die
     scaling = calculate_scaling(die_shape, width, height, frame)
-    # Create a Transparent layer for later merge
-    transp = Image.new('RGBA', im.size, (0, 0, 0, 0))
-    drawing = ImageDraw.Draw(transp, "RGBA")
+    # Create canvas
+    im, drawing = create_canvas(scaling)
 
-    for edge_id, congestion in edge_congestion.items():
-        edge = hanan_graph.get_edge(edge_id[0], edge_id[1])
-        from_node = hanan_graph.get_node(edge_id[0])
-        to_node = hanan_graph.get_node(edge_id[1])
+    # # Module outlines
+    # for m in netlist.modules:
+    #     for r in m.rectangles:
+    #         bb = r.bounding_box
+    #         # Scale rectangle corners and shift by frame
+    #         ll = scale(bb.ll, scaling)
+    #         ur = scale(bb.ur, scaling)
+    #         drawing.rectangle((ll.x, ur.y, ur.x, ll.y), outline=COLOR_GREY, width=4)
 
-        congestion_percentage = (congestion/edge.capacity) *100
+    # Module outlines without drawing shared edges
+    for m in netlist.modules:
+        # Gather edges for each rectangle
+        if m.rectangles:
+            trunk = m.rectangles[0]
+            for r in m.rectangles:
+                bb = r.bounding_box
+                # Scale and shift corners
+                ll = scale(bb.ll, scaling)
+                ur = scale(bb.ur, scaling)
+                # Define corner points
+                p_ll = (ll.x, ll.y)
+                p_lr = (ur.x, ll.y)
+                p_ur = (ur.x, ur.y)
+                p_ul = (ll.x, ur.y)
+                # Rectangle edges
+                edges = [(p_ll, p_lr), (p_lr, p_ur), (p_ur, p_ul), (p_ul, p_ll)]
+                loc = trunk.find_location(r)
+                p=(-1,-1)
+                if loc == Rectangle.StogLocation.NORTH:
+                    a,b= edges.pop(0)
+                    drawing.line([(a[0]+2,a[1]), (b[0]-2,b[1])], fill=COLOR_WHITE, width=4)
+                elif loc == Rectangle.StogLocation.SOUTH:
+                    a,b= edges.pop(2)
+                    drawing.line([(a[0]-2,a[1]), (b[0]+2,b[1])], fill=COLOR_WHITE, width=4)
+                elif loc == Rectangle.StogLocation.EAST:
+                    a,b= edges.pop(1)
+                    drawing.line([(a[0]+2,a[1]), (b[0]-2,b[1])], fill=COLOR_WHITE, width=4)
+                elif loc == Rectangle.StogLocation.WEST:
+                    a,b= edges.pop(3)
+                    drawing.line([(a[0]-2,a[1]), (b[0]+2,b[1])], fill=COLOR_WHITE, width=4)
+                for a, b in edges:
+                    drawing.line([a, b], fill=COLOR_GREY, width=2)
 
-        if from_node.center == to_node.center:
-            # it is a via
-            continue
-        if abs(from_node.center.x - to_node.center.x) < 1e-6:
-            line_width = congestion * scaling.xscale
-        elif abs(from_node.center.y - to_node.center.y) < 1e-6:
-            line_width = congestion * scaling.yscale
-        else:
-            # Terminal to die
-            line_width = congestion * math.sqrt(scaling.xscale*scaling.yscale)
-        if line_width < 5:
-            line_width=5
-        canvas_start = scale(from_node.center, scaling)
-        canvas_end = scale(to_node.center, scaling)
-        color = congestion_to_color(congestion_percentage)
-        drawing.line([(canvas_start.x,canvas_start.y),(canvas_end.x,canvas_end.y)], 
-                fill=color, width= int(line_width))
-        
-        if congestion_percentage > 99:
-            s =f"{round(congestion_percentage,1)}%"
-            # # Draw the congestion percentage
-            font = get_font(fontsize)
-            left, top, right, bottom = drawing.multiline_textbbox(xy=(0, 0), text=s, font=font)  # To center the text
-            txt_w, txt_h = right - left, bottom - top
-            txt_x, txt_y = round((canvas_start.x + canvas_end.x) / 2), round((canvas_start.y + canvas_end.y) / 2)
-            drawing.text((txt_x, txt_y), s, fill='black', font=font, align="center",
-                        anchor="ms", stroke_width=1, stroke_fill='white')
-
-        
-    im.paste(Image.alpha_composite(im, transp))
+    # Outer and inner frames
+    drawing.rectangle(
+        (0, 0, scaling.width + 2 * frame, scaling.height + 2 * frame),
+        outline=COLOR_GREY, width=4
+    )
+    drawing.rectangle(
+        (frame, frame, scaling.width + frame, scaling.height + frame),
+        outline=COLOR_BLACK, width=4
+    )
     return im
 
 
-def congestion_to_color(value:float) -> Tuple[int,int,int,int]:
-    # Normalize value to range [0, 1]
-    normalized = value / 100
-    # Map to red gradient (light to dark)
-    red = int(183 + (normalized * (255 - 183)))  # Darker reds for higher congestion
-    green = int(235 - (normalized * 235))       # Reduce green as congestion increases
-    blue = int(238 - (normalized * 238))        # Reduce blue as congestion increases
-    #opacity = 128
-    opacity = 255
-    return (red, green, blue, opacity)
+def congestion_to_color(value: float) -> Tuple[int, int, int, int]:
+    """
+    Map congestion percentage (0-100) to a green-to-red gradient.
+    Returns an RGBA tuple with semi-transparency for overlap handling.
+    """
+    # Clamp and normalize
+    norm = max(0.0, min(1.0, value / 100))
+    red = int(norm * 255)
+    green = int((1 - norm) * 255)
+    opacity = 180  # Semi-transparent to help visualize overlaps
+    return (red, green, 0, opacity)
+
+
+def draw_congestion_legend(im: Image.Image,
+                           position: Tuple[int, int] = (20, 20),
+                           size: Tuple[int, int] = (200, 20),
+                           fontsize: int = 14) -> Image.Image:
+    """
+    Draws a horizontal color bar legend from green (0%) to red (100%)
+    at the given position on the image.
+    """
+    width, height = size
+    # Create gradient bar
+    legend = Image.new('RGBA', (width, height + fontsize + 4), (0, 0, 0, 0))
+    draw = ImageDraw.Draw(legend)
+    for i in range(width):
+        pct = (i / (width - 1)) * 100
+        color = congestion_to_color(pct)
+        draw.line([(i, 0), (i, height)], fill=color)
+
+    # Add text labels
+    try:
+        font = ImageFont.truetype("arial.ttf", fontsize)
+    except IOError:
+        font = ImageFont.load_default()
+
+    # "0%" at left
+    draw.text((0, height + 2), "0%", fill='black', font=font)
+    # "100%" at right
+    text_w = draw.textlength("100%", font=font)
+    draw.text((width - text_w, height + 2), "100%", fill='black', font=font)
+
+    # Paste legend onto main image
+    im.paste(legend, position, legend)
+    return im
+
+
+def draw_congestion(netlist: Netlist,
+                    edge_congestion: dict[EdgeID, float],
+                    hanan_graph: HananGraph3D,
+                    title: str ="Congestion Map",
+                    width: int = 0, height: int = 0,
+                    frame: int = 80, fontsize: int = 30) -> Image.Image:
+    """
+    Overlay congestion on module outlines and append a legend.
+    Low-congestion lines drawn first; edges are semi-transparent.
+    """
+    # Compute die bounding box and clear existing edges
+    die_shape = hanan_graph.hanan_grid.shape
+    netlist._edges = []
+
+    # Base plot: module outlines only
+    im = floorplan_plot(netlist, die_shape, width=width, height=height, frame=frame)
+
+    # Sort edges by raw congestion (low to high)
+    #sorted_edges = sorted(edge_congestion.items(), key=lambda kv: kv[1])
+    sorted_edges = sorted(edge_congestion.items(), key=lambda kv: kv[1]/hanan_graph.get_edge(kv[0][0], kv[0][1]).capacity)
+
+    # Transparent overlay for drawing edges
+    transp = Image.new('RGBA', im.size, (0, 0, 0, 0))
+    drawing = ImageDraw.Draw(transp, 'RGBA')
+    scaling = calculate_scaling(die_shape, width, height, frame)
+
+    # Draw each edge
+    for edge_id, congestion in sorted_edges:
+        edge = hanan_graph.get_edge(edge_id[0], edge_id[1])
+        from_node = hanan_graph.get_node(edge_id[0])
+        to_node = hanan_graph.get_node(edge_id[1])
+        # Skip vias
+        if from_node.center == to_node.center:
+            continue
+
+        cell = hanan_graph.hanan_grid.get_cell((edge_id[0][0], edge_id[0][1]))
+
+        # Percent and width
+        if congestion == 0:
+            continue
+        pct = (congestion / edge.capacity) * 100
+        if cell:
+            if abs(from_node.center.x - to_node.center.x) < 1e-6:
+                lw = pct * scaling.xscale * cell.width_capacity/100
+            elif abs(from_node.center.y - to_node.center.y) < 1e-6:
+                lw = pct * scaling.yscale * cell.height_capacity/100
+        else:
+            lw = pct * math.sqrt(scaling.xscale * scaling.yscale) # Probably a terminal connection and will be 0 
+        lw = max(int(lw), 5)
+
+        # Coordinates adjusted by frame
+        start = scale(from_node.center, scaling)
+        end = scale(to_node.center, scaling)
+        start_xy = (start.x, start.y)
+        end_xy = (end.x, end.y)
+
+        # Draw line
+        color = congestion_to_color(pct)
+        drawing.line([start_xy, end_xy], fill=color, width=lw)
+
+        # Annotate very high congestion (>99%)
+        if pct > 99:
+            s = f"{round(pct, 1)}%"
+            font = get_font(int(fontsize/2))
+            l, t, r, b = drawing.multiline_textbbox((0, 0), s, font=font)
+            txt_w, txt_h = r - l, b - t
+            tx = round((start_xy[0] + end_xy[0]) / 2)
+            ty = round((start_xy[1] + end_xy[1]) / 2)
+            drawing.text((tx, ty), s, fill='black', font=font,
+                         anchor='ms', stroke_width=1, stroke_fill='white')
+    
+    if title:
+        font = get_font(int(frame*0.6))
+        text_w = drawing.textlength(title, font=font)
+        drawing.text(((scaling.width + 2 * frame - text_w)/2, int(frame*0.2)), title, fill='black', font=font)
+
+    # Composite overlay and legend
+    im = Image.alpha_composite(im.convert('RGBA'), transp)
+    size = (int(scaling.width/2), int(frame*0.2))
+    im = draw_congestion_legend(im, position=(int((scaling.width + 2 * frame - size[0])/2), int(scaling.height + frame*1.2)), size=size, fontsize=fontsize)
+    return im

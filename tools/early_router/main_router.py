@@ -13,9 +13,10 @@ import random
 import time
 import csv
 import traceback
+import numpy as np
 
 
-def file_manager(file_path:Path, options):
+def file_manager(file_path:Path, options:dict[str, Any]):
 
     ############################### TODO add a flag for changing capacities, and reweighting the nets...? Or in the parser floorset?
 
@@ -28,7 +29,7 @@ def file_manager(file_path:Path, options):
 
     if file_path.suffix.lower() == ".yaml":
         netlist = Netlist(str(file_path)) # too much time for ISDP files
-        ft = FeedThrough(netlist)
+        ft = FeedThrough(netlist, **options)
         nets = netlist.edges
         
         if options['draw_congestion']:
@@ -48,50 +49,75 @@ def file_manager(file_path:Path, options):
                 ): a['reduced_capacity'] for a in isdp_data['capacity_adjustments']})
 
     ft.add_nets(nets)
+    #ft.add_nets(nets, True)
     # ##################################### 
     # # from frame.netlist.netlist_types import HyperEdge
     # multiple_pins=0
     # # n = HyperEdge([netlist.get_module(name) for name in ['M1', 'M3', 'M6']], 4)
     # # ft.add_nets([n])
+    ft.build(options["optimize-bbox"])
     set_up_time = time.perf_counter()
     print(f"Set-up time: {set_up_time - start_time:.6f} seconds")
     
-    fwl,fmc,fvu = options['importance']
-    ft.solve(f_wl=fwl,f_mc=fmc,f_vu=fvu)
-    metrics = ft.metrics
-    metrics['name'] = filename
-    solve_time = time.perf_counter()
-    print(f"Solving time: {solve_time - set_up_time:.6f} seconds")
-    
-    if ft.has_solution():
-        # TODO Save the solution in some type of format, which can later be readed if needed. To save time, check BoxRouter
-        print(f"{dashed}\nTotal WL={metrics['total_wl']}\nTotal Module Crossing={metrics['module_crossings']}\nTotal Via Usage={metrics['via_usage']}\n{dashed}")
+    if options['analysis']:
+        results = []
+        epsilon = 1e-2
+        alpha_vals = np.linspace(epsilon, 1 - epsilon, 10)
+        beta_vals = np.linspace(epsilon, 1 - epsilon, 10)
+        param_values = [(round(alpha,3), round(beta,3), round(1 - alpha - beta,3)) for alpha in alpha_vals for beta in beta_vals if alpha + beta < 1-epsilon]
+
+        for alpha, beta, gamma in param_values:
+            ft.solve(f_wl=alpha,f_mc=beta,f_vu=gamma)
+            #ft.solve(f_wl=alpha,f_mc=beta,f_vu=gamma)
+            results.append(ft.metrics.copy())
+
+        csv_filename = f"{output}/{filename}analysis.csv"
+        # Get the keys from the first dictionary to use as headers
+        all_keys = {key for routed in results for key in routed.keys()}
+        # Write data to CSV
+        with open(csv_filename, "w", newline="") as file:
+            writer = csv.DictWriter(file, fieldnames=all_keys)
+            writer.writeheader()  # Write column names
+            writer.writerows(results)  # Write each row from the list of dicts
+        return {}
+
+    else:
+        fwl,fmc,fvu = options['importance']
+        ft.solve(f_wl=fwl,f_mc=fmc,f_vu=fvu)
+        metrics = ft.metrics
+        metrics['name'] = filename
+        solve_time = time.perf_counter()
+        print(f"Solving time: {solve_time - set_up_time:.6f} seconds")
         
-        if options['draw_congestion']:
-            congest_map = draw_congestion(netlist, ft.solution.congestion, ft.hanan_graph)
-            congest_map.save(f"{output}/{filename}image_congestion_map.gif", quality=95)
+        if ft.has_solution():
+            # TODO Save the solution in some type of format, which can later be readed if needed. To save time, check BoxRouter
+            print(f"{dashed}\nTotal WL={metrics['total_wl']}\nTotal Module Crossing={metrics['module_crossings']}\nTotal Via Usage={metrics['via_usage']}\n{dashed}")
+            
+            if options['draw_congestion']:
+                congest_map = draw_congestion(netlist, ft.solution.congestion, ft.hanan_graph)
+                congest_map.save(f"{output}/{filename}image_congestion_map.gif", quality=95)
 
-        if not options['draw_nets'] is None:
-            if not options['draw_nets']:
-                # Random drawing 3 nets
-                num2draw = 3
-                random.seed(2025)
-                net_ids= random.sample(range(len(nets)), num2draw)
-            else:
-                net_ids = options['draw_nets']
-                num2draw = len(net_ids)
-            colors = distinctipy.get_colors(num2draw, rng=0)
-            colors = [(round(r * 255), round(g * 255), round(b * 255), 255) for (r, g, b) in colors] # Opacity 128?
-            netid2color = {j: colors[i] for i, j in enumerate(net_ids)}
-            routes = {key: ft.solution.routes[key] for key in net_ids if key in ft.solution.routes}
+            if not options['draw_nets'] is None:
+                if not options['draw_nets']:
+                    # Random drawing 3 nets
+                    num2draw = 3
+                    random.seed(2025)
+                    net_ids= random.sample(range(len(nets)), num2draw)
+                else:
+                    net_ids = options['draw_nets']
+                    num2draw = len(net_ids)
+                colors = distinctipy.get_colors(num2draw, rng=0)
+                colors = [(round(r * 255), round(g * 255), round(b * 255), 255) for (r, g, b) in colors] # Opacity 128?
+                netid2color = {j: colors[i] for i, j in enumerate(net_ids)}
+                routes = {key: ft.solution.routes[key] for key in net_ids if key in ft.solution.routes}
 
-            routes_map = draw_solution2D(netlist, routes, ft.hanan_graph, netid2color)
-            routes_map.save(f"{output}/{filename}image_routes.gif", quality=95)
-            for net_id in routes.keys():
-                draw_solution3D(netlist, routes[net_id], ft._nets[net_id], ft.hanan_graph, net_color=netid2color[net_id], filepath=f"{output}/{filename}route3d{net_id}")
+                routes_map = draw_solution2D(netlist, routes, ft.hanan_graph, netid2color)
+                routes_map.save(f"{output}/{filename}image_routes.gif", quality=95)
+                for net_id in routes.keys():
+                    draw_solution3D(netlist, routes[net_id], ft._nets[net_id], ft.hanan_graph, net_color=netid2color[net_id], filepath=f"{output}/{filename}route3d{net_id}")
 
-            end_time = time.perf_counter()
-            print(f"Drawing time: {end_time - solve_time:.6f} seconds")
+                end_time = time.perf_counter()
+                print(f"Drawing time: {end_time - solve_time:.6f} seconds")
 
     return metrics
 
@@ -133,6 +159,11 @@ def parse_options(prog: str | None = None, args: list[str] | None = None) -> dic
         help="Draw the congestion map"
     )
     parser.add_argument(
+        "--analysis",
+        action="store_true",
+        help="Analyse the the best importance factors"
+    )
+    parser.add_argument(
         "--draw-nets",
         nargs="*",
         type=int,
@@ -147,6 +178,8 @@ def parse_options(prog: str | None = None, args: list[str] | None = None) -> dic
         default=[0.4, 0.3, 0.3],  # or require=True if you want it mandatory
         help="Three importance factors for wirelength, module interference, and via usage. Must be floats in [0,1] that sum to 1."
     )
+    parser.add_argument("--asap7", action="store_true", help="Find optinal pre-routing bounding box for all nets.")
+    parser.add_argument("--optimize-bbox", action="store_true", help="Compute the optimal bounding box")
     return vars(parser.parse_args(args))
 
 
@@ -173,8 +206,8 @@ def main(prog: str | None = None, args: list[str] | None = None) -> None:
             if file.is_file() and file.name.startswith("FPEF") and file.suffix.lower() == ".yaml":
                 file_path = file
                 ##############
-                if file.stem > 'FPEF_24.yaml':
-                    break
+                # if file.stem > 'FPEF_1.yaml':
+                #     break
                 ##############
                 try:
                     floorplans.append(file_manager(file_path, options))
