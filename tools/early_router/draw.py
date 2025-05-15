@@ -148,10 +148,7 @@ def draw_solution3D(netlist: Netlist, route: list[dict[EdgeID, float]],net:Named
             
             e = hanan_graph.get_edge(start,end)
             wl += e.length * value
-            avoidable_crossing = False
             if e.crossing and not(e.source.modulename in modulenames) and not(e.target.modulename in modulenames):
-                avoidable_crossing = True
-            if avoidable_crossing:
                 cros += value
             if e.via:
                 via += value
@@ -160,6 +157,8 @@ def draw_solution3D(netlist: Netlist, route: list[dict[EdgeID, float]],net:Named
             ax.text(sum(x_vals)/2, sum(y_vals)/2, 0.3 if min(z_vals)==0.01 and max(z_vals) == 1.01 else sum(z_vals)/2, s, 
                     fontsize=int(fontsize/2)+1, color='red', ha="center", va="center", 
                     path_effects=[path_effects.withStroke(linewidth=4, foreground='white')],zorder=5)
+
+    print(f"For net {net}. Total cost:\nWL={wl}\nMC={cros}\nVU={via}")
 
     ax.set_xlabel("X")
     ax.set_ylabel("Y")

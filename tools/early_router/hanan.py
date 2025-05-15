@@ -253,15 +253,15 @@ class HananGraph3D:
                 cell = hanan_grid.get_closest_cell_to_point(m.center)
                 # Connect the terminal to all layers.
                 # TODO For now just on the lowest level 0
-                node_id = (cell._id[0], cell._id[1], 0)
-                self._adj_list.setdefault(terminal_id, {})[node_id] = self.add_edge3D(terminal_id, node_id)
-                self._adj_list.setdefault(node_id, {})[terminal_id] = self.add_edge3D(node_id, terminal_id)
-                # for layer_id in range(n_layers):
-                #     node_id = (cell._id[0], cell._id[1], layer_id)
-                #     self._adj_list.setdefault(terminal_id, {})[node_id] = self.add_edge3D(terminal_id, node_id)
-                #     self._adj_list.setdefault(node_id, {})[terminal_id] = self.add_edge3D(node_id, terminal_id)
+                # node_id = (cell._id[0], cell._id[1], 0)
+                # self._adj_list.setdefault(terminal_id, {})[node_id] = self.add_edge3D(terminal_id, node_id)
+                # self._adj_list.setdefault(node_id, {})[terminal_id] = self.add_edge3D(node_id, terminal_id)
+                for layer_id in self._layers:
+                    node_id = (cell._id[0], cell._id[1], layer_id)
+                    self._adj_list.setdefault(terminal_id, {})[node_id] = self.add_edge3D(terminal_id, node_id, terminal=True)
+                    self._adj_list.setdefault(node_id, {})[terminal_id] = self.add_edge3D(node_id, terminal_id, terminal=True)
                     
-    def add_edge3D(self, source_id:NodeId, target_id:NodeId, capacity:float=math.inf) -> HananEdge3D:
+    def add_edge3D(self, source_id:NodeId, target_id:NodeId, capacity:float=math.inf, terminal:bool=False) -> HananEdge3D:
         source= self._nodes.get(source_id, None)
         target= self._nodes.get(target_id,None)
         assert source and target, "source_id or target_id not created when trying to add an edge"
@@ -272,7 +272,7 @@ class HananGraph3D:
             length= l,
             capacity= capacity,
             crossing= source.modulename != target.modulename,
-            via= source_id[2] != target_id[2]
+            via= False if terminal else source_id[2] != target_id[2]
         )
         self._edges.append(edge)
         return edge
@@ -374,7 +374,7 @@ class HananGraph3D:
                 selected.append(terminal)
                 all_nodes.append([self.get_adj_nodes(terminal)[0]._id])  # Assuming one adjacent node
             else:
-                all_nodes.append([n._id for n in modules if n._id[2] == 0])
+                all_nodes.append([n._id for n in modules if n._id[2] == 0]) # Only keep layer 0 for speed-up
 
         # Now, compute the minimal bounding box across all choices of one node from each module.
         best_area = None

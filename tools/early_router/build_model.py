@@ -3,9 +3,10 @@ from frame.netlist.netlist_types import HyperEdge, NamedHyperEdge
 from collections import defaultdict
 from tools.early_router.hanan import HananGrid, HananEdge3D, HananGraph3D, Layer, HananNode3D
 from tools.early_router.utils import kruskal, compute_node_degrees
-from tools.early_router.types import NetId, VarId, EdgeID, NodeId
+from tools.early_router.types import NetId, VarId, EdgeID, NodeId, CellId
 from tools.early_router.utils import rescale
 import warnings
+from typing import Dict, List, Tuple, Any
 
 
 ### STEP 1: Import solver
@@ -36,7 +37,7 @@ class FeedThrough:
             via: bool = None,
             source: bool = None
             ) -> list[Variable]:
-            """Retrieve all intermediate variables stored in the class"""
+            """Retrieve variables stored in the class"""
             keys = [edge_id] if edge_id is not None else self._vars.keys()
             return [
                 info_var[0]
@@ -122,7 +123,8 @@ class FeedThrough:
         self.reweight = kwargs.get('reweight_nets_range', None)
     
         #l = kwargs.get('layers',[Layer('H',pitch=76), Layer('V',pitch=76)]) # TODO
-        l = kwargs.get('layers',[Layer('H',pitch=1), Layer('V',pitch=1)])
+        h_pitch, v_pitch = kwargs.get('pitch_layers')
+        l = [Layer('H',pitch=h_pitch), Layer('V',pitch=v_pitch)]
         # pitch for a sub 10nm technology M6 to M12 for the feedthrough
         # l = [Layer('H',pitch=76,name='M6'), Layer('V',pitch=76, name='M7'),Layer('H',pitch=76, name='M8'),
         #      Layer('V',pitch=76, name='M9'),Layer('H',pitch=76, name='M10'),Layer('V',pitch=76, name='M11'),
@@ -346,6 +348,9 @@ class FeedThrough:
             mc = sum(self.pre_result.variable_values(module_crossings))
             via_usage = self._variables.get_variables(via=True)
             vu = sum(self.pre_result.variable_values(via_usage))
+            wl = [self.pre_result.variable_values(var) * self._graph.get_edge(var_id[0], var_id[1]).length 
+                  for var_id, var, _ in self._variables]
+            hpwl = sum(wl)
         self.norms =(hpwl,mc,vu)
         return
 
@@ -404,7 +409,7 @@ class FeedThrough:
             self.model_components[-1] = self._add_capacity_constraints()
             return self._find_opt_bb(None, depth)
 
-    def build(self, optimize_bbox=False, max_depth= 3)-> bool:
+    def build(self, optimize_bbox=True, max_depth= 3)-> bool:
 
         self._variables = self.VariableStore()
         self.nets_bb = defaultdict(int)
@@ -439,21 +444,22 @@ class FeedThrough:
             self.is_build = True
         return True
 
-    def solve(self, f_wl:float=0.4, f_mc:float=0.3, f_vu:float=0.3)-> tuple[bool, dict[str,int|float]]:
+    def solve(self, f_wl:float=0.1, f_mc:float=0.2, f_vu:float=0.7)-> tuple[bool, dict[str,int|float]]:
         """
         :return is_solved (bool): Whether the solver found a solution or not
         :return metrics (dict[str,int|float]): Execution metrics and solution values
         """
         assert hasattr(self, 'is_build'), "Before solving, build the model"
         assert self.is_build, "The model has failed when building, change parameters before solving"
-        assert abs(f_wl + f_mc + f_vu) <= 1.3, "The given factors are not unitary (their sum is not 1)"
+        #assert abs(f_wl + f_mc + f_vu) <= 1.01, "The given factors are not unitary (their sum is not 1)"
         
-        self._m['factors'] = (float(f_wl),float(f_mc),float(f_vu))
+        self._m['factors'] = (round(f_wl,3),round(f_mc,3),round(f_vu,3))
         self._m['norm_fact'] = self.norms
         
         ### STEP 5: Define the objective
-        wire_length = self._variables.get_variables()
         module_crossings = self._variables.get_variables(crossing=True)
+        wire_length = [var * self._graph.get_edge(var_id[0], var_id[1]).length 
+                       for var_id, var, _ in self._variables]
         via_usage = self._variables.get_variables(via=True)
 
         self._solver.minimize_linear_objective(
@@ -462,6 +468,9 @@ class FeedThrough:
             f_vu * sum(via_usage)/self.norms[2] #+ 
             #100 * sum(self.shared) TODO think why
         )
+        # self._solver.minimize_linear_objective(
+        #     sum(wire_length)
+        # )
         
         ### STEP 6: Solve the model
         status = mathopt.solve(self._solver, mathopt.SolverType.HIGHS)
@@ -469,7 +478,8 @@ class FeedThrough:
         self.is_solved = self.has_solution(status)
         self.result= status
         self._variables.update(status)
-        return self.is_solved, self._metrics()
+        self._metrics()
+        return self.is_solved, self.metrics
 
     @property
     def solution(self)-> VariableStore:
@@ -495,9 +505,12 @@ class FeedThrough:
             self._m['total_wl'] = round(sum(wire_length),0)
             self._m['module_crossings'] = round(sum(self.result.variable_values(self.solution.get_variables(crossing=True))),1)
             self._m['via_usage'] = round(sum(self.result.variable_values(self.solution.get_variables(via=True))),1)
-            self._m['mrd'] = max([ c/self._graph.get_edge(e[0], e[1]).capacity for e, c in self.solution.congestion.items()])
             self._m['n_bifurations'] = len([1 for netid, route in self.solution.routes.items() if self.has_bifurcation(self._nets[netid], route)])
-            self._m['obj_val'] = round(self.result.objective_value(),2)
+            self._m['obj_val'] = round(self.result.objective_value(),3)
+            self._m['mrd'] = max(
+                (v[0] / v[1]) if v[1] != 0 else 0
+                for v in self._congestion_map().values()
+                ) #maximum routing density(MRD)
 
     def has_bifurcation(self, net: NamedHyperEdge, route: list[dict[EdgeID, float]])->bool:
         """
@@ -613,3 +626,47 @@ class FeedThrough:
             current = next_node
 
         return path if len(path) == len(identifiers) else None
+    
+    def _congestion_map(self, layer_id:list[int]=[])-> dict[tuple[CellId,CellId], tuple[float,float]]:
+        
+        edge_map: dict[tuple[CellId,CellId], tuple[float,float]] = {}
+        for edge_id, congestion in self.solution.congestion.items():
+            if congestion < 1:
+                continue
+            edge = self.hanan_graph.get_edge(edge_id[0], edge_id[1])
+            from_node = self.hanan_graph.get_node(edge_id[0])
+            to_node = self.hanan_graph.get_node(edge_id[1])
+            # Skip vias
+            if from_node._id[-1] != to_node._id[-1]:
+                continue
+            elif layer_id and from_node._id[-1] in layer_id:
+                # Skip non-layer selecetd
+                continue
+
+            sum_con, sum_cap = edge_map.get((from_node._id[:2], to_node._id[:2]), (0,0))
+            sum_con += congestion
+            sum_cap += edge.capacity
+            edge_map[(from_node._id[:2], to_node._id[:2])] = (sum_con, sum_cap)
+
+        return edge_map
+    
+    def check_integral_solution(self, tol: float = 1e-9) -> Tuple[bool, List[Tuple[NetId, EdgeID, float]]]:
+        """
+        Check if all route values are integer within a tolerance.
+
+        Args:
+            tol: Tolerance for floating point comparison.
+
+        Returns:
+            A tuple (is_integral, violations):
+                - is_integral (bool): True if all values are integer within tolerance.
+                - violations (list): List of (NetId, EdgeID, value) for non-integer values.
+        """
+        routes = self.solution.routes
+        violations = []
+        for net_id, edge_dicts in routes.items():
+            for edge_dict in edge_dicts:
+                for edge_id, value in edge_dict.items():
+                    if abs(value - round(value)) > tol:
+                        violations.append((net_id, edge_id, value))
+        return len(violations) == 0, violations
