@@ -7,7 +7,7 @@ from argparse import ArgumentParser
 import typing
 import re
 
-from frame.utils.utils import write_yaml
+from frame.utils.utils import write_json_yaml
 
 Modules = dict[str, dict[str, typing.Any]]
 Headers = dict[str, typing.Any]
@@ -85,16 +85,22 @@ def parse_rectangles(lines: list[str], i: int, modules: Modules) -> bool:
                 raise Exception("Runaway argument at line " + str(i))
             point_split = point_string.split(",")
             if len(point_split) != 2:
-                raise Exception("Point on line " + str(i) + " has the wrong number of dimensions")
+                raise Exception("Point on line " + str(i) +
+                                " has the wrong number of dimensions")
             x, y = float(point_split[0]), float(point_split[1])
             vertices.append((x, y))
         if len(vertices) != 4:
-            raise Exception("Shape not tolerated on line " + str(i) + ": Only quads allowed")
+            raise Exception("Shape not tolerated on line " +
+                            str(i) + ": Only quads allowed")
         # TODO: Check whether the input shape is actually an *orthogonal* quad
-        min_x = min(vertices[0][0], vertices[1][0], vertices[2][0], vertices[3][0])
-        max_x = max(vertices[0][0], vertices[1][0], vertices[2][0], vertices[3][0])
-        min_y = min(vertices[0][1], vertices[1][1], vertices[2][1], vertices[3][1])
-        max_y = max(vertices[0][1], vertices[1][1], vertices[2][1], vertices[3][1])
+        min_x = min(vertices[0][0], vertices[1][0],
+                    vertices[2][0], vertices[3][0])
+        max_x = max(vertices[0][0], vertices[1][0],
+                    vertices[2][0], vertices[3][0])
+        min_y = min(vertices[0][1], vertices[1][1],
+                    vertices[2][1], vertices[3][1])
+        max_y = max(vertices[0][1], vertices[1][1],
+                    vertices[2][1], vertices[3][1])
         center = ((min_x + max_x) / 2, (min_y + max_y) / 2)
         dims = (max_x - min_x, max_y - min_y)
         modules[words[0]] = {
@@ -123,7 +129,8 @@ def parse_header(lines: list[str], i: int, headers: Headers):
     if len(words) < 2 or words[1] != ':':
         return False
     if len(words) != 3:
-        raise Exception("Error parsing line " + str(i+1) + ": Unknown Header:" + lines[i])
+        raise Exception("Error parsing line " + str(i+1) +
+                        ": Unknown Header:" + lines[i])
     if words[0] in defined_headers:
         headers[words[0]] = defined_headers[words[0]][0](words[2])
     else:
@@ -150,7 +157,7 @@ def parse_blocks(file_path: str):
 def main(prog: str | None = None, args: list[str] | None = None) -> int:
     options = parse_options(prog, args)
     blocks = parse_blocks(options['filename'])
-    print(write_yaml(blocks))
+    print(write_json_yaml(blocks, False))
     return 1
 
 

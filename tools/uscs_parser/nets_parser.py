@@ -7,7 +7,7 @@ from argparse import ArgumentParser
 import typing
 import re
 
-from frame.utils.utils import write_yaml
+from frame.utils.utils import write_json_yaml
 
 Net = list[typing.Any]
 Nets = list[Net]
@@ -56,7 +56,8 @@ def parse_header(lines: list[str], i: int, headers: Headers):
     if len(words) < 2 or words[1] != ':' or words[0] == 'NetDegree':
         return False
     if len(words) != 3:
-        raise Exception("Error parsing line " + str(i+1) + ": Unknown Header:" + lines[i])
+        raise Exception("Error parsing line " + str(i+1) +
+                        ": Unknown Header:" + lines[i])
     if words[0] in defined_headers:
         headers[words[0]] = defined_headers[words[0]][0](words[2])
     else:
@@ -112,7 +113,7 @@ def parse_nets(file_path: str):
 def main(prog: str | None = None, args: list[str] | None = None) -> int:
     options = parse_options(prog, args)
     nets = parse_nets(options['filename'])
-    print(write_yaml(nets))
+    print(write_json_yaml(nets, False))
     return 1
 
 

@@ -5,7 +5,7 @@
 
 import random
 from argparse import ArgumentParser
-from frame.utils.utils import write_yaml
+from frame.utils.utils import write_json_yaml
 import typing
 
 
@@ -85,7 +85,7 @@ def fuzzify(options: dict[str, typing.Any], layout: list[list[int]], nblocks: in
     # the more similar the resulting layout will be from the
     # unaltered one
     type0: float = (1 - noise) * (1 - noise)
-    
+
     # Type 1 noise is proximity noise. The higher this number is,
     # the more the modules will mix up with nearby modules
     type1: float = 2 * noise * (1 - noise)
@@ -110,7 +110,7 @@ def fuzzify(options: dict[str, typing.Any], layout: list[list[int]], nblocks: in
     for i in range(0, options['height']):
         for j in range(0, options['width']):
             # Type 2 noise
-            rnoise = [0.0] * nblocks 
+            rnoise = [0.0] * nblocks
             rnsum = 0.0
             for k in range(0, nblocks):
                 rnoise[k] = random.random() ** 20
@@ -140,11 +140,13 @@ def fuzzify(options: dict[str, typing.Any], layout: list[list[int]], nblocks: in
 
             resum = 0.0
             for k in range(0, nblocks):
-                resout[i][j][k] = round((rnoise[k] + pnoise[k] + nnoise[k]) * 100.0) / 100.0
+                resout[i][j][k] = round(
+                    (rnoise[k] + pnoise[k] + nnoise[k]) * 100.0) / 100.0
                 resum += resout[i][j][k]
             if resum > 1:
                 for k in range(0, nblocks):
-                    resout[i][j][k] = float(int(resout[i][j][k] / resum * 100.0)) / 100.0
+                    resout[i][j][k] = float(
+                        int(resout[i][j][k] / resum * 100.0)) / 100.0
     return resout
 
 
@@ -274,15 +276,22 @@ def parse_options(prog: str | None = None, args: list[str] | None = None) -> dic
     :param args: command-line arguments
     :return: a dictionary with the arguments
     """
-    parser = ArgumentParser(prog=prog, description="An example generation tool", usage='%(prog)s [options]')
-    parser.add_argument("--width",  type=int,   default=10,   help="width of the die                    (minimum 1)")
-    parser.add_argument("--height", type=int,   default=10,   help="height of the die                   (minimum 1)")
-    parser.add_argument("--maxw",   type=int,   default=7,    help="maximal width of a block            (minimum 1)")
-    parser.add_argument("--maxn",   type=int,   default=3,    help="maximal number of blocks per module (minimum 1)")
+    parser = ArgumentParser(
+        prog=prog, description="An example generation tool", usage='%(prog)s [options]')
+    parser.add_argument("--width",  type=int,   default=10,
+                        help="width of the die                    (minimum 1)")
+    parser.add_argument("--height", type=int,   default=10,
+                        help="height of the die                   (minimum 1)")
+    parser.add_argument("--maxw",   type=int,   default=7,
+                        help="maximal width of a block            (minimum 1)")
+    parser.add_argument("--maxn",   type=int,   default=3,
+                        help="maximal number of blocks per module (minimum 1)")
     parser.add_argument("--noise",  type=float, default=0.3,  help="intensity of the noise              "
                                                                    "(between 0 and 1, > 0.3 not recommended)")
-    parser.add_argument("--seed",   type=int,   default=None, help="seed for the random number generator")
-    parser.add_argument("--outfile",            default=None, help="output file")
+    parser.add_argument("--seed",   type=int,   default=None,
+                        help="seed for the random number generator")
+    parser.add_argument(
+        "--outfile",            default=None, help="output file")
     return vars(parser.parse_args(args))
 
 
@@ -318,7 +327,7 @@ def main(prog: str | None = None, args: list[str] | None = None) -> int:
                 if die[i][j][k] > 0:
                     item2["M" + str(k)] = die[i][j][k]
             rlist.append([item1, item2])
-    pout(write_yaml(rlist))
+    pout(write_json_yaml(rlist, False))
     pend()
     return 1
 

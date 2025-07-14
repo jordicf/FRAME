@@ -6,11 +6,11 @@ import numpy as np
 from tools.floorset_parser.floor_set_manager.utils.utils import compute_centroid, compute_perimeter, weight_sum, \
     strop_decomposition
 from frame.netlist.yaml_write_netlist import dump_yaml_namededges
-from frame.utils.utils import write_yaml
+from frame.utils.utils import write_json_yaml
 from tools.floorset_parser.floor_set_manager.utils.keywords import KW_MODULES, KW_NETS, KW_AREA, KW_FIXED, \
     KW_CENTER, KW_RECTANGLES, KW_TERMINAL, KW_HARD, KW_WIDTH, KW_HEIGHT
 
-from frame.geometry.geometry import Point # check if it is the same
+from frame.geometry.geometry import Point  # check if it is the same
 from frame.netlist.netlist_types import NamedHyperEdge
 
 
@@ -34,7 +34,7 @@ class FloorSetInstance():
     _height: float
     "Die height"
 
-    def __init__(self, floorplan_data: dict[np.ndarray], density: float|None, factor: float|None, terminals_as_modules:bool) -> None:
+    def __init__(self, floorplan_data: dict[np.ndarray], density: float | None, factor: float | None, terminals_as_modules: bool) -> None:
         """
         :Args:
         :param dict[np.ndarray] floorplan_data: The raw floorplan data stored in a dictionary with keys: 
@@ -44,11 +44,13 @@ class FloorSetInstance():
         :param bool terminals_as_modules: whether store terminals pins as modules with rectangle of size 10^-3.
         """
 
-        keys = ['area_blocks', 'b2b_connectivity', 'p2b_connectivity',\
-                 'pins_pos', 'placement_constraints', 'vertex_blocks', 'b_tree', 'metrics']
-        
-        assert (density and not factor) or (not density and factor), "density and factor are mutually exclusive"
-        assert isinstance(floorplan_data, dict), "Error floorplan data type. Has to be a dict."
+        keys = ['area_blocks', 'b2b_connectivity', 'p2b_connectivity',
+                'pins_pos', 'placement_constraints', 'vertex_blocks', 'b_tree', 'metrics']
+
+        assert (density and not factor) or (
+            not density and factor), "density and factor are mutually exclusive"
+        assert isinstance(
+            floorplan_data, dict), "Error floorplan data type. Has to be a dict."
         for k in floorplan_data.keys():
             assert k in keys, \
                 f"Unknown key {k} in floorplan data.\nKeys allowed: {keys}"
@@ -67,14 +69,14 @@ class FloorSetInstance():
             "Wrong data type for p2b_connectivity"
         assert not (floorplan_data['p2b_connectivity'] < 0).any(), \
             "Negative values not allowed in pin-to-block connections"
-        
+
         assert isinstance(floorplan_data['pins_pos'], np.ndarray), \
-            "Wrong data type for pins_pos"        
+            "Wrong data type for pins_pos"
         assert not (floorplan_data['pins_pos'] < 0).any(), \
             "Negative values not allowed in pin positions"
-        
+
         assert isinstance(floorplan_data['placement_constraints'], np.ndarray), \
-            "Wrong data type for placement constraints"    
+            "Wrong data type for placement constraints"
         assert not (floorplan_data['placement_constraints'] < 0).any(), \
             "Negative values not allowed in placement constraints"
 
@@ -82,7 +84,7 @@ class FloorSetInstance():
             "Wrong data type for vertex_blocks"
 
         assert isinstance(floorplan_data['metrics'], np.ndarray), \
-            "Wrong data type for metrics"         
+            "Wrong data type for metrics"
         assert not (floorplan_data['metrics'] < 0).any(), \
             "Negative values not allowed in any metric value"
 
@@ -91,7 +93,7 @@ class FloorSetInstance():
         self.num_pins = self._fp_data['metrics'][1]
         self._modules = dict()
         self._nets = []
-        
+
         if density:
             assert isinstance(density, float) and 0 <= density <= 1, \
                 "Wrong type for density factor, or value outof bounds [0,1]"
@@ -106,7 +108,7 @@ class FloorSetInstance():
         self._parse_modules(terminals_as_modules)
         self._parse_connections()
 
-    def _parse_modules(self, terminals_as_modules:bool) -> None:
+    def _parse_modules(self, terminals_as_modules: bool) -> None:
         """
         Parse and initialize module data from the floorplan dataset.
 
@@ -117,22 +119,23 @@ class FloorSetInstance():
         for mod_id in range(self.num_modules):
             name = f"M{mod_id}"
             data = dict()
-            
+
             vertices = self._fp_data['vertex_blocks'][mod_id]
             vertices = vertices[vertices[:, 0] != -1]
-            if len(vertices) > 1 : # Handling Prime FloorSet
+            if len(vertices) > 1:  # Handling Prime FloorSet
                 data[KW_RECTANGLES] = strop_decomposition(vertices)
                 c = compute_centroid(data[KW_RECTANGLES])
-            elif len(vertices) == 1 : # Handling Lite FloorSet
+            elif len(vertices) == 1:  # Handling Lite FloorSet
                 # In FloorSet a rectangle is stored as [w, h, x, y], where x,y
                 # is the low-left point. In FRAME rectangles are stored as [cx,cy,w,h],
                 # where c is the center.
                 cx = float((vertices[2] + vertices[0]) / 2)
                 cy = float((vertices[3] + vertices[1]) / 2)
-                data[KW_RECTANGLES] = [cx, cy, float(vertices[0]), float(vertices[1])]
-                c= Point(cx,cy)
+                data[KW_RECTANGLES] = [cx, cy, float(
+                    vertices[0]), float(vertices[1])]
+                c = Point(cx, cy)
             else:
-                pass # This should never happen
+                pass  # This should never happen
 
             # FloorSet   | FRAME constraint
             # Pre-placed | fixed
@@ -146,9 +149,9 @@ class FloorSetInstance():
             else:
                 data[KW_AREA] = float(self._fp_data['area_blocks'][mod_id])
                 data[KW_CENTER] = [c.x, c.y]
-            
+
             self._modules[name] = data
-        
+
         # For the die of the current floorplan
         shape_x = max(p[0] for p in self._fp_data['pins_pos'])
         shape_y = max(p[1] for p in self._fp_data['pins_pos'])
@@ -156,8 +159,8 @@ class FloorSetInstance():
             name = f"T{_id}"
             data = dict()
             if terminals_as_modules:
-                h=EPSILON
-                w=EPSILON
+                h = EPSILON
+                w = EPSILON
                 if float(pin_pos[0]) < EPSILON:
                     x = float(pin_pos[0]) + EPSILON
                 elif float(pin_pos[0]) >= shape_x + EPSILON:
@@ -173,10 +176,10 @@ class FloorSetInstance():
                 data[KW_TERMINAL] = True
 
             self._modules[name] = data
-        
+
         self._width = float(shape_x)
         self._height = float(shape_y)
-    
+
     def _parse_connections(self) -> None:
         """
         Parse and initialize connectivity data for blocks and pins.
@@ -188,12 +191,13 @@ class FloorSetInstance():
         if self._d:
             max_f = -1
             for mod_id in range(self.num_modules):
-                bl_w = weight_sum(self._fp_data['b2b_connectivity'], 
-                                self._fp_data['p2b_connectivity'], mod_id)
-                perimeter = compute_perimeter(self._fp_data['vertex_blocks'][mod_id])
+                bl_w = weight_sum(self._fp_data['b2b_connectivity'],
+                                  self._fp_data['p2b_connectivity'], mod_id)
+                perimeter = compute_perimeter(
+                    self._fp_data['vertex_blocks'][mod_id])
                 f = bl_w/perimeter
                 if max_f < f:
-                    max_f = f        
+                    max_f = f
             self._alpha = float(self._d / max_f)
         elif not self._alpha:
             self._alpha = 1
@@ -201,13 +205,15 @@ class FloorSetInstance():
         for b2b_edge in self._fp_data['b2b_connectivity']:
             b1, b2, w = b2b_edge
             wei = float(w*self._alpha)
-            net = NamedHyperEdge(modules=[f"M{int(b1)}", f"M{int(b2)}"], weight= wei if wei>0 else 1)
+            net = NamedHyperEdge(
+                modules=[f"M{int(b1)}", f"M{int(b2)}"], weight=wei if wei > 0 else 1)
             self._nets.append(net)
 
         for p2b_edge in self._fp_data['p2b_connectivity']:
             pin, bl, w = p2b_edge
             wei = float(w*self._alpha)
-            net = NamedHyperEdge(modules=[f"T{int(pin)}", f"M{int(bl)}"], weight= wei if wei>0 else 1)
+            net = NamedHyperEdge(
+                modules=[f"T{int(pin)}", f"M{int(bl)}"], weight=wei if wei > 0 else 1)
             self._nets.append(net)
 
     def write_yaml_FPEF(self, filename: str | None = None) -> (str | None):
@@ -216,7 +222,7 @@ class FloorSetInstance():
             KW_MODULES: self.modules,
             KW_NETS: dump_yaml_namededges(self.nets)
         }
-        return write_yaml(data, filename)
+        return write_json_yaml(data, False, filename)
 
     def write_yaml_DIEF(self, filename: str | None = None) -> (str | None):
         """Writes the data into a YAML file. If no file name is given, a string with the yaml contents is returned"""
@@ -224,13 +230,13 @@ class FloorSetInstance():
             KW_WIDTH: self._width,
             KW_HEIGHT: self._height
         }
-        return write_yaml(data, filename)
-    
+        return write_json_yaml(data, False, filename)
+
     @property
     def shape(self) -> tuple:
         """Returns the shape of the floorplan"""
         return (self._width, self._height)
-    
+
     @property
     def modules(self) -> dict:
         """Returns the list of modules"""
@@ -240,9 +246,8 @@ class FloorSetInstance():
     def nets(self) -> list[NamedHyperEdge]:
         """Returns the list of nameshyperedges"""
         return self._nets
-    
+
     @property
     def density_percentage(self) -> float:
         """Returns the density percentage set in this floorplan"""
         return self._d
-

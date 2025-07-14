@@ -7,7 +7,7 @@ import unittest
 from frame.die.die import Die
 from frame.geometry.geometry import Point, Shape
 from frame.netlist.netlist import Netlist
-from frame.utils.utils import write_yaml
+
 
 class TestDie(unittest.TestCase):
 
@@ -69,6 +69,7 @@ class TestDie(unittest.TestCase):
         self.assertEqual(len(d.blockages), 0)
         self.assertEqual(len(d.fixed_regions), 0)
         self.assertEqual(len(d.ground_regions), 8)
+
 
 if __name__ == '__main__':
     unittest.main()

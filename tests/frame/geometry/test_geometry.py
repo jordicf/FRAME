@@ -127,6 +127,7 @@ class TestRectangle(unittest.TestCase):
         self.assertEqual(r.bounding_box, BoundingBox(ll=Point(28.5, 39.5), ur=Point(31.5, 40.5)))
 
     def test_overlap_rectangles(self):
+        Rectangle.set_epsilon(10e-12)
         r1 = Rectangle(center=Point(2, 3), shape=Shape(2, 4))
         r2 = Rectangle(center=Point(5, 5), shape=Shape(4, 2))
         r3 = Rectangle(center=Point(8, 5), shape=Shape(4, 6))
@@ -169,6 +170,7 @@ class TestRectangle(unittest.TestCase):
         self.assertFalse(r3.is_inside(r1))
 
     def test_trunked_polygons(self):
+        Rectangle.set_epsilon(10e-12)
         r1 = Rectangle(center=Point(2, 3.5), shape=Shape(2, 3))
         r2 = Rectangle(center=Point(4.5, 4.5), shape=Shape(3, 1))
         r3 = Rectangle(center=Point(6, 9.5), shape=Shape(2, 3))

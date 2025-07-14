@@ -14,7 +14,7 @@ from frame.netlist.yaml_read_netlist import parse_yaml_netlist
 from frame.netlist.yaml_write_netlist import dump_yaml_modules, dump_yaml_edges
 from frame.geometry.geometry import Rectangle, parse_yaml_rectangle
 from frame.utils.keywords import KW_MODULES, KW_NETS
-from frame.utils.utils import TextIO_String, write_yaml
+from frame.utils.utils import TextIO_String, write_json_yaml, JSON_YAML_tree
 
 # Data structure to represent the rectangles associated to a module.
 # For each module, a list of rectangles is defined.
@@ -151,11 +151,26 @@ class Netlist:
         is returned
         :param filename: name of the output file
         """
-        data = {
+        data = self._write_json_yaml_data()
+        return write_json_yaml(data, False, filename)
+
+    def write_json(self, filename: str = None) -> None | str:
+        """
+        Writes the netlist into a JSON file. If no file name is given, a string with the JSON contents
+        is returned
+        :param filename: name of the output file
+        """
+        data = self._write_json_yaml_data()
+        return write_json_yaml(data, True, filename)
+
+    def _write_json_yaml_data(self) -> JSON_YAML_tree:
+        """
+        Generates the data structure to be dumped into a JSON or YAML file.
+        """
+        return {
             KW_MODULES: dump_yaml_modules(self.modules),
             KW_NETS: dump_yaml_edges(self.edges)
         }
-        return write_yaml(data, filename)
 
     def _clean_rectangles(self) -> None:
         """
@@ -182,7 +197,8 @@ class Netlist:
 
         if not Rectangle.epsilon_defined():
             for r in self.rectangles:
-                smallest_distance = min(smallest_distance, r.shape.w, r.shape.h)
+                smallest_distance = min(
+                    smallest_distance, r.shape.w, r.shape.h)
             for m in self.modules:
                 a = m.area()
                 if a > 0:
@@ -193,11 +209,13 @@ class Netlist:
         for m in self.modules:
             if m.is_hard and not m.is_terminal:
                 for r1, r2 in combinations(m.rectangles, 2):
-                    assert not r1.overlap(r2), f"Inconsistent hard module {m.name}: overlapping rectangles."
+                    assert not r1.overlap(
+                        r2), f"Inconsistent hard module {m.name}: overlapping rectangles."
 
         # Create stogs
         for m in self.modules:
             if m.num_rectangles > 0:
                 m.create_stog()
 
-        assert all(not m.flip or m.has_stog for m in self.modules), "Not all flip modules have a STOG"
+        assert all(
+            not m.flip or m.has_stog for m in self.modules), "Not all flip modules have a STOG"

@@ -7,7 +7,7 @@ from argparse import ArgumentParser
 import typing
 import re
 
-from frame.utils.utils import write_yaml
+from frame.utils.utils import write_json_yaml
 
 Modules = dict[str, dict[str, typing.Any]]
 
@@ -43,7 +43,8 @@ def parse_pl(lines: list[str], i: int, modules: Modules) -> bool:
         return True
     words = word_split(lines[i])
     if len(words) != 3:
-        raise Exception("Don't know how to parse line (" + str(i + 1) + "): " + lines[i])
+        raise Exception("Don't know how to parse line (" +
+                        str(i + 1) + "): " + lines[i])
     modules[words[0]] = {
         'fixed': True,
         'terminal': True,
@@ -66,7 +67,7 @@ def parse_pls(file_path: str):
 def main(prog: str | None = None, args: list[str] | None = None) -> int:
     options = parse_options(prog, args)
     modules = parse_pls(options['filename'])
-    print(write_yaml(modules))
+    print(write_json_yaml(modules, False))
     return 1
 
 

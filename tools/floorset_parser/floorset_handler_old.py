@@ -12,7 +12,7 @@ from frame.geometry.geometry import Shape
 from frame.netlist.module import Module
 from frame.netlist.netlist_types import NamedHyperEdge
 from tools.floorset_parser.floor_set_manager.strop import Strop
-from frame.utils.utils import write_yaml
+from frame.utils.utils import write_json_yaml
 from frame.netlist.yaml_read_netlist import parse_yaml_module
 from frame.netlist.yaml_write_netlist import dump_yaml_modules, dump_yaml_namededges
 
@@ -65,10 +65,11 @@ class Floorplan():
     def __init__(self, floorplan_data: dict[np.ndarray], density: float) -> None:
         """For more information about the structure of floorplan_data check README.md"""
 
-        keys = ['area_blocks', 'b2b_connectivity', 'p2b_connectivity',\
-                 'pins_pos', 'placement_constraints', 'vertex_blocks', 'b_tree', 'metrics']
-        
-        assert isinstance(floorplan_data, dict), "Error floorplan data type. Has to be a dict."
+        keys = ['area_blocks', 'b2b_connectivity', 'p2b_connectivity',
+                'pins_pos', 'placement_constraints', 'vertex_blocks', 'b_tree', 'metrics']
+
+        assert isinstance(
+            floorplan_data, dict), "Error floorplan data type. Has to be a dict."
         for k in floorplan_data.keys():
             assert k in keys, \
                 f"Unknown key {k} in floorplan data.\nKeys allowed: {keys}"
@@ -87,14 +88,14 @@ class Floorplan():
             "Wrong data type for p2b_connectivity"
         assert not (floorplan_data['p2b_connectivity'] < 0).any(), \
             "Negative values not allowed in pin-to-block connections"
-        
+
         assert isinstance(floorplan_data['pins_pos'], np.ndarray), \
-            "Wrong data type for pins_pos"        
+            "Wrong data type for pins_pos"
         assert not (floorplan_data['pins_pos'] < 0).any(), \
             "Negative values not allowed in pin positions"
-        
+
         assert isinstance(floorplan_data['placement_constraints'], np.ndarray), \
-            "Wrong data type for placement constraints"    
+            "Wrong data type for placement constraints"
         assert not (floorplan_data['placement_constraints'] < 0).any(), \
             "Negative values not allowed in placement constraints"
 
@@ -102,7 +103,7 @@ class Floorplan():
             "Wrong data type for vertex_blocks"
 
         assert isinstance(floorplan_data['metrics'], np.ndarray), \
-            "Wrong data type for metrics"         
+            "Wrong data type for metrics"
         assert not (floorplan_data['metrics'] < 0).any(), \
             "Negative values not allowed in any metric value"
 
@@ -111,11 +112,11 @@ class Floorplan():
         self.num_pins = self._fp_data['metrics'][1]
         self._modules = []
         self._nets = []
-        
+
         assert isinstance(density, float) and 0 <= density <= 1, \
             "Wrong type for density factor, or value outof bounds [0,1]"
         self._d = float(density)
-        
+
         self._parse_modules()
         self._parse_connections()
 
@@ -131,21 +132,22 @@ class Floorplan():
         for mod_id in range(self.num_modules):
             name = f"M{mod_id}"
             data = dict()
-            
+
             vertices = self._fp_data['vertex_blocks'][mod_id]
             vertices = vertices[vertices[:, 0] != -1]
-            if len(vertices) > 1 : # Handling Prime FloorSet
+            if len(vertices) > 1:  # Handling Prime FloorSet
                 data[KW_RECTANGLES] = strop_decomposition(vertices)
                 cx, cy = compute_centroid(data[KW_RECTANGLES])
-            elif len(vertices) == 1 : # Handling Lite FloorSet
+            elif len(vertices) == 1:  # Handling Lite FloorSet
                 # In FloorSet a rectangle is stored as [w, h, x, y], where x,y
                 # is the low-left point. In FRAME rectangles are stored as [cx,cy,w,h],
                 # where c is the center.
                 cx = float((vertices[2] + vertices[0]) / 2)
                 cy = float((vertices[3] + vertices[1]) / 2)
-                data[KW_RECTANGLES] = [cx, cy, float(vertices[0]), float(vertices[1])]
+                data[KW_RECTANGLES] = [cx, cy, float(
+                    vertices[0]), float(vertices[1])]
             else:
-                pass # This should never happen
+                pass  # This should never happen
 
             # FloorSet   | FRAME constraint
             # Pre-placed | fixed
@@ -159,10 +161,10 @@ class Floorplan():
             else:
                 data[KW_AREA] = float(self._fp_data['area_blocks'][mod_id])
                 data[KW_CENTER] = [cx, cy]
-            
+
             m = parse_yaml_module(name, data)
             self._modules.append(m)
-        
+
         # For the die of the current floorplan
         shape_y = 0
         shape_x = 0
@@ -182,7 +184,7 @@ class Floorplan():
             "The die area do not match with the Width and Height"
         self._width = float(shape_y)
         self._height = float(shape_x)
-    
+
     def _parse_connections(self) -> None:
         """
         Parse and initialize connectivity data for blocks and pins.
@@ -193,24 +195,27 @@ class Floorplan():
         """
         max_w = -1
         for mod_id in range(max(self.num_modules, int(self.num_pins))):
-            bl_w = weight_sum(self._fp_data['b2b_connectivity'], 
+            bl_w = weight_sum(self._fp_data['b2b_connectivity'],
                               self._fp_data['p2b_connectivity'], mod_id)
             if max_w < bl_w:
                 max_w = bl_w
                 max_bl_id = mod_id
 
-        assert max_w > 0., "Inconsistency: The maximum weight of all blocks is 0 or lower" 
-        perimeter = compute_perimeter(self._fp_data['vertex_blocks'][max_bl_id])
+        assert max_w > 0., "Inconsistency: The maximum weight of all blocks is 0 or lower"
+        perimeter = compute_perimeter(
+            self._fp_data['vertex_blocks'][max_bl_id])
         self._alpha = float(self._d * perimeter / max_w)
 
         for b2b_edge in self._fp_data['b2b_connectivity']:
             b1, b2, w = b2b_edge
-            net = NamedHyperEdge(modules=[f"M{int(b1)}", f"M{int(b2)}"], weight= float(w*self._alpha))         
+            net = NamedHyperEdge(
+                modules=[f"M{int(b1)}", f"M{int(b2)}"], weight=float(w*self._alpha))
             self._nets.append(net)
 
         for p2b_edge in self._fp_data['p2b_connectivity']:
             pin, bl, w = p2b_edge
-            net = NamedHyperEdge(modules=[f"T{int(pin)}", f"M{int(bl)}"], weight= float(w*self._alpha))
+            net = NamedHyperEdge(
+                modules=[f"T{int(pin)}", f"M{int(bl)}"], weight=float(w*self._alpha))
             self._nets.append(net)
 
     def write_yaml_FPEF(self, filename: str | None = None) -> (str | None):
@@ -219,7 +224,7 @@ class Floorplan():
             KW_MODULES: dump_yaml_modules(self.modules),
             KW_NETS: dump_yaml_namededges(self.nets)
         }
-        return write_yaml(data, filename)
+        return write_json_yaml(data, False, filename)
 
     def write_yaml_DIEF(self, filename: str | None = None) -> (str | None):
         """Writes the data into a YAML file. If no file name is given, a string with the yaml contents is returned"""
@@ -227,13 +232,13 @@ class Floorplan():
             KW_WIDTH: self._width,
             KW_HEIGHT: self._height
         }
-        return write_yaml(data, filename)
-    
+        return write_json_yaml(data, False, filename)
+
     @property
     def shape(self) -> Shape:
         """Returns the shape of the floorplan"""
         return Shape(self._width, self._height)
-    
+
     @property
     def modules(self) -> list[Module]:
         """Returns the list of modules"""
@@ -243,12 +248,12 @@ class Floorplan():
     def nets(self) -> list[NamedHyperEdge]:
         """Returns the list of hyperedges"""
         return self._nets
-    
+
     @property
     def scaling_factor(self) -> float:
         """Returns the weight scaling factor"""
         return self._alpha
-    
+
     @property
     def density_percentage(self) -> float:
         """Returns the density percentage set in this floorplan"""
@@ -270,9 +275,10 @@ def weight_sum(connections_b2b: np.ndarray, connections_p2b: np.ndarray, target_
         float: The total weight of block-to-block and block-related pin connections
     """
     # Identify rows in block-to-block connections that involve the target block
-    mask = (connections_b2b[:, 0] == target_id) | (connections_b2b[:, 1] == target_id)
+    mask = (connections_b2b[:, 0] == target_id) | (
+        connections_b2b[:, 1] == target_id)
     result = np.sum(connections_b2b[mask, 2])
-    
+
     # Identify rows in pin-to-block connections where the target is a pin or block
     mask_block = (connections_p2b[:, 1] == target_id)
     result += np.sum(connections_p2b[mask_block, 2])
@@ -362,7 +368,7 @@ def is_point_inside_polygon(point: Point, vertices: Polygon) -> bool:
     Args:
         point: the point tuple (x,y) to check.
         vertices: a list of points representing the vertices of the polygon.
-    
+
     Returns:
         A boolean whether the point is inside or not.
     """
@@ -463,7 +469,8 @@ def main(prog: str | None = None, args: list[str] | None = None) -> None:
     outfilepath_FPEF = options['output_FPEF']
     density = options['connection_density']
 
-    assert infilepath.endswith(".npz"), "Invalid file type. Please provide a .npz or .npy file."
+    assert infilepath.endswith(
+        ".npz"), "Invalid file type. Please provide a .npz or .npy file."
     floorplan_data = np.load(infilepath, allow_pickle=True)
     fp = Floorplan(dict(floorplan_data), density)
 
@@ -476,4 +483,3 @@ def main(prog: str | None = None, args: list[str] | None = None) -> None:
 
 if __name__ == "__main__":
     main()
-

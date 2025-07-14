@@ -6,7 +6,7 @@ from typing import Any
 from .module import Module
 from .netlist_types import HyperEdge, NamedHyperEdge
 from ..geometry.geometry import Rectangle
-from ..utils.keywords import KW_AREA, KW_FIXED, KW_HARD, KW_TERMINAL, KW_CENTER, KW_ASPECT_RATIO,\
+from ..utils.keywords import KW_AREA, KW_FIXED, KW_HARD, KW_TERMINAL, KW_CENTER, KW_ASPECT_RATIO, \
     KW_RECTANGLES, KW_GROUND
 
 
@@ -53,7 +53,8 @@ def dump_yaml_module(module: Module) -> dict:
             info[KW_CENTER] = [module.center.x, module.center.y]
 
         if module.aspect_ratio is not None:
-            info[KW_ASPECT_RATIO] = [module.aspect_ratio.min_wh, module.aspect_ratio.max_wh]
+            info[KW_ASPECT_RATIO] = [
+                module.aspect_ratio.min_wh, module.aspect_ratio.max_wh]
 
     # If it is fixed, no need to say it is hard
     if module.is_fixed:
@@ -82,11 +83,13 @@ def dump_yaml_rectangles(rectangles: list[Rectangle]) -> list[list[float | str]]
     """
     rects: list[list[float | str]] = []
     for r in rectangles:
-        list_rect: list[float | str] = [r.center.x, r.center.y, r.shape.w, r.shape.h]
+        list_rect: list[float | str] = [
+            r.center.x, r.center.y, r.shape.w, r.shape.h]
         if r.region != KW_GROUND:
             list_rect.append(r.region)
         rects.append(list_rect)
     return rects
+
 
 def dump_yaml_namededges(named_edges: list[NamedHyperEdge]) -> list:
     """

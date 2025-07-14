@@ -7,7 +7,7 @@ from tools.uscs_parser.blocks_parser import parse_blocks
 from tools.uscs_parser.nets_parser import parse_nets
 from tools.uscs_parser.pl_parser import parse_pls
 import typing
-from frame.utils.utils import write_yaml
+from frame.utils.utils import write_json_yaml
 
 
 def fuse(*objs: dict) -> dict:
@@ -58,9 +58,9 @@ def main(prog: str | None = None, args: list[str] | None = None) -> int:
     obj3 = parse_pls(options['filename_pl'])
     result = fuse(obj1, obj2, obj3)
     if options['output'] is None:
-        print(write_yaml(result))
+        print(write_json_yaml(result, False))
     else:
-        write_yaml(result, options['output'])
+        write_json_yaml(result, False, options['output'])
     return 1
 
 

@@ -15,7 +15,7 @@ from .yaml_parse_die import parse_yaml_die
 from frame.geometry.geometry import Shape, Rectangle, Point, RectDescriptor, split_rectangles, gather_boundaries
 from frame.netlist.netlist import Netlist
 from frame.utils.keywords import KW_WIDTH, KW_HEIGHT, KW_REGIONS, KW_CENTER, KW_SHAPE, KW_REGION, KW_GROUND, KW_BLOCKAGE
-from frame.utils.utils import TextIO_String, write_yaml
+from frame.utils.utils import TextIO_String, write_json_yaml
 
 
 @dataclass
@@ -42,13 +42,16 @@ class Die:
     _netlist: Netlist | None  # Netlist associated to the die
     _die: Rectangle  # Bounding Box of the die
     _specialized_regions: list[Rectangle]  # List of non-ground regions
-    _ground_regions: list[Rectangle]  # List of ground regions (not covered by fixed rectangles)
+    # List of ground regions (not covered by fixed rectangles)
+    _ground_regions: list[Rectangle]
     _blockages: list[Rectangle]  # List of blockages
-    _fixed: list[Rectangle]  # List of fixed rectangles (obtained from a netlist)
+    # List of fixed rectangles (obtained from a netlist)
+    _fixed: list[Rectangle]
     _epsilon: float  # Precision when dealing with coordinates
     _x: list[float]  # List of x coordinates of potential rectangles
     _y: list[float]  # List of y coordinates of potential rectangles
-    _cells: list[list[bool]]  # Matrix of rectangles (True occupied, False available)
+    # Matrix of rectangles (True occupied, False available)
+    _cells: list[list[bool]]
 
     def __init__(self, stream: TextIO_String, netlist: Netlist | None = None):
         """
@@ -66,7 +69,8 @@ class Die:
         # Selected blockages from the other regions
         self._specialized_regions, self._blockages = [], []
         for r in regions:
-            self._blockages.append(r) if r.region == KW_BLOCKAGE else self._specialized_regions.append(r)
+            self._blockages.append(
+                r) if r.region == KW_BLOCKAGE else self._specialized_regions.append(r)
 
         # Obtained the fixed rectangles from the netlist
         self._fixed = [] if netlist is None else netlist.fixed_rectangles()
@@ -128,7 +132,8 @@ class Die:
         """
         assert n > 0
         assert aspect_ratio > 1.415, "Aspect ratio cannot be smaller than sqrt(2) to guarantee convergence"
-        rects = split_rectangles(self.specialized_regions + self.ground_regions, aspect_ratio, n)
+        rects = split_rectangles(
+            self.specialized_regions + self.ground_regions, aspect_ratio, n)
         self._specialized_regions, self._ground_regions = [], []
         for r in rects:
             if r.region == KW_GROUND:
@@ -146,7 +151,8 @@ class Die:
         assert nrows > 0 and ncols > 0 and nrows + ncols > 1
         assert len(self.fixed_regions) == 0 and len(self.specialized_regions) == 0 and len(self.blockages) == 0, \
             "Cannot create a gridded die: it has blockages, fixed regions or specialized regions."
-        assert len(self.ground_regions) == 1, "Cannot create a gridded die: it has more than one ground region."
+        assert len(
+            self.ground_regions) == 1, "Cannot create a gridded die: it has more than one ground region."
         self._ground_regions = self._die.rectangle_grid(nrows, ncols)
 
     def floorplanning_rectangles(self) -> tuple[list[Rectangle], list[Rectangle]]:
@@ -174,7 +180,7 @@ class Die:
             regions.append(r.vector_spec)
         if len(regions) > 0:
             data[KW_REGIONS] = regions
-        return write_yaml(data, filename)
+        return write_json_yaml(data, False, filename)
 
     def _cell_center(self, i: int, j: int) -> Point:
         """
@@ -189,7 +195,8 @@ class Die:
         """
         Calculates the matrix of cells. It indicates which cells are occupied by regions, blockages or fixed rectangles
         """
-        self._cells = [[False] * (len(self._x) - 1) for _ in range(len(self._y) - 1)]
+        self._cells = [[False] * (len(self._x) - 1)
+                       for _ in range(len(self._y) - 1)]
         for i in range(len(self._x) - 1):
             for j in range(len(self._y) - 1):
                 p = self._cell_center(i, j)
@@ -211,14 +218,16 @@ class Die:
         self._ground_regions = []
         all_rectangles: Set[GroundRegion] = self._find_all_ground_rectangles()
         while len(all_rectangles) > 0:
-            self._ground_regions.append(self._find_best_rectangle(all_rectangles))
+            self._ground_regions.append(
+                self._find_best_rectangle(all_rectangles))
 
     def _find_all_ground_rectangles(self) -> Set[GroundRegion]:
         """
         Calculates all possible ground rectangles
         :return: the set of ground rectangles
         """
-        all_regions: Set[GroundRegion] = set()  # Set of all rectangular regions
+        all_regions: Set[GroundRegion] = set(
+        )  # Set of all rectangular regions
         for r in range(len(self._cells)):
             height = self._y[r + 1] - self._y[r]
             for c in range(len(self._cells[r])):
@@ -267,7 +276,8 @@ class Die:
         y_center = (self._y[best_reg.rmin] + self._y[best_reg.rmax + 1]) / 2
         width = self._x[best_reg.cmax + 1] - self._x[best_reg.cmin]
         height = self._y[best_reg.rmax + 1] - self._y[best_reg.rmin]
-        kwargs = {KW_CENTER: Point(x_center, y_center), KW_SHAPE: Shape(width, height), KW_REGION: KW_GROUND}
+        kwargs = {KW_CENTER: Point(x_center, y_center), KW_SHAPE: Shape(
+            width, height), KW_REGION: KW_GROUND}
         return Rectangle(**kwargs)
 
     def _expand_rectangle(self, r: GroundRegion) -> Set[GroundRegion]:
@@ -284,7 +294,8 @@ class Die:
             r = pending.popleft()
             if r.rmax < len(self._cells) - 1:  # Add one row
                 row = r.rmax + 1
-                valid = not any(self._cells[row][j] for j in range(r.cmin, r.cmax + 1))
+                valid = not any(self._cells[row][j]
+                                for j in range(r.cmin, r.cmax + 1))
                 if valid:
                     height = self._y[r.rmax + 2] - self._y[r.rmin]
                     width = self._x[r.cmax + 1] - self._x[r.cmin]
@@ -292,14 +303,16 @@ class Die:
                     ratio = height / width
                     if ratio < 1.0:
                         ratio = 1 / ratio
-                    new_r = GroundRegion(r.rmin, r.rmax + 1, r.cmin, r.cmax, area, ratio)
+                    new_r = GroundRegion(
+                        r.rmin, r.rmax + 1, r.cmin, r.cmax, area, ratio)
                     if new_r not in g_regions:
                         g_regions.add(new_r)
                         pending.append(new_r)
 
             if r.cmax < len(self._cells[0]) - 1:  # Add one column
                 col = r.cmax + 1
-                valid = not any(self._cells[i][col] for i in range(r.rmin, r.rmax + 1))
+                valid = not any(self._cells[i][col]
+                                for i in range(r.rmin, r.rmax + 1))
                 if valid:
                     height = self._y[r.rmax + 1] - self._y[r.rmin]
                     width = self._x[r.cmax + 2] - self._x[r.cmin]
@@ -307,7 +320,8 @@ class Die:
                     ratio = height / width
                     if ratio < 1.0:
                         ratio = 1 / ratio
-                    new_r = GroundRegion(r.rmin, r.rmax, r.cmin, r.cmax + 1, area, ratio)
+                    new_r = GroundRegion(
+                        r.rmin, r.rmax, r.cmin, r.cmax + 1, area, ratio)
                     if new_r not in g_regions:
                         g_regions.add(new_r)
                         pending.append(new_r)
@@ -319,8 +333,10 @@ class Die:
         Checks that the list of rectangles is correct, i.e., they do not overlap and the sum of the
         areas is equal to the area of the die. An assertion is raised of something is wrong.
         """
-        all_rectangles = self.specialized_regions + self.ground_regions + self.blockages + self.fixed_regions
-        die = Rectangle(center=Point(self.width / 2, self.height / 2), shape=Shape(self.width, self.height))
+        all_rectangles = self.specialized_regions + \
+            self.ground_regions + self.blockages + self.fixed_regions
+        die = Rectangle(center=Point(self.width / 2, self.height / 2),
+                        shape=Shape(self.width, self.height))
 
         # Check that all rectangles are inside
         for r in all_rectangles:
@@ -335,4 +351,5 @@ class Die:
 
         # Check that the total area of the rectangles is equal to the area of the die
         area_rect = sum(r.area for r in all_rectangles)
-        assert abs(area_rect - die.area) < self._epsilon, "Incorrect total area of rectangles"
+        assert abs(
+            area_rect - die.area) < self._epsilon, "Incorrect total area of rectangles"

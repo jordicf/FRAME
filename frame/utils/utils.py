@@ -10,12 +10,13 @@ import numbers
 import re
 from typing import Any, TextIO
 from ruamel.yaml import YAML
+import json
 from io import StringIO
 
 Vector = list[float]
 Matrix = list[Vector]
-YAML_tree = dict[str, Any] | list[Any]
-TextIO_String = TextIO | str | YAML_tree
+JSON_YAML_tree = dict[str, Any] | list[Any]
+TextIO_String = TextIO | str | JSON_YAML_tree
 
 
 def valid_identifier(ident: Any) -> bool:
@@ -53,7 +54,7 @@ def string_is_number(s: str) -> bool:
         return False
 
 
-def read_yaml(stream: TextIO_String) -> YAML_tree:
+def read_yaml(stream: TextIO_String) -> JSON_YAML_tree:
     """
     Reads a YAML contents from a file or a string. The distinction between a YAML contents and a file name is
     done by checking that ': ' exists in the string. The input can also be a YAML tree
@@ -78,26 +79,35 @@ def read_yaml(stream: TextIO_String) -> YAML_tree:
     return yaml.load(txt)
 
 
-def write_yaml(data: Any, filename: str = None) -> None | str:
+def write_json_yaml(data: Any, is_json: bool = True, filename: str = None) -> None | str:
     """
-    Writes the data into a YAML file. If no file name is given, a string with the yaml contents
+    Writes the data into a JSON or YAML file. If no file name is given, a string with the yaml contents
     is returned
     :param data: data to be written
+    :param is_json: True if a JSON file is to be generated, otherwise YAML
     :param filename: name of the output file
-    :return: the YAML string in case filename is None
+    :return: the JSON/YAML string in case filename is None
     """
 
-    yaml = YAML()
-    yaml.default_flow_style = False
-    if filename is None:
+    if not is_json:
+        yaml = YAML()
+        yaml.default_flow_style = False
+
+    if filename is None:  # generate an output string
         string_stream = StringIO()
-        yaml.dump(data, string_stream)
+        if is_json:
+            json.dump(data, string_stream)
+        else:
+            yaml.dump(data, string_stream)
         output_str: str = string_stream.getvalue()
         string_stream.close()
         return output_str
 
-    with open(filename, 'w') as stream:
-        yaml.dump(data, stream)
+    with open(filename, 'w') as stream:  # dump into a file
+        if is_json:
+            json.dump(data, stream)
+        else:
+            yaml.dump(data, stream)
         return None
 
 

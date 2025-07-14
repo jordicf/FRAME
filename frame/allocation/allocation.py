@@ -17,11 +17,13 @@ from frame.die.die import Die
 from frame.netlist.netlist import Netlist
 from frame.geometry.geometry import Point, Shape, Rectangle, parse_yaml_rectangle, gather_boundaries
 from frame.utils.keywords import KW_CENTER, KW_SHAPE
-from frame.utils.utils import TextIO_String, read_yaml, write_yaml, YAML_tree, is_number, valid_identifier
+from frame.utils.utils import TextIO_String, read_yaml, write_json_yaml, JSON_YAML_tree, is_number, valid_identifier
 
 # Types
-Alloc = dict[str, float]  # Allocation in a rectangle (area ratio for each module)
-AllocDescriptor = tuple[Rectangle, Alloc, int]  # the last element represents the depth
+# Allocation in a rectangle (area ratio for each module)
+Alloc = dict[str, float]
+# the last element represents the depth
+AllocDescriptor = tuple[Rectangle, Alloc, int]
 
 
 @dataclass()
@@ -45,8 +47,10 @@ class Allocation:
     of modules. The occupation is represented as a ratio, e.g., 10% of a rectangle is occupied by M1,
     30% by M2, etc. Ratios are represented as numbers in the interval [0,1]."""
 
-    _allocations: list[RectAlloc]  # List of allocations. Each component corresponds to a rectangle
-    _module2rect: dict[str, list[ModuleAlloc]]  # For each module, a list of rectangle allocations
+    # List of allocations. Each component corresponds to a rectangle
+    _allocations: list[RectAlloc]
+    # For each module, a list of rectangle allocations
+    _module2rect: dict[str, list[ModuleAlloc]]
     _areas: dict[str, float]  # Area of the modules
     _centers: dict[str, Point]  # Centers of the modules
     _bounding_box: Rectangle  # The bounding box of all rectangles
@@ -156,7 +160,8 @@ class Allocation:
         netlist.create_squares()  # Creates a square for each of the modules without rectangles
         # Creating the new allocation
         new_alloc: list[AllocDescriptor] = []
-        fixed_rects = self._detect_fixed_rectangles(netlist)  # identify the fixed rectangles
+        fixed_rects = self._detect_fixed_rectangles(
+            netlist)  # identify the fixed rectangles
 
         # Pre-allocate the fixed rectangles
         for r, mod_name in fixed_rects:
@@ -168,7 +173,8 @@ class Allocation:
                 continue
             alloc: Alloc = {}
             for m in netlist.modules:
-                area = sum(a.rect.area_overlap(r_mod) / a.rect.area for r_mod in m.rectangles)
+                area = sum(a.rect.area_overlap(r_mod) /
+                           a.rect.area for r_mod in m.rectangles)
                 if include_area_zero or area > 0:
                     alloc[m.name] = area
             new_alloc.append((a.rect, alloc, a.depth))
@@ -188,8 +194,10 @@ class Allocation:
         new_alloc: list[AllocDescriptor] = []
         for a in self.allocations:
             # Check the allocations and see if the rectangle must be split
-            split = len(a.alloc) > 0 and all(x <= threshold for x in a.alloc.values())
-            new_alloc.extend(self._split_allocation(a.rect, a.alloc, a.depth, levels if split else 0))
+            split = len(a.alloc) > 0 and all(
+                x <= threshold for x in a.alloc.values())
+            new_alloc.extend(self._split_allocation(
+                a.rect, a.alloc, a.depth, levels if split else 0))
         return Allocation(new_alloc)
 
     def must_be_refined(self, threshold: float) -> bool:
@@ -226,7 +234,8 @@ class Allocation:
                 if not a.rect.fixed and a.rect.x_cuttable(x_cuts[i], 0.01):
                     r1, r2 = a.rect.split_horizontal(x_cuts[i])
                     for rect in [r1, r2]:
-                        new_allocs.append(RectAlloc(rect, {m: r for m, r in a.alloc.items()}, a.depth + 1))
+                        new_allocs.append(
+                            RectAlloc(rect, {m: r for m, r in a.alloc.items()}, a.depth + 1))
                 else:
                     new_allocs.append(a)
 
@@ -239,7 +248,8 @@ class Allocation:
                 if not a.rect.fixed and a.rect.y_cuttable(y_cuts[i], 0.01):
                     r1, r2 = a.rect.split_vertical(y_cuts[i])
                     for rect in [r1, r2]:
-                        new_allocs.append(RectAlloc(rect, {m: r for m, r in a.alloc.items()}, a.depth + 1))
+                        new_allocs.append(
+                            RectAlloc(rect, {m: r for m, r in a.alloc.items()}, a.depth + 1))
                 else:
                     new_allocs.append(a)
 
@@ -257,7 +267,8 @@ class Allocation:
 
         new_alloc: list[AllocDescriptor] = []
         for a in self.allocations:
-            new_alloc.extend(self._split_allocation(a.rect, a.alloc, a.depth, max_depth - a.depth))
+            new_alloc.extend(self._split_allocation(
+                a.rect, a.alloc, a.depth, max_depth - a.depth))
         return Allocation(new_alloc)
 
     def write_yaml(self, filename: str = None) -> None | str:
@@ -268,7 +279,7 @@ class Allocation:
         """
         list_modules = [[r.rect.vector_spec, r.alloc, r.depth] if r.depth > 0
                         else [r.rect.vector_spec, r.alloc] for r in self.allocations]
-        return write_yaml(list_modules, filename)
+        return write_json_yaml(list_modules, False, filename)
 
     def _detect_fixed_rectangles(self, netlist: Netlist) -> list[tuple[Rectangle, str]]:
         """
@@ -283,7 +294,8 @@ class Allocation:
 
         for a in self.allocations:
             for m in fixed_modules:
-                area = sum(a.rect.area_overlap(r_mod) / a.rect.area for r_mod in m.rectangles)
+                area = sum(a.rect.area_overlap(r_mod) /
+                           a.rect.area for r_mod in m.rectangles)
                 assert area < eps or 1 - eps < area < 1 + eps, "Incorrect fixed rectangle"
                 if area > 1 - eps:
                     a.rect.fixed = True
@@ -292,7 +304,8 @@ class Allocation:
 
         # Check that each module is assigned to the corresponding number of rectangles
         for m in fixed_modules:
-            assert m.num_rectangles == num_rect[m.name], f"Incorrect number of fixed rectangles for module {m.name}"
+            assert m.num_rectangles == num_rect[
+                m.name], f"Incorrect number of fixed rectangles for module {m.name}"
         return fixed_rects
 
     def _calculate_bounding_box(self) -> None:
@@ -309,15 +322,17 @@ class Allocation:
         assert xmin >= 0 and ymin >= 0, "The allocation is not included in the positive quadrant"
         width = xmax - xmin
         height = ymax - ymin
-        kwargs = {KW_CENTER: Point(xmin + width / 2, ymin + height / 2), KW_SHAPE: Shape(width, height)}
+        kwargs = {KW_CENTER: Point(
+            xmin + width / 2, ymin + height / 2), KW_SHAPE: Shape(width, height)}
         self._bounding_box = Rectangle(**kwargs)
 
-    def _parse_yaml_tree(self, tree: YAML_tree) -> None:
+    def _parse_yaml_tree(self, tree: JSON_YAML_tree) -> None:
         """
         Parses the YAML tree that represents an allocation
         :param tree: the YAML tree
         """
-        assert isinstance(tree, list), "Wrong format of the allocation. The top node should be a list."
+        assert isinstance(
+            tree, list), "Wrong format of the allocation. The top node should be a list."
         self._allocations = []
         self._module2rect = {}
         for i, alloc in enumerate(tree):
@@ -325,21 +340,26 @@ class Allocation:
 
             if isinstance(alloc, list):
                 alloc = tuple(alloc)
-            assert isinstance(alloc, tuple) and 2 <= len(alloc) <= 3, f'Incorrect format for rectangle {alloc}'
-            r, allocs = alloc[0], alloc[1]  # Rectangle and dictionary of allocations
+            assert isinstance(alloc, tuple) and 2 <= len(
+                alloc) <= 3, f'Incorrect format for rectangle {alloc}'
+            # Rectangle and dictionary of allocations
+            r, allocs = alloc[0], alloc[1]
 
             depth = 0 if len(alloc) == 2 else alloc[2]
-            assert isinstance(depth, int) and depth >= 0, f'Incorrect depth for rectangle {alloc}'
+            assert isinstance(
+                depth, int) and depth >= 0, f'Incorrect depth for rectangle {alloc}'
 
             # Create the rectangle (if it is ot already a rectangle)
             rect = r if isinstance(r, Rectangle) else parse_yaml_rectangle(r)
 
             # Create the dictionary of allocations
-            assert isinstance(allocs, dict), f'Incorrect allocation for rectangle {r}'
+            assert isinstance(
+                allocs, dict), f'Incorrect allocation for rectangle {r}'
             dict_alloc = {}
             total_occup = 0
             for module, occup in allocs.items():
-                assert valid_identifier(module), f'Invalid module identifier: {module}'
+                assert valid_identifier(
+                    module), f'Invalid module identifier: {module}'
                 assert is_number(occup) and 0 <= occup <= 1, \
                     f'Invalid allocation for {module} in rectangle {r}: {occup}'
                 assert module not in dict_alloc, f'Multiple allocations of {module} in rectangle {r}'
@@ -404,5 +424,6 @@ def create_initial_allocation(die: Die, include_area_zero: bool = False) -> Allo
     """
     assert die.netlist is not None, "No netlist associated to the die"
     refinable, fixed = die.floorplanning_rectangles()
-    allocation_list: list[AllocDescriptor] = [(rect, {}, 0) for rect in refinable + fixed]
+    allocation_list: list[AllocDescriptor] = [
+        (rect, {}, 0) for rect in refinable + fixed]
     return Allocation(allocation_list).initial_allocation(die.netlist, include_area_zero)
