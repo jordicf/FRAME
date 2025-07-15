@@ -1,15 +1,18 @@
 # (c) Jordi Cortadella 2022
 # For the FRAME Project.
-# Licensed under the MIT License (see https://github.com/jordicf/FRAME/blob/master/LICENSE.txt).
+# Licensed under the MIT License
+# (see https://github.com/jordicf/FRAME/blob/master/LICENSE.txt).
 
 """
 Modules of a netlist
 """
 
 import math
-from frame.geometry.geometry import Point, Shape, AspectRatio, Rectangle, create_stog
-from frame.utils.keywords import KW_CENTER, KW_SHAPE, KW_ASPECT_RATIO, KW_AREA, KW_TERMINAL, KW_FIXED, KW_HARD,\
-    KW_FLIP, KW_GROUND, KW_RECTANGLES
+from frame.geometry.geometry import (Point, Shape, AspectRatio,
+                                     Rectangle, create_stog)
+from frame.utils.keywords import (KW_CENTER, KW_SHAPE, KW_ASPECT_RATIO,
+                                  KW_AREA, KW_TERMINAL, KW_FIXED, KW_HARD,
+                                  KW_FLIP, KW_GROUND, KW_RECTANGLES)
 from frame.utils.utils import valid_identifier, is_number
 
 
@@ -28,20 +31,24 @@ class Module:
     # The following attribute indicate the area assigned to each region.
     # If no region specified, the default is assigned (Ground).
     _area_regions: dict[str, float]  # Area for each type of region
-    # This is an attribute to store the whole area of the module. If not calculated, it
-    # has a negative value
+    # This is an attribute to store the whole area of the module.
+    # If not calculated, it has a negative value
     _total_area: float
-    # A module can be implemented with different rectangles. Here is the list of rectangles
+    # A module can be implemented with different rectangles.
+    # Here is the list of rectangles
     _rectangles: list[Rectangle]  # Rectangles of the module (if defined)
-    _area_rectangles: float  # Total area of the rectangles (negative if not calculated).
+    # Total area of the rectangles (negative if not calculated).
+    _area_rectangles: float
 
-    # Allocation of regions. This dictionary receives the name of a rectangle (from the die)
-    # as key and stores the ratio of occupation of the rectangle by the module (a value in [0,1]).
+    # Allocation of regions. This dictionary receives the name of a rectangle
+    # (from the die) as key and stores the ratio of occupation of the
+    # rectangle by the module (a value in [0,1]).
 
     def __init__(self, name: str, **kwargs):
         """
         Constructor
-        :param kwargs: name (str), center (Point), aspect_ratio (AspectRatio), area (float or dict),
+        :param kwargs: name (str), center (Point), aspect_ratio (AspectRatio),
+                       area (float or dict),
         hard (boolean), fixed (boolean), terminal (boolean)
         """
         self._name = name
@@ -60,43 +67,64 @@ class Module:
 
         # Reading parameters and type checking
         for key, value in kwargs.items():
-            assert key in [KW_CENTER, KW_ASPECT_RATIO, KW_AREA, KW_TERMINAL, KW_HARD, KW_FIXED, KW_FLIP],\
+            assert key in [KW_CENTER, KW_ASPECT_RATIO, KW_AREA, KW_TERMINAL,
+                           KW_HARD, KW_FIXED, KW_FLIP], \
                 f"Module {name}: unknown module attribute"
             if key == KW_CENTER:
-                assert isinstance(value, Point), f"Module {name}: incorrect point associated to the center"
+                assert isinstance(value, Point), \
+                    f"Module {name}: incorrect point associated to the center"
                 self._center = value
             elif key == KW_ASPECT_RATIO:
-                assert isinstance(value, AspectRatio), f"Module {name}: Incorrect aspect ratio"
-                assert 0 <= value.min_wh <= 1.0, f"Module {name}: incorrect aspect ratio"
-                assert value.max_wh >= 1.0, f"Module {name}: incorrect aspect ratio"
+                assert isinstance(value, AspectRatio), \
+                    f"Module {name}: incorrect aspect ratio"
+                assert 0 <= value.min_wh <= 1.0, \
+                    f"Module {name}: incorrect aspect ratio"
+                assert value.max_wh >= 1.0, \
+                    f"Module {name}: incorrect aspect ratio"
                 self._aspect_ratio = value
             elif key == KW_AREA:
                 self._area_regions = self._read_region_area(value)
             elif key == KW_FIXED:
-                assert isinstance(value, bool), f"Module {name}: incorrect value for fixed (should be a boolean)"
+                assert isinstance(value, bool), \
+                    f"Module {name}: incorrect value for fixed " \
+                    f"(should be a boolean)"
                 self._fixed = value
                 self._hard = value
             elif key == KW_HARD:
-                assert KW_FIXED not in kwargs, f"Module {name}: {KW_FIXED} and {KW_HARD} are mutually exclusive"
-                assert isinstance(value, bool), f"Module {name}: incorrect value for hard (should be a boolean)"
+                assert KW_FIXED not in kwargs, \
+                    f"Module {name}: {KW_FIXED} and {KW_HARD} "\
+                    f"are mutually exclusive"
+                assert isinstance(value, bool), \
+                    f"Module {name}: incorrect value for hard "\
+                    f"(should be a boolean)"
                 self._hard = value
             elif key == KW_FLIP:
-                assert isinstance(value, bool), f"Module {name}: incorrect value for flip (should be a boolean)"
+                assert isinstance(value, bool), \
+                    f"Module {name}: incorrect value for flip "\
+                    f"(should be a boolean)"
                 self._flip = value
             elif key == KW_TERMINAL:
-                assert KW_AREA not in kwargs, f"Module {name}: terminal cannot have area"
-                assert KW_ASPECT_RATIO not in kwargs, f"Module {name}: terminal cannot have aspect ratio"
-                assert KW_FLIP not in kwargs, f"Module {name}: terminal cannot have flip attribute"
-                assert isinstance(value, bool), f"Module {name}: incorrect value for terminal (should be a boolean)"
+                assert KW_AREA not in kwargs, \
+                    f"Module {name}: terminal cannot have area"
+                assert KW_ASPECT_RATIO not in kwargs, \
+                    f"Module {name}: terminal cannot have aspect ratio"
+                assert KW_FLIP not in kwargs, \
+                    f"Module {name}: terminal cannot have flip attribute"
+                assert isinstance(value, bool), \
+                    f"Module {name}: incorrect value for terminal "\
+                    f"(should be a boolean)"
                 self._terminal = value
                 self._hard = True
             else:
                 assert False  # Should never happen
 
-        assert not self.is_hard or self.aspect_ratio is None,\
-            f"Module {name}: aspect ratio incompatible with hard or fixed module"
+        assert not self.is_hard or self.aspect_ratio is None, \
+            f"Module {name}: aspect ratio incompatible with "\
+            f"hard or fixed module"
 
-        assert not self.is_terminal or not self.is_fixed or self.center is not None,\
+        assert (not self.is_terminal or
+                not self.is_fixed or
+                self.center is not None), \
             f"Module {name}: a fixed terminal must have coordinates (center)."
 
     def __hash__(self) -> int:
@@ -211,7 +239,8 @@ class Module:
         self._area_rectangles = -1
 
     def recenter_rectangles(self) -> None:
-        """Recenters the rectangles of a hard module according to its center"""
+        """Re-centers the rectangles of a hard module
+        according to its center"""
         # Calculate current center
         assert self.is_hard and not self.is_fixed and self.center is not None
         area = sum(r.area for r in self.rectangles)
@@ -224,10 +253,10 @@ class Module:
 
     @staticmethod
     def _read_region_area(area: float | dict[str, float]) -> dict[str, float]:
-        """Treats the area of a module as a float or as a dictionary of {region: float},
-        where region is a string
-        :param area: area of the region. If only one number is specified, the area is
-        assigned to the ground region.
+        """Treats the area of a module as a float or as a dictionary of
+        {region: float}, where region is a string
+        :param area: area of the region. If only one number is specified,
+        the area is assigned to the ground region.
         :return: a dictionary with the area associated to each region.
         """
         if isinstance(area, (int, float)):
@@ -245,33 +274,41 @@ class Module:
 
     def setup(self) -> None:
         """
-        Checking the consistency of the module. No area must have been defined for hard/fixed modules.
-        For soft blocks, the area must have been defined. The rectangles for hard modules must not
-        overlap. The first rectangle of hard blocks must be the trunk
+        Checking the consistency of the module. No area must have been defined
+        for hard/fixed modules. For soft blocks, the area must have been
+        defined. The rectangles for hard modules must not overlap.
+        The first rectangle of hard blocks must be the trunk
         """
 
-        assert not (self.is_fixed and not self.is_hard),\
+        assert not (self.is_fixed and not self.is_hard), \
             f"Inconsistent fixed module {self.name}. It should be also hard."
 
-        assert not(self.flip and self.is_fixed), f"Fixed module {self.name} cannot be flipped."
-        assert not(self.flip and not self.is_hard), f"Soft module {self.name} cannot be flipped."
+        assert not (self.flip and self.is_fixed), \
+            f"Fixed module {self.name} cannot be flipped."
+        assert not (self.flip and not self.is_hard), \
+            f"Soft module {self.name} cannot be flipped."
 
         area_defined = len(self.area_regions) > 0
-        assert self.is_hard or area_defined, f"No area defined for a soft module {self.name}."
+        assert self.is_hard or area_defined, \
+            f"No area defined for a soft module {self.name}."
 
-        # terminal imlies hard
-        assert not self.is_terminal or self.is_hard, f"Terminal module {self.name} is not hard."
+        # terminal implies hard
+        assert not self.is_terminal or self.is_hard, \
+            f"Terminal module {self.name} is not hard."
 
         if self.is_hard:
             # Check that neither area, nor center nor min_shape are defined.
             # It also checks that at least has one rectangle
-            assert not area_defined, f"Inconsistent hard module {self.name}: cannot specify area."
-            assert self.center is None or self.is_terminal,\
+            assert not area_defined, \
+                f"Inconsistent hard module {self.name}: cannot specify area."
+            assert self.center is None or self.is_terminal, \
                 f"Inconsistent hard module {self.name}: cannot specify center."
-            assert self.aspect_ratio is None,\
-                f"Inconsistent hard module {self.name}: cannot specify aspect ratio."
+            assert self.aspect_ratio is None, \
+                f"Inconsistent hard module {self.name}: cannot specify "\
+                f"aspect ratio."
             assert self.is_terminal or self.num_rectangles > 0, \
-                f"Inconsistent hard module {self.name}: must have at least one rectangle."
+                f"Inconsistent hard module {self.name}: must have at least "\
+                f"one rectangle."
 
             # Calculate the area of hard modules
             area = sum(r.area for r in self.rectangles)
@@ -284,31 +321,39 @@ class Module:
         Determines whether a module is a STOG
         :return: True if it has an associate STOG, and False otherwise
         """
-        return self.num_rectangles > 0 and self.rectangles[0].location == Rectangle.StogLocation.TRUNK
+        return (self.num_rectangles > 0 and
+                self.rectangles[0].location == Rectangle.StogLocation.TRUNK)
 
     def create_square(self) -> None:
         """
-        Creates a square for the module with the total area (and removes the previous rectangles)
+        Creates a square for the module with the total area
+        (and removes the previous rectangles)
         """
-        assert self.center is not None, f"Cannot calculate square for module {self.name}. Missing center."
+        assert self.center is not None, \
+            f"Cannot calculate square for module {self.name}. Missing center."
         area = self.area()
-        assert area >= 0, f"Cannot calculate square for module {self.name}. Area is zero."
+        assert area >= 0, \
+            f"Cannot calculate square for module {self.name}. Area is zero."
         side = math.sqrt(area)
         self._rectangles = []
-        self.add_rectangle(Rectangle(**{KW_CENTER: self.center, KW_SHAPE: Shape(side, side)}))
+        self.add_rectangle(
+            Rectangle(**{KW_CENTER: self.center, KW_SHAPE: Shape(side, side)}))
 
     def create_stog(self) -> bool:
         """
-        Defines the locations of the rectangles in a Single-Trunk Orthogon (STOG). It returns true if the module
-        can be represented as a STOG of the rectangles. It also defines the locations of
-        the rectangles in the STOG. If no polygon is found, all rectangles have the NO_POLYGON location
+        Defines the locations of the rectangles in a Single-Trunk Orthogon
+        (STOG). It returns true if the module can be represented as a STOG of
+        the rectangles. It also defines the locations of the rectangles in the
+        STOG. If no polygon is found, all rectangles have the NO_POLYGON
+        location
         :return: True if a STOG has been identified, and False otherwise
         """
         return create_stog(self.rectangles)
 
     def calculate_center_from_rectangles(self) -> Point:
         """
-        Calculates the center from the rectangles. It raises an exception in case there are no rectangles.
+        Calculates the center from the rectangles.
+        It raises an exception in case there are no rectangles.
         :return: the center of the module .
         """
         assert self.num_rectangles > 0, f"No rectangles in module {self.name}"
@@ -318,10 +363,12 @@ class Module:
             sum_y += r.area * r.center.y
             area += r.area
         self.center = Point(sum_x / area, sum_y / area)
+        assert isinstance(self.center, Point)  # just for type checking
         return self.center
 
     def __str__(self) -> str:
-        s = f"{self.name}: {KW_AREA}={self.area_regions} {KW_CENTER}={self.center}"
+        s = f"{self.name}: {KW_AREA}={self.area_regions} "\
+            f"{KW_CENTER}={self.center}"
         s += f" {KW_ASPECT_RATIO}={self.aspect_ratio}"
         if self.num_rectangles == 0:
             return s

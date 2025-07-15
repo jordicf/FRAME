@@ -6,7 +6,7 @@ import unittest
 
 from frame.allocation.allocation import Allocation
 from frame.netlist.netlist import Netlist
-from frame.utils.utils import read_yaml
+from frame.utils.utils import read_json_yaml
 
 
 class TestAllocation(unittest.TestCase):
@@ -44,7 +44,7 @@ class TestAllocation(unittest.TestCase):
         n = Netlist(netlist1)
         for m, nr in [("M1", 1), ("M2", 1), ("M3", 0)]:
             self.assertEqual(n.get_module(m).num_rectangles, nr)
-        m2r = read_yaml(mod2rect)
+        m2r = read_json_yaml(mod2rect)
         n.assign_rectangles(m2r)
         for m, nr in [("M1", 2), ("M2", 1), ("M3", 2)]:
             self.assertEqual(n.get_module(m).num_rectangles, nr)

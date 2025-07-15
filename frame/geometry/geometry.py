@@ -1,6 +1,7 @@
 # (c) Jordi Cortadella 2022
 # For the FRAME Project.
-# Licensed under the MIT License (see https://github.com/jordicf/FRAME/blob/master/LICENSE.txt).
+# Licensed under the MIT License
+# (see https://github.com/jordicf/FRAME/blob/master/LICENSE.txt).
 
 """
 Module to represent points, shapes and rectangles
@@ -13,8 +14,8 @@ import math
 from typing import Any, Union, Sequence, Optional
 from dataclasses import dataclass, field
 
-from frame.utils.keywords import KW_FIXED, KW_HARD, KW_CENTER, KW_SHAPE, KW_REGION, KW_NAME, \
-    KW_GROUND, KW_BLOCKAGE
+from frame.utils.keywords import (KW_FIXED, KW_HARD, KW_CENTER, KW_SHAPE,
+                                  KW_REGION, KW_NAME, KW_GROUND, KW_BLOCKAGE)
 from frame.utils.utils import valid_identifier, almost_eq
 
 RectDescriptor = tuple[float, float, float, float, str]  # (x,y,w,h, region)
@@ -28,11 +29,14 @@ class Point:
     _x: float  # x coordinate
     _y: float  # y coordinate
 
-    def __init__(self, x: Union['Point', tuple[float, float], float, None] = None, y: float | None = None) -> None:
+    def __init__(self,
+                 x: Union['Point', tuple[float, float], float, None] = None,
+                 y: float | None = None):
         """
         Constructor of a Point. See the example for ways of constructing it
         :param x: a Point or tuple[float, float], a float, or None
-        :param y: None if x is a Point, tuple[float, float] or None, or a float if x is a float
+        :param y: None if x is a Point, tuple[float, float] or None,
+                  or a float if x is a float
 
         :Example:
         >>> Point()
@@ -83,25 +87,30 @@ class Point:
         """Return -self."""
         return Point(-self.x, -self.y)
 
-    def __add__(self, other: Union['Point', tuple[float, float], float]) -> 'Point':
+    def __add__(self, other: Union['Point', tuple[float, float], float]) \
+            -> 'Point':
         """Return self + other."""
         other = Point(other)
         return Point(self.x + other.x, self.y + other.y)
 
     __radd__ = __add__
 
-    def __sub__(self, other: Union['Point', tuple[float, float], float]) -> 'Point':
+    def __sub__(self, other: Union['Point', tuple[float, float], float]) \
+            -> 'Point':
         """Return self - other."""
         other = Point(other)
         return Point(self.x, self.y) + -other
 
-    def __rsub__(self, other: Union['Point', tuple[float, float], float]) -> 'Point':
+    def __rsub__(self, other: Union['Point', tuple[float, float], float]) \
+            -> 'Point':
         """Return other - self."""
         other = Point(other)
         return other - self
 
-    def __mul__(self, other: Union['Point', tuple[float, float], float]) -> 'Point':
-        """Return self*other using component-wise multiplication. other can either be a number or another point."""
+    def __mul__(self, other: Union['Point', tuple[float, float], float]) \
+            -> 'Point':
+        """Return self*other using component-wise multiplication.
+        other can either be a number or another point."""
         other = Point(other)
         return Point(self.x * other.x, self.y * other.y)
 
@@ -111,13 +120,16 @@ class Point:
         """Return self**exponent using component-wise exponentiation."""
         return Point(self.x ** exponent, self.y ** exponent)
 
-    def __truediv__(self, other: Union['Point', tuple[float, float], float]) -> 'Point':
-        """Return self / other using component-wise true division. other can either be a number or another point."""
+    def __truediv__(self, other: Union['Point', tuple[float, float], float]) \
+            -> 'Point':
+        """Return self / other using component-wise true division.
+        other can either be a number or another point."""
         other = Point(other)
         return Point(self.x / other.x, self.y / other.y)
 
     def __rtruediv__(self, other: Union['Point', tuple[float, float], float]):
-        """Return other / self using component-wise true division. other can either be a number or another point."""
+        """Return other / self using component-wise true division.
+        other can either be a number or another point."""
         other = Point(other)
         return Point(other.x / self.x, other.y / self.y)
 
@@ -150,7 +162,8 @@ class Shape:
 @dataclass
 class AspectRatio:
     """
-    A class to represent the aspect ratio of a module or a rectangle (interval of width/height)
+    A class to represent the aspect ratio of a module or a rectangle
+    (interval of width/height)
     """
     min_wh: float
     max_wh: float
@@ -171,9 +184,10 @@ class Rectangle:
     """
 
     class StogLocation(Enum):
-        """Class to represent the location of a rectangle in a Single-Trunk Orthogon (STOG).
-        The values NSEW represent the location with regard to the trunk. If a rectangle is not
-        in a STOG, the value NO_POLYGON is assigned"""
+        """Class to represent the location of a rectangle in a Single-Trunk
+        Orthogon (STOG). The values NSEW represent the location with regard
+        to the trunk. If a rectangle is not in a STOG, the value NO_POLYGON
+        is assigned"""
         TRUNK = 1
         NORTH = 2
         SOUTH = 3
@@ -181,13 +195,25 @@ class Rectangle:
         WEST = 5
         NO_POLYGON = 6
 
+    # Static attributes for the class
     _distance_epsilon: float = -1.0  # epsilon used for distances
     _area_epsilon: float = -1.0  # epsilon used for area
 
-    def __init__(self, **kwargs: dict[str, Any]):
+    # Attributes for each instance
+    _center: Point  # Center of the rectangle
+    _shape: Shape  # Shape: width and height
+    _fixed: bool  # Is the rectangle fixed?
+    _hard: bool  # Is the rectangle hard?
+    # Region of the layout to which the rectangle belongs to
+    _region: str = KW_GROUND
+    _name: str = ""
+    _location: StogLocation
+
+    def __init__(self, **kwargs: Any):
         """
         Constructor
-        :param kwargs: center (Point), shape (Shape), fixed (bool), region (str)
+        :param kwargs: center (Point), shape (Shape), fixed (bool),
+                       hard (bool), region (str), name (str)
         """
 
         # Attributes
@@ -196,30 +222,31 @@ class Rectangle:
         self._fixed: bool = False  # Is the rectangle fixed?
         self._hard: bool = False  # Is the rectangle hard?
         # Region of the layout to which the rectangle belongs to
-        self._region: str = KW_GROUND
-        self._location: Rectangle.StogLocation = Rectangle.StogLocation.NO_POLYGON
+        self._region: str
+        self._name: str  # Name of the rectangle (optional)
 
         # Reading parameters and type checking
         for key, value in kwargs.items():
-            assert key in [KW_CENTER, KW_SHAPE, KW_FIXED, KW_HARD, KW_REGION, KW_NAME], \
+            assert key in [KW_CENTER, KW_SHAPE, KW_FIXED, KW_HARD,
+                           KW_REGION, KW_NAME], \
                 "Unknown rectangle attribute"
             if key == KW_CENTER:
-                assert isinstance(
-                    value, Point), "Incorrect point associated to the center of the rectangle"
+                assert isinstance(value, Point), \
+                    "Incorrect point associated to the center of the rectangle"
                 self._center = value
             elif key == KW_SHAPE:
-                assert isinstance(
-                    value, Shape), "Incorrect shape associated to the rectangle"
+                assert isinstance(value, Shape), \
+                    "Incorrect shape associated to the rectangle"
                 assert value.w > 0, "Incorrect rectangle width"
                 assert value.h > 0, "Incorrect rectangle height"
                 self._shape = value
             elif key == KW_FIXED:
-                assert isinstance(
-                    value, bool), "Incorrect value for fixed (should be a boolean)"
+                assert isinstance(value, bool), \
+                    "Incorrect value for fixed (should be a boolean)"
                 self._fixed = value
             elif key == KW_HARD:
-                assert isinstance(
-                    value, bool), "Incorrect value for hard (should be a boolean)"
+                assert isinstance(value, bool), \
+                    "Incorrect value for hard (should be a boolean)"
                 self._hard = value
             elif key == KW_REGION:
                 assert valid_identifier(value) or value == KW_BLOCKAGE, \
@@ -241,11 +268,12 @@ class Rectangle:
         """
         Defines the epsilons for float comparisons in distance an area
         :param distance_epsilon: epsilon used for distances
-        :param area_epsilon: epsilon used for area. If negative, sqrt(distance_epsilon) is taken
+        :param area_epsilon: epsilon used for area.
+                             If negative, sqrt(distance_epsilon) is taken
         """
         Rectangle._distance_epsilon = distance_epsilon
-        Rectangle._area_epsilon = area_epsilon if area_epsilon >= 0 else math.sqrt(
-            distance_epsilon)
+        Rectangle._area_epsilon = area_epsilon if area_epsilon >= 0 \
+            else math.sqrt(distance_epsilon)
 
     @staticmethod
     def undefine_epsilon() -> None:
@@ -255,7 +283,8 @@ class Rectangle:
     @staticmethod
     def distance_epsilon() -> float:
         """Returns the epsilon used for distances"""
-        assert Rectangle._distance_epsilon >= 0, "Undefined epsilon for Rectangle"
+        assert Rectangle._distance_epsilon >= 0, \
+            "Undefined epsilon for Rectangle"
         return Rectangle._distance_epsilon
 
     @staticmethod
@@ -327,8 +356,11 @@ class Rectangle:
         Creates a duplication of the rectangle
         :return: the rectangle
         """
-        return Rectangle(**{KW_CENTER: self.center, KW_SHAPE: self.shape, KW_FIXED: self.fixed,
-                            KW_HARD: self.hard, KW_REGION: self.region})
+        return Rectangle(**{KW_CENTER: self.center,
+                            KW_SHAPE: self.shape,
+                            KW_FIXED: self.fixed,
+                            KW_HARD: self.hard,
+                            KW_REGION: self.region})
 
     @property
     def bounding_box(self) -> BoundingBox:
@@ -342,8 +374,10 @@ class Rectangle:
 
     @property
     def vector_spec(self) -> RectDescriptor:
-        """Returns a vector specification of the rectangle [x, y, w, h, region]"""
-        return self.center.x, self.center.y, self.shape.w, self.shape.h, self.region
+        """Returns a vector specification of the
+        rectangle [x, y, w, h, region]"""
+        return (self.center.x, self.center.y,
+                self.shape.w, self.shape.h, self.region)
 
     @property
     def area(self) -> float:
@@ -367,22 +401,27 @@ class Rectangle:
         bb = self.bounding_box
         # It is a rectangle
         bbr = r.bounding_box
-        return bb.ll.x >= bbr.ll.x and bb.ll.y >= bbr.ll.y and bb.ur.x <= bbr.ur.x and bb.ur.y <= bbr.ur.y
+        return (bb.ll.x >= bbr.ll.x and bb.ll.y >= bbr.ll.y and
+                bb.ur.x <= bbr.ur.x and bb.ur.y <= bbr.ur.y)
 
     def touches(self, r: 'Rectangle') -> bool:
-        """Checks whether the two rectangles touch each other according to some distance tolerance
+        """Checks whether the two rectangles touch each other according to
+        some distance tolerance
         :param r: the other rectangle
         :return: True if they touch each other, and False otherwise
         """
         bb_self, bb_r = self.bounding_box, r.bounding_box
         epsilon = Rectangle.distance_epsilon()
-        return bb_self.ll.x <= bb_r.ur.x + epsilon and bb_r.ll.x <= bb_self.ur.x + epsilon \
-            and bb_self.ll.y <= bb_r.ur.y + epsilon and bb_r.ll.y <= bb_self.ur.y + epsilon
+        return (bb_self.ll.x <= bb_r.ur.x + epsilon and
+                bb_r.ll.x <= bb_self.ur.x + epsilon and
+                bb_self.ll.y <= bb_r.ur.y + epsilon and
+                bb_r.ll.y <= bb_self.ur.y + epsilon)
 
     def overlap(self, r: 'Rectangle') -> bool:
         """
-        Checks whether two rectangles overlap. They are considered not to overlap if they touch each other.
-        If the overlapping area is smaller than epsilon, they are considered not to overlap
+        Checks whether two rectangles overlap. They are considered not to
+        overlap if they touch each other. If the overlapping area is smaller
+        than epsilon, they are considered not to overlap
         :param r: the other rectangle
         :return: True if they overlap, and False otherwise
         """
@@ -435,16 +474,20 @@ class Rectangle:
 
         # Check the intervals
         if loc in [Rectangle.StogLocation.NORTH, Rectangle.StogLocation.SOUTH]:
-            return loc if bb_r.ll.x > bb_self.ll.x - epsilon and bb_r.ur.x < bb_self.ur.x + epsilon \
-                else Rectangle.StogLocation.NO_POLYGON
+            return (loc if bb_r.ll.x > bb_self.ll.x - epsilon and
+                    bb_r.ur.x < bb_self.ur.x + epsilon
+                    else Rectangle.StogLocation.NO_POLYGON)
 
         # West or East
-        return loc if bb_r.ll.y > bb_self.ll.y - epsilon and bb_r.ur.y < bb_self.ur.y + epsilon \
-            else Rectangle.StogLocation.NO_POLYGON
+        return (loc if bb_r.ll.y > bb_self.ll.y - epsilon and
+                bb_r.ur.y < bb_self.ur.y + epsilon
+                else Rectangle.StogLocation.NO_POLYGON)
 
-    def split_horizontal(self, x: float = -1) -> tuple['Rectangle', 'Rectangle']:
+    def split_horizontal(self, x: float = -1) -> tuple['Rectangle',
+                                                       'Rectangle']:
         """
-        Splits the rectangle horizontally cutting by x. If x is negative, the rectangle is split into two halves
+        Splits the rectangle horizontally cutting by x. If x is negative,
+        the rectangle is split into two halves
         :param x: the x-cut
         :return: two rectangles
         """
@@ -463,7 +506,8 @@ class Rectangle:
 
     def split_vertical(self, y: float = -1) -> tuple['Rectangle', 'Rectangle']:
         """
-        Splits the rectangle vertically cutting by y. If y is negative, the rectangle is split into two halves
+        Splits the rectangle vertically cutting by y. If y is negative,
+        the rectangle is split into two halves
         :param y: the y-cut
         :return: two rectangles
         """
@@ -482,18 +526,21 @@ class Rectangle:
 
     def split(self) -> tuple['Rectangle', 'Rectangle']:
         """
-        Splits the rectangle into two rectangles. The splitting reduces the largest dimension
+        Splits the rectangle into two rectangles.
+        The splitting reduces the largest dimension
         :return: The two rectangles
         """
-        return self.split_vertical() if self.shape.h > self.shape.w else self.split_horizontal()
+        return (self.split_vertical() if self.shape.h > self.shape.w
+                else self.split_horizontal())
 
     def x_cuttable(self, x: float, ratio: float = 0.01) -> bool:
         """
-        Checks whether the rectangle can be cut vertically at coordinate x in a way that
-        the smallest chunk is larger than ratio*area (e.g. 0.01 means 1%)
+        Checks whether the rectangle can be cut vertically at coordinate x
+        in a way that the smallest chunk is larger than ratio*area
+        (e.g. 0.01 means 1%)
         :param x: coordinate of the horizontal cut
-        :param ratio: ratio of the rectangle that defines the minimum area of the
-        smallest rectangle after the cut
+        :param ratio: ratio of the rectangle that defines the minimum
+                      area of the smallest rectangle after the cut
         :return: True if cuttable, False otherwise
         """
         bb = self.bounding_box
@@ -503,11 +550,12 @@ class Rectangle:
 
     def y_cuttable(self, y: float, ratio: float = 0.01) -> bool:
         """
-        Checks whether the rectangle can be cut horizontally at coordinate y in a way that
-        the smallest chunk is larger than ratio*area (e.g. 0.01 means 1%)
+        Checks whether the rectangle can be cut horizontally at coordinate y
+        in a way that the smallest chunk is larger than ratio*area
+        (e.g. 0.01 means 1%)
         :param y: coordinate of the vertical cut
-        :param ratio: ratio of the rectangle that defines the minimum area of the
-        smallest rectangle after the cut
+        :param ratio: ratio of the rectangle that defines the minimum
+                      area of the smallest rectangle after the cut
         :return: True if cuttable, False otherwise
         """
         bb = self.bounding_box
@@ -517,8 +565,8 @@ class Rectangle:
 
     def rectangle_grid(self, nrows: int, ncols: int) -> list['Rectangle']:
         """
-        Generates a grid of nrows x ncols rectangles of the same size starting from the original
-        rectangle.
+        Generates a grid of nrows x ncols rectangles of the same size starting
+        from the original rectangle.
         :param nrows: number of rows of the grid
         :param ncols: number of columns of the grid
         :return: the list of rectangles
@@ -540,10 +588,12 @@ class Rectangle:
 
     def __mul__(self, other: 'Rectangle') -> Optional['Rectangle']:
         """
-        Calculates the intersection of two rectangles and returns another rectangle (or None if no intersection).
+        Calculates the intersection of two rectangles and returns another
+        rectangle (or None if no intersection).
         If the rectangles belong to different regions, None is returned
         :param other: The other rectangle
-        :return: a rectangle representing the intersection (or None if no intersection)
+        :return: a rectangle representing the intersection
+        (or None if no intersection)
         """
         if self.region != other.region:
             return None
@@ -572,7 +622,9 @@ class Rectangle:
         """
         if not isinstance(other, Rectangle):
             return False
-        return self.center == other.center and self.shape == other.shape and self.region == other.region
+        return (self.center == other.center and
+                self.shape == other.shape and
+                self.region == other.region)
 
     def __str__(self) -> str:
         """
@@ -592,7 +644,8 @@ class Rectangle:
 def parse_yaml_rectangle(r: Sequence[float | int | str],
                          fixed: bool = False, hard: bool = False) -> Rectangle:
     """Parses a rectangle
-    :param r: a YAML description of the rectangle (a tuple or list with 4 numeric values (x, y, w, h)).
+    :param r: a YAML description of the rectangle
+              (a tuple or list with 4 numeric values (x, y, w, h)).
     Optionally, it may contain a fifth parameter (string) specifying a region
     :param fixed: Indicates whether the rectangle should be fixed
     :param hard: Indicates whether the rectangle should be hard
@@ -614,8 +667,10 @@ def parse_yaml_rectangle(r: Sequence[float | int | str],
     assert len(r) == 4 or not (
         fixed or hard), "Hard rectangles cannot be assigned to any region"
 
-    assert isinstance(r[0], (int, float)) and isinstance(r[1], (int, float)) and \
-        isinstance(r[2], (int, float)) and isinstance(r[3], (int, float))
+    assert (isinstance(r[0], (int, float)) and
+            isinstance(r[1], (int, float)) and
+            isinstance(r[2], (int, float)) and
+            isinstance(r[3], (int, float)))
     kwargs = {KW_CENTER: Point(r[0], r[1]), KW_SHAPE: Shape(r[2], r[3]),
               KW_FIXED: fixed, KW_HARD: hard}
     if len(r) == 5:
@@ -623,7 +678,8 @@ def parse_yaml_rectangle(r: Sequence[float | int | str],
     return Rectangle(**kwargs)
 
 
-def gather_boundaries(rectangles: list[Rectangle]) -> tuple[list[float], list[float]]:
+def gather_boundaries(rectangles: list[Rectangle]) -> tuple[list[float],
+                                                            list[float]]:
     """
     Gathers the x and y coordinates of the sides of a list of rectangles
     :param rectangles: list of rectangles
@@ -651,10 +707,11 @@ def gather_boundaries(rectangles: list[Rectangle]) -> tuple[list[float], list[fl
     return uniq_x, uniq_y
 
 
-def split_rectangles(rectangles: list[Rectangle], aspect_ratio: float, n: int) -> list[Rectangle]:
+def split_rectangles(rectangles: list[Rectangle],
+                     aspect_ratio: float, n: int) -> list[Rectangle]:
     """
-    Splits the rectangles until n rectangles are obtained. The splitting is done on the
-    largest rectangles of the list
+    Splits the rectangles until n rectangles are obtained. The splitting is
+    done on the largest rectangles of the list
     :param rectangles: list of rectangles
     :param aspect_ratio: maximum aspect ratio (must be greater than sqrt(2))
     :param n: number of required rectangles
@@ -668,7 +725,8 @@ def split_rectangles(rectangles: list[Rectangle], aspect_ratio: float, n: int) -
         rect: Rectangle = field(compare=False)
 
     assert n > 0
-    assert aspect_ratio > 1.415, "Aspect ratio cannot be smaller than sqrt(2) to guarantee convergence"
+    assert aspect_ratio > 1.415, \
+        "Aspect ratio cannot be smaller than sqrt(2) to guarantee convergence"
 
     # First split rectangles with large aspect ratio
     q: deque[Rectangle] = deque(rectangles)
@@ -684,7 +742,8 @@ def split_rectangles(rectangles: list[Rectangle], aspect_ratio: float, n: int) -
     if len(heap) >= n:
         return [prio_rect.rect for prio_rect in heap]
 
-    # If not, let us split the largest rectangles (heap prioritized by area, the largest first)
+    # If not, let us split the largest rectangles
+    # (heap prioritized by area, the largest first)
     heapq.heapify(heap)
     while len(heap) < n:
         area_rect: PrioritizedRectangle = heapq.heappop(heap)
@@ -696,12 +755,14 @@ def split_rectangles(rectangles: list[Rectangle], aspect_ratio: float, n: int) -
 
 def create_stog(rectangles: list[Rectangle]) -> bool:
     """
-    Identifies the rectangles of a Single-Trunk Orthogon. At the end of the function, the location of
-    each rectangle is defined (in case the STOG has been identifed). In case more than one rectangle
-    can be a trunk, the one with the largest area is selected. The selected trunk is put at the front of the list.
+    Identifies the rectangles of a Single-Trunk Orthogon.
+    At the end of the function, the location of each rectangle is defined
+    (in case the STOG has been identified).
+    In case more than one rectangle can be a trunk, the one with the largest
+    area is selected. The selected trunk is put at the front of the list.
     If no STOG can be identified, it returns False
     :param rectangles: list of rectangles of the polygon
-    :return: True if the STOG is identifed, and False otherwise
+    :return: True if the STOG is identified, and False otherwise
     """
     assert len(rectangles) > 0
 
@@ -717,14 +778,17 @@ def create_stog(rectangles: list[Rectangle]) -> bool:
         # Check if it is a good candidate
         if best_trunk >= 0 and trunk.area <= rectangles[best_trunk].area:
             break
-        if all(r == trunk or trunk.find_location(r) != Rectangle.StogLocation.NO_POLYGON for r in rectangles):
+        if all(r == trunk or
+               trunk.find_location(r) != Rectangle.StogLocation.NO_POLYGON
+               for r in rectangles):
             best_trunk = i
 
     if best_trunk < 0:
         return False
 
     # swap to put the trunk in front of the list
-    rectangles[0], rectangles[best_trunk] = rectangles[best_trunk], rectangles[0]
+    rectangles[0], rectangles[best_trunk] = \
+        rectangles[best_trunk], rectangles[0]
     rectangles[0].location = Rectangle.StogLocation.TRUNK
     # Define the location for the rest of rectangles
     for i in range(1, len(rectangles)):
