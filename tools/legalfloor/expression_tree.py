@@ -385,7 +385,6 @@ class Equation:
             return 0.0
 
     def apply_equation(self, gekko: GEKKO):
-        global epsilon
         if not self.enforce:
             return
         self.set_gekko(gekko)
@@ -428,6 +427,7 @@ class Equation:
         self.rhs.set_gekko(gekko)
 
     def is_equation_met(self):
+        global epsilon
         eps = epsilon.evaluate()
         if self.cmp is Cmp.LE:
             if self.hard:
