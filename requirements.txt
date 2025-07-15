@@ -7,6 +7,5 @@ numpy~=1.26.0
 setuptools~=65.5.1
 python-sat
 pyyaml
-json
 ortools
 torch
