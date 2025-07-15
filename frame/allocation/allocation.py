@@ -20,7 +20,7 @@ from frame.geometry.geometry import (Point, Shape, Rectangle,
                                      parse_yaml_rectangle, gather_boundaries)
 from frame.utils.keywords import KW_CENTER, KW_SHAPE
 from frame.utils.utils import (TextIO_String, read_json_yaml, write_json_yaml,
-                               JSON_YAML_tree, is_number, valid_identifier)
+                               Python_object, is_number, valid_identifier)
 
 # Types
 # Allocation in a rectangle (area ratio for each module)
@@ -354,7 +354,7 @@ class Allocation:
                   KW_SHAPE: Shape(width, height)}
         self._bounding_box = Rectangle(**kwargs)
 
-    def _parse_yaml_tree(self, tree: JSON_YAML_tree) -> None:
+    def _parse_yaml_tree(self, tree: Python_object) -> None:
         """
         Parses the YAML tree that represents an allocation
         :param tree: the YAML tree

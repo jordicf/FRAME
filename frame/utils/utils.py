@@ -16,8 +16,9 @@ import json
 
 Vector = list[float]
 Matrix = list[Vector]
-JSON_YAML_tree = dict[str, Any] | list[Any]
-TextIO_String = TextIO | str | JSON_YAML_tree
+Python_object = object
+# Python_object = dict[str, Any] | list[Any]
+TextIO_String = TextIO | str | Python_object
 
 
 class StrFileType(Enum):
@@ -91,10 +92,10 @@ def string_file_type(s: str) -> StrFileType:
             return StrFileType.UNKNOWN
 
 
-def read_json_yaml(stream: TextIO_String) -> JSON_YAML_tree:
+def read_json_yaml(stream: TextIO_String) -> Python_object:
     """
     Reads JSON or YAML contents from a file or a string. The input can also be
-    a YAML tree. It raises a syntax error in case the string cannot be
+    a JSON/YAML tree. It raises a syntax error in case the string cannot be
     identified with a JSON or YAML file/string.
     :param stream: the input. It can be either a file handler, a file name
                    or a JSON/YAML contents (in text or tree)

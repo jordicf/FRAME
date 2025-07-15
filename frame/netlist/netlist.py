@@ -16,7 +16,7 @@ from frame.netlist.yaml_read_netlist import parse_yaml_netlist
 from frame.netlist.yaml_write_netlist import dump_yaml_modules, dump_yaml_edges
 from frame.geometry.geometry import Rectangle, parse_yaml_rectangle
 from frame.utils.keywords import KW_MODULES, KW_NETS
-from frame.utils.utils import TextIO_String, write_json_yaml, JSON_YAML_tree
+from frame.utils.utils import TextIO_String, write_json_yaml, Python_object
 
 # Data structure to represent the rectangles associated to a module.
 # For each module, a list of rectangles is defined.
@@ -171,7 +171,7 @@ class Netlist:
         data = self._write_json_yaml_data()
         return write_json_yaml(data, True, filename)
 
-    def _write_json_yaml_data(self) -> JSON_YAML_tree:
+    def _write_json_yaml_data(self) -> Python_object:
         """
         Generates the data structure to be dumped into a JSON or YAML file.
         """
