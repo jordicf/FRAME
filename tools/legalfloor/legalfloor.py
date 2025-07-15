@@ -15,7 +15,9 @@ import sys
 from frame.die.die import Die
 from frame.netlist.netlist import Netlist
 from frame.geometry.geometry import Rectangle
-from tools.legalfloor.expression_tree import ExpressionTree, Cmp, set_epsilon, get_epsilon, turn_off_flag, Equation
+from tools.legalfloor.expression_tree import (ExpressionTree, Cmp,
+                                              set_epsilon, get_epsilon,
+                                              turn_off_flag, Equation)
 from tools.legalfloor.expression_tree import sqrt as expr_sqrt
 from tools.legalfloor.model import ModelWrapper
 from tools.rect.canvas import Canvas
