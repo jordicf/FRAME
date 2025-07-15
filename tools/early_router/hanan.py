@@ -21,7 +21,8 @@ class HananCell:
 
 
 class HananGrid:
-    """Construct a Hanan Grid from a Netlist without considering the terminals or a list of hanancells"""
+    """Construct a Hanan Grid from a Netlist without considering the terminals
+    or a list of hanancells"""
 
     _cells: dict[tuple[int, int], HananCell]
 
@@ -52,10 +53,12 @@ class HananGrid:
             y2coords = {i: y for i, y in enumerate(sorted(list(y_coords)))}
 
             self._cells = {}
-            # Create a dict with keys r'[i][j] and value a cell to an identified rectangle
+            # Create a dict with keys r'[i][j] and value a cell to an
+            # identified rectangle
             for m in netlist_or_cells.modules:
                 if m.is_terminal:
-                    # No cells involing terminals (created in the graph as nodes)
+                    # No cells involving terminals
+                    # (created in the graph as nodes)
                     continue
 
                 for r in m.rectangles:

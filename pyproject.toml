@@ -9,7 +9,8 @@ description = "Floorplanning with RectilineAr ModulEs"
 readme = "README.md"
 license = { file = "LICENSE.txt" }
 dependencies = [
-    "ruamel.yaml",
+    "yaml",
+    "json",
     "gekko",
     "numpy",
     "matplotlib",

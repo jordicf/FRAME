@@ -97,13 +97,15 @@ def calculate_dispersions(
                     module_alloc.rect_index).rect
                 area = cell.area * module_alloc.area_ratio
                 dispersions[m] += area * dispersion_function(
-                    module.center.x - cell.center.x, module.center.y - cell.center.y
+                    module.center.x - cell.center.x, module.center.y - 
+                    cell.center.y
                 )
 
     return dispersions
 
 
-def get_neighbouring_cells(allocation: Allocation, cell_index: int) -> list[int]:
+def get_neighbouring_cells(allocation: Allocation, cell_index: int) \
+        -> list[int]:
     """
     Given an allocation and a cell index, returns a list of the indices of the
     cells neighbouring the specified cell
@@ -114,9 +116,8 @@ def get_neighbouring_cells(allocation: Allocation, cell_index: int) -> list[int]
     n_cells = allocation.num_rectangles
     neigh_cells = []
     for c in range(n_cells):
-        if c != cell_index and allocation.allocation_rectangle(cell_index).rect.touches(
-            allocation.allocation_rectangle(c).rect
-        ):
+        if c != cell_index and allocation.allocation_rectangle(
+          cell_index).rect.touches(allocation.allocation_rectangle(c).rect):
             neigh_cells.append(c)
     return neigh_cells
 
@@ -163,9 +164,9 @@ def extract_solution(
                 # of what they were with respect to the first
                 if all(
                     (get_value(model.x[f"{m}_0"]) -
-                     get_value(model.x[f"{m}_{r}"]))
-                    * (module.rectangles[0].center.x - module.rectangles[r].center.x)
-                    < 0
+                     get_value(model.x[f"{m}_{r}"])) *
+                    (module.rectangles[0].center.x -
+                     module.rectangles[r].center.x) < 0
                     for r in range(1, module.num_rectangles)
                 ):
                     for rectangle in module.rectangles:
@@ -176,8 +177,8 @@ def extract_solution(
                 if all(
                     (
                         (get_value(model.y[f"{m}_0"]) -
-                         get_value(model.y[f"{m}_{r}"]))
-                        * (
+                         get_value(model.y[f"{m}_{r}"])) *
+                        (
                             module.rectangles[0].center.y
                             - module.rectangles[r].center.y
                         )
@@ -195,8 +196,8 @@ def extract_solution(
             for r in range(module.num_rectangles):
                 dispersions[m] += get_value(model.d[f"{m}_{r}"])
         else:
-            dispersions[m] = get_value(
-                model.d[m]) if not module.is_fixed else 0.0
+            dispersions[m] = (get_value(model.d[m]) if not module.is_fixed
+                              else 0.0)
 
     return die, allocation, dispersions
 
@@ -210,8 +211,7 @@ def solve_and_extract_solution(
     verbose: bool = False,
     plotting_options: Optional[PlottingOptions] = None,
 ) -> tuple[
-    Die, Allocation, dict[str,
-                          float], tuple[list[Image.Image], list[Image.Image]]
+    Die, Allocation, dict[str, float], tuple[list[Image.Image], list[Image.Image]]
 ]:
     """
     Solves the model's optimization problem, extracts the solution from it,
@@ -241,8 +241,7 @@ def solve_and_extract_solution(
         # if not visualize
         model.gekko.options.MAX_ITER = max_iter
         model.gekko.solve(disp=verbose)
-        die, allocation, dispersions = extract_solution(
-            model, die, cells, threshold)
+        die, allocation, dispersions = extract_solution(model, die, cells, threshold)
 
     else:
         # See https://stackoverflow.com/a/73196238/10152624
@@ -266,8 +265,7 @@ def solve_and_extract_solution(
                     )
                 )
             if plotting_options.separated_plot:
-                vis_imgs[1].append(
-                    get_separated_floorplan_plot(die, allocation))
+                vis_imgs[1].append(get_separated_floorplan_plot(die, allocation))
             print(i, end=" ", flush=True)
 
             if model.gekko.options.APPSTATUS == 1:
@@ -317,8 +315,7 @@ def optimize_allocation(
     verbose: bool = False,
     plotting_options: Optional[PlottingOptions] = None,
 ) -> tuple[
-    Die, Allocation, dict[str,
-                          float], tuple[list[Image.Image], list[Image.Image]]
+    Die, Allocation, dict[str, float], tuple[list[Image.Image], list[Image.Image]]
 ]:
     """
     Optimizes the given allocation to minimize the dispersion and the
@@ -417,8 +414,7 @@ def optimize_allocation(
             ):
                 model.a[m][c] = a_mc
             else:
-                model.a[m][c] = g.Var(
-                    value=a_mc, lb=0, ub=1, name=f"a_{m}_{c}")
+                model.a[m][c] = g.Var(value=a_mc, lb=0, ub=1, name=f"a_{m}_{c}")
 
     # Cell constraints
     for c in range(n_cells):
@@ -586,21 +582,18 @@ def optimize_allocation(
         else:  # Hyperedges
             ex = g.Var(lb=0)
             g.Equation(
-                g.sum([model.x[module.name]
-                      for module in e.modules]) / len(e.modules)
+                g.sum([model.x[module.name] for module in e.modules]) / len(e.modules)
                 == ex
             )
             ey = g.Var(lb=0)
             g.Equation(
-                g.sum([model.y[module.name]
-                      for module in e.modules]) / len(e.modules)
+                g.sum([model.y[module.name] for module in e.modules]) / len(e.modules)
                 == ey
             )
             for module in e.modules:
                 m = module.name
                 g.Minimize(
-                    alpha * e.weight *
-                    ((ex - model.x[m]) ** 2 + (ey - model.y[m]) ** 2)
+                    alpha * e.weight * ((ex - model.x[m]) ** 2 + (ey - model.y[m]) ** 2)
                 )
 
     # Total dispersion
@@ -691,8 +684,7 @@ def glbfloor(
                     [100] * (max(len(vis_imgs[0]), len(vis_imgs[1])) - 1) + [1000]
                 )
 
-            do_plots(plotting_options, n_iter, die,
-                     allocation, dispersions, alpha)
+            do_plots(plotting_options, n_iter, die, allocation, dispersions, alpha)
 
         if verbose:
             print(f"Iteration {n_iter} finished\n")
