@@ -145,7 +145,7 @@ class TestRectangle(unittest.TestCase):
         self.assertEqual(r2.area_overlap(r4), 0)
         self.assertEqual(r3.area_overlap(r4), 2)
 
-        # Checkihng __mul__
+        # Checking __mul__
         self.assertIsNone(r1 * r2)
         self.assertIsNone(r1 * r3)
         self.assertIsNone(r1 * r4)

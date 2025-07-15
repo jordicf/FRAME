@@ -1,6 +1,7 @@
 # (c) Jordi Cortadella 2022
 # For the FRAME Project.
-# Licensed under the MIT License (see https://github.com/jordicf/FRAME/blob/master/LICENSE.txt).
+# Licensed under the MIT License
+# (see https://github.com/jordicf/FRAME/blob/master/LICENSE.txt).
 
 """
 Module to represent netlists
@@ -8,6 +9,7 @@ Module to represent netlists
 
 import math
 from itertools import combinations
+from typing import Optional
 from frame.netlist.module import Module
 from frame.netlist.netlist_types import HyperEdge
 from frame.netlist.yaml_read_netlist import parse_yaml_netlist
@@ -19,7 +21,8 @@ from frame.utils.utils import TextIO_String, write_json_yaml, JSON_YAML_tree
 # Data structure to represent the rectangles associated to a module.
 # For each module, a list of rectangles is defined.
 # Each rectangle is a list of four values: [x, y, w, h].
-# Optionally, a fifth value (string representing the regions) can be added, e.g., [3, 5, 2, 8.5, "dsp"]
+# Optionally, a fifth value (string representing the regions) can be added,
+# e.g., [3, 5, 2, 8.5, "dsp"]
 Module2Rectangles = dict[str, list[list[float | str]]]
 
 
@@ -75,7 +78,8 @@ class Netlist:
 
     @property
     def wire_length(self) -> float:
-        """Total wire length to construct the netlist (sum of netlist hyperedges wire lengths)"""
+        """Total wire length to construct the netlist
+        (sum of netlist hyperedges wire lengths)"""
         return sum([e.wire_length for e in self.edges])
 
     @property
@@ -102,7 +106,8 @@ class Netlist:
 
     def create_squares(self) -> list[Module]:
         """
-        Creates a default rectangle (square) for each module that has no rectangles
+        Creates a default rectangle (square) for each module
+        that has no rectangles
         :return: The list of modules for which a square has been created.
         """
         modules = []
@@ -115,8 +120,9 @@ class Netlist:
 
     def create_stogs(self) -> None:
         """
-        Creates the Single-Trunk Orthogons (STOGs) for each module (if they can be identified as STOGs).
-        The location of the rectangles of each module a labelled according to their role. If no STOG
+        Creates the Single-Trunk Orthogons (STOGs) for each module
+        (if they can be identified as STOGs). The location of the rectangles
+        of each module a labelled according to their role. If no STOG
         can be identified, the rectangles are labelled as NO_POLYGON
         """
         for m in self.modules:
@@ -145,19 +151,21 @@ class Netlist:
         """
         return [r for r in self.rectangles if r.fixed]
 
-    def write_yaml(self, filename: str = None) -> None | str:
+    def write_yaml(self, filename: Optional[str] = None) \
+            -> Optional[str]:
         """
-        Writes the netlist into a YAML file. If no file name is given, a string with the yaml contents
-        is returned
+        Writes the netlist into a YAML file.
+        If no file name is given, a string with the yaml contents is returned
         :param filename: name of the output file
         """
         data = self._write_json_yaml_data()
         return write_json_yaml(data, False, filename)
 
-    def write_json(self, filename: str = None) -> None | str:
+    def write_json(self, filename: Optional[str] = None) \
+            -> Optional[str]:
         """
-        Writes the netlist into a JSON file. If no file name is given, a string with the JSON contents
-        is returned
+        Writes the netlist into a JSON file. If no file name is given,
+        a string with the JSON contents is returned
         :param filename: name of the output file
         """
         data = self._write_json_yaml_data()
@@ -180,15 +188,20 @@ class Netlist:
 
     def _create_rectangles(self) -> None:
         """
-        Creates the list of rectangles of the netlist. For hard nodes without rectangles,
-        it creates a square. It also defines epsilon, in case it was not defined
+        Creates the list of rectangles of the netlist. For hard nodes without
+        rectangles, it creates a square. It also defines epsilon, in case it
+        was not defined
         """
         self._clean_rectangles()
         # Check that all fixed nodes have either a center or a rectangle
         smallest_distance = math.inf
         for m in self.modules:
-            assert m.is_terminal or m.is_soft or m.center is not None or m.num_rectangles > 0, \
-                f'Module {m.name} is hard and has neither center nor rectangles'
+            assert (m.is_terminal or
+                    m.is_soft or
+                    m.center is not None or
+                    m.num_rectangles > 0), \
+                f'Module {m.name} is hard and '\
+                f'has neither center nor rectangles'
             if m.is_hard and not m.is_terminal and m.num_rectangles == 0:
                 m.create_square()
             if m.num_rectangles > 0:
@@ -209,13 +222,15 @@ class Netlist:
         for m in self.modules:
             if m.is_hard and not m.is_terminal:
                 for r1, r2 in combinations(m.rectangles, 2):
-                    assert not r1.overlap(
-                        r2), f"Inconsistent hard module {m.name}: overlapping rectangles."
+                    assert not r1.overlap(r2), \
+                        f"Inconsistent hard module {m.name}: overlapping "\
+                        f"rectangles."
 
         # Create stogs
         for m in self.modules:
             if m.num_rectangles > 0:
                 m.create_stog()
 
-        assert all(
-            not m.flip or m.has_stog for m in self.modules), "Not all flip modules have a STOG"
+        assert all(not m.flip or m.has_stog
+                   for m in self.modules), \
+            "Not all flip modules have a STOG"

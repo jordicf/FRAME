@@ -1,6 +1,7 @@
 # (c) Jordi Cortadella 2022
 # For the FRAME Project.
-# Licensed under the MIT License (see https://github.com/jordicf/FRAME/blob/master/LICENSE.txt).
+# Licensed under the MIT License
+# (see https://github.com/jordicf/FRAME/blob/master/LICENSE.txt).
 
 """
 Types used in the netlist
@@ -13,7 +14,7 @@ from .module import Module
 from ..geometry.geometry import Point
 
 
-@dataclass()
+@dataclass
 class Edge:
     """
     Representation of an edge in a graph (possibly obtained from a hypergraph).
@@ -23,7 +24,7 @@ class Edge:
     weight: float  # Weight of the edge
 
 
-@dataclass()
+@dataclass
 class NamedHyperEdge:
     """Representation of a hyperedge (list of module names)"""
     modules: list[str]  # List of module names of the hyperedge
@@ -35,7 +36,7 @@ class NamedHyperEdge:
         return f'Edge<modules={self.modules}, weight={self.weight}>'
 
 
-@dataclass()
+@dataclass
 class HyperEdge:
     """Representation of a hyperedge (list of modules)"""
     modules: list[Module]  # List of modules of the hyperedge
@@ -45,18 +46,21 @@ class HyperEdge:
     def wire_length(self) -> float:
         """
         Returns the wire length of the hyperedge.
-        The wire length is the distance between the center of each module and the centroid of the
-        modules (without taking into account module areas) multiplied by the hyperedge weight.
+        The wire length is the distance between the center of each module and
+        the centroid of the modules (without taking into account module areas)
+        multiplied by the hyperedge weight.
         """
         intersection_point = Point(0, 0)
         for b in self.modules:
-            assert b.center is not None, "Module center must be defined. " \
-                                         "Maybe execute b.calculate_center_from_rectangles()?"
+            assert b.center is not None, \
+                "Module center must be defined. " \
+                "Maybe execute b.calculate_center_from_rectangles()?"
             intersection_point += b.center
         intersection_point /= len(self.modules)
         wire_length = 0.0
         for b in self.modules:
-            assert b.center is not None  # repeated assertion (will never happen) to suppress Mypy error
+            # redundant assertion (will never happen) for type checking
+            assert b.center is not None 
             v = intersection_point - b.center
             wire_length += sqrt(v & v)
         return wire_length * self.weight
