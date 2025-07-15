@@ -35,10 +35,12 @@ def set_epsilon(new_epsilon: ExpressionTree):
 
 
 def get_epsilon() -> float:
+    global epsilon
     return epsilon.evaluate()
 
 
 def set_epsilon_gekko(gekko: GEKKO):
+    global epsilon
     epsilon.set_gekko(gekko)
 
 
@@ -48,14 +50,16 @@ class Cmp(IntEnum):
     EQ = 2
 
 
-def add_equation(gekko: GEKKO, lhs: ExpressionTree, cmp: Cmp, rhs: ExpressionTree, name: str, hard: bool = False):
+def add_equation(gekko: GEKKO, lhs: ExpressionTree, cmp: Cmp,
+                 rhs: ExpressionTree, name: str, hard: bool = False) -> None:
     lhs_expr = lhs.get_gekko_expression(lambda x: x, None, False)
     rhs_expr = rhs.get_gekko_expression(lambda x: x, None, False)
     e = epsilon.get_gekko_expression()
     lhs_val = lhs.evaluate()
     rhs_val = rhs.evaluate()
     e_val = epsilon.evaluate()
-    if isinstance(lhs_expr, ExpressionTree) or isinstance(rhs_expr, ExpressionTree):
+    if (isinstance(lhs_expr, ExpressionTree) or
+            isinstance(rhs_expr, ExpressionTree)):
         raise Exception("?")
     if cmp is Cmp.LE:
         if hard:
@@ -383,6 +387,7 @@ class Equation:
             return 0.0
 
     def apply_equation(self, gekko: GEKKO):
+        global epsilon
         if not self.enforce:
             return
         self.set_gekko(gekko)
@@ -425,6 +430,7 @@ class Equation:
         self.rhs.set_gekko(gekko)
 
     def is_equation_met(self):
+        global epsilon
         eps = epsilon.evaluate()
         if self.cmp is Cmp.LE:
             if self.hard:
