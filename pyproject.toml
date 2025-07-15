@@ -9,7 +9,7 @@ description = "Floorplanning with RectilineAr ModulEs"
 readme = "README.md"
 license = { file = "LICENSE.txt" }
 dependencies = [
-    "yaml",
+    "pyyaml",
     "json",
     "gekko",
     "numpy",
