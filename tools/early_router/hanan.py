@@ -47,7 +47,7 @@ class HananGrid:
             )
 
             xcoords2pos = {x: i for i, x in enumerate(sorted(list(x_coords)))}
-            xpos2coods = {i: x for i, x in enumerate(sorted(list(x_coords)))}
+            xpos2coords = {i: x for i, x in enumerate(sorted(list(x_coords)))}
             ycoords2pos = {y: i for i, y in enumerate(sorted(list(y_coords)))}
             y2coords = {i: y for i, y in enumerate(sorted(list(y_coords)))}
 
@@ -69,9 +69,9 @@ class HananGrid:
                     # Fill each cell
                     for i in range(minx, maxx):
                         for j in range(miny, maxy):
-                            w = xpos2coods[i + 1] - xpos2coods[i]
+                            w = xpos2coords[i + 1] - xpos2coords[i]
                             h = y2coords[j + 1] - y2coords[j]
-                            x = xpos2coods[i] + w / 2
+                            x = xpos2coords[i] + w / 2
                             y = y2coords[j] + h / 2
                             cell = HananCell(
                                 _id=(i, j),
@@ -123,7 +123,7 @@ class HananGrid:
 
     def get_closest_cell_to_point(self, p: Point) -> HananCell:
         """Returns the HananCell that is the closest to Point p.
-        The distance is computed with Manthattan distance."""
+        The distance is computed with Manhattan distance."""
         return_cell = None
         curr_min = math.inf
         # Find Manhattan distance

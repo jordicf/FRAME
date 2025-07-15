@@ -182,7 +182,7 @@ class ModelModule:
         self.degree = 0  # 0 = soft, 1 = hard, 2 = fixed. Just required for output purposes
         self.constraints: list[list[tuple[str, Equation]]] = []
         self.codependent_constraints: dict[tuple[int, int], list[tuple[str, Equation]]] = {}
-        self.enable = []
+        self.enable = list[bool]()
         self.set_trunk(gekko, trunk)
 
     def set_degree(self, degree: int):
@@ -414,7 +414,7 @@ class Model:
         return len(self.M) - 1
 
     def add_rect(self, m: int, box: BoxType, direction: Cardinal) -> int:
-        call = self.M[m].add_rect_blank
+        call = self.M[m].add_rect_north
         if direction is Cardinal.NORTH:
             call = self.M[m].add_rect_north
         elif direction is Cardinal.SOUTH:
@@ -423,6 +423,8 @@ class Model:
             call = self.M[m].add_rect_east
         elif direction is Cardinal.WEST:
             call = self.M[m].add_rect_west
+        else:
+            raise Exception("Unknown cardinal when adding rectangle")
         # xv, yv, wv, hv =
         call(self.gekko, box)
         return len(self.M) - 1
@@ -509,20 +511,19 @@ class Model:
         max_ratio = self.max_ratio
         og_names = self.og_names
 
-        self.M: list[ModelModule] = []
-        self.x: list[list[ExpressionTree]] = []
-        self.y: list[list[ExpressionTree]] = []
-        self.w: list[list[ExpressionTree]] = []
-        self.h: list[list[ExpressionTree]] = []
-        self.dw: float = die_width
-        self.dh: float = die_height
-        self.max_ratio: float = max_ratio
-        self.og_names: list[str] = og_names
-        self.og_area: list[float] = al
+        self.M = list[ModelModule]()
+        self.x = list[list[ExpressionTree]]()
+        self.y = list[list[ExpressionTree]]()
+        self.w = list[list[ExpressionTree]]()
+        self.h = list[list[ExpressionTree]]()
+        self.dw = die_width
+        self.dh = die_height
+        self.max_ratio = max_ratio
+        self.og_names = og_names
+        self.og_area = al
         self.hyper = hyper
-        self.inter_eqs: dict[tuple[int, int, int, int], Equation] = {}
-
-        self.enforces: list[tuple[ExpressionTree, float]] = []
+        self.inter_eqs = dict[tuple[int, int, int, int], Equation]()
+        self.enforces = list[tuple[ExpressionTree, float]]()
 
         """Constructs the GEKKO object and initializes the model"""
         self.gekko = ModelWrapper(GEKKO(remote=False), self.wl_mult)
@@ -700,8 +701,8 @@ class Model:
         self.output_counter = 0
         self.wl_mult = wl_mult
         self.fixed_t = 1
-        self.objective_list = []
-        self.surplus_list = []
+        self.objective_list = list[float]()
+        self.surplus_list = list[float]()
         self.first_build_model()
 
     def apply_objective_function(self):

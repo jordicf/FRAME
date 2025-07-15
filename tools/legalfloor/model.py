@@ -5,7 +5,15 @@ from gekko.gk_operators import GK_Value
 from math import sqrt as math_sqrt
 from typing import Any, Callable
 from enum import IntEnum
-from tools.legalfloor.expression_tree import Equation, ExpressionTree, NodeType, Cmp, set_epsilon_gekko, sqrt
+from tools.legalfloor.legalfloor import ModelModule
+from tools.legalfloor.expression_tree import (
+    Equation,
+    ExpressionTree,
+    NodeType,
+    Cmp,
+    set_epsilon_gekko,
+    sqrt,
+)
 
 
 class ModelWrapper:
@@ -18,21 +26,25 @@ class ModelWrapper:
         self.variable_list: list[ExpressionTree] = []
         self.variable_set: set[str] = set()
         self.dif_cost = 0.00001
-        self.coordinates: list[tuple[ExpressionTree, ExpressionTree, ExpressionTree, ExpressionTree]] = []
+        self.coordinates: list[
+            tuple[ExpressionTree, ExpressionTree, ExpressionTree, ExpressionTree]
+        ] = []
         self.wl_mult = wl_mult
-        self.macros = []
+        self.macros = list[ModelModule]()
 
-    def add_macro(self, macro):
+    def add_macro(self, macro: ModelModule):
         self.macros.append(macro)
 
-    def add_coordinates(self, x: ExpressionTree, y: ExpressionTree, w: ExpressionTree, h: ExpressionTree):
+    def add_coordinates(
+        self, x: ExpressionTree, y: ExpressionTree, w: ExpressionTree, h: ExpressionTree
+    ):
         self.coordinates.append((x, y, w, h))
 
     def dif_cost_objective(self):
         obj = None
         for var in self.variable_list:
             if obj is None:
-                obj = sqrt((var - var.evaluate())**2 + 0.0001)
+                obj = sqrt((var - var.evaluate()) ** 2 + 0.0001)
             else:
                 obj += sqrt((var - var.evaluate()) ** 2 + 0.0001)
         if obj is None:
@@ -44,16 +56,17 @@ class ModelWrapper:
             self.constraints[group] = []
         self.constraints[group].append(eq)
         for var in eq.get_variable_list():
-            if var.data['name'] not in self.variable_set:
-                self.variable_set.add(var.data['name'])
+            if var.data["name"] not in self.variable_set:
+                self.variable_set.add(var.data["name"])
                 self.variable_list.append(var)
         return eq
 
     def set_objective_function(self, objective: ExpressionTree):
         self.objective = objective
         for var in objective.get_variable_list():
-            if var.data['name'] not in self.variable_set:
-                self.variable_set.add(var.data['name'])
+            assert var.data is not None
+            if var.data["name"] not in self.variable_set:
+                self.variable_set.add(var.data["name"])
                 self.variable_list.append(var)
 
     def fix_variable(self, var: ExpressionTree, val: ExpressionTree, name: str):
@@ -88,26 +101,67 @@ class ModelWrapper:
         if small_steps:
             self.gekko.Obj(self.objective.get_gekko_expression() * self.wl_mult)
         else:
-            self.gekko.Obj(self.objective.get_gekko_expression() * self.wl_mult + self.dif_cost_objective())
+            self.gekko.Obj(
+                self.objective.get_gekko_expression() * self.wl_mult
+                + self.dif_cost_objective()
+            )
 
     def force_step(self, radius: float):
         eq_per_coord = 6
-        if 'radius' not in self.constraints:
-            self.constraints['radius'] = []
-            for i in range(0, eq_per_coord*len(self.coordinates)):
-                self.constraints['radius'].append(Equation(0, Cmp.EQ, 1, "NULL_EQ"))
+        if "radius" not in self.constraints:
+            self.constraints["radius"] = list[Equation]()
+            zero = ExpressionTree(self.gekko, 0)
+            one = ExpressionTree(self.gekko, 1)
+            for i in range(0, eq_per_coord * len(self.coordinates)):
+                self.constraints["radius"].append(Equation(zero, Cmp.EQ, one, "NULL_EQ"))
         for i, (x, y, w, h) in enumerate(self.coordinates):
-            j = eq_per_coord*i
+            j = eq_per_coord * i
             x0 = x.evaluate()
             y0 = y.evaluate()
             w0 = w.evaluate()
             h0 = h.evaluate()
-            self.constraints['radius'][j] = Equation(x, Cmp.LE, ExpressionTree(self.gekko, x0 + radius), "Cap_x0[%i]" % i, hard=True)
-            self.constraints['radius'][j+1] = Equation(x, Cmp.GE, ExpressionTree(self.gekko, x0 - radius), "Cap_x1[%i]" % i, hard=True)
-            self.constraints['radius'][j+2] = Equation(y, Cmp.LE, ExpressionTree(self.gekko, y0 + radius), "Cap_y0[%i]" % i, hard=True)
-            self.constraints['radius'][j+3] = Equation(y, Cmp.GE, ExpressionTree(self.gekko, y0 - radius), "Cap_y1[%i]" % i, hard=True)
-            self.constraints['radius'][j+4] = Equation(w, Cmp.LE, ExpressionTree(self.gekko, w0 + radius), "Cap_w[%i]" % i, hard=True)
-            self.constraints['radius'][j+5] = Equation(h, Cmp.LE, ExpressionTree(self.gekko, h0 + radius), "Cap_h[%i]" % i, hard=True)
+            self.constraints["radius"][j] = Equation(
+                x,
+                Cmp.LE,
+                ExpressionTree(self.gekko, x0 + radius),
+                "Cap_x0[%i]" % i,
+                hard=True,
+            )
+            self.constraints["radius"][j + 1] = Equation(
+                x,
+                Cmp.GE,
+                ExpressionTree(self.gekko, x0 - radius),
+                "Cap_x1[%i]" % i,
+                hard=True,
+            )
+            self.constraints["radius"][j + 2] = Equation(
+                y,
+                Cmp.LE,
+                ExpressionTree(self.gekko, y0 + radius),
+                "Cap_y0[%i]" % i,
+                hard=True,
+            )
+            self.constraints["radius"][j + 3] = Equation(
+                y,
+                Cmp.GE,
+                ExpressionTree(self.gekko, y0 - radius),
+                "Cap_y1[%i]" % i,
+                hard=True,
+            )
+            self.constraints["radius"][j + 4] = Equation(
+                w,
+                Cmp.LE,
+                ExpressionTree(self.gekko, w0 + radius),
+                "Cap_w[%i]" % i,
+                hard=True,
+            )
+            self.constraints["radius"][j + 5] = Equation(
+                h,
+                Cmp.LE,
+                ExpressionTree(self.gekko, h0 + radius),
+                "Cap_h[%i]" % i,
+                hard=True,
+            )
 
     def solve(self, verbose=False, small_steps=False, radius=None) -> None:
         self.turn_off_rects(0.1)
@@ -118,7 +172,7 @@ class ModelWrapper:
         self.gekko.options.RTOL = 1e-2
         self.gekko.options.MAX_ITER += 1000
         self.gekko.solve(disp=verbose, debug=0)
-        for (x, v) in self.fixed_vars:
+        for x, v in self.fixed_vars:
             x.value.value = [v]
 
     def turn_off_rects(self, area: float):
@@ -130,27 +184,43 @@ class ModelWrapper:
             m.fuse_rects(perc)
 
     def total_surplus(self) -> float:
-        surplus = 0
+        surplus = float(0)
         for category in self.constraints:
             for constraint in self.constraints[category]:
                 surplus += constraint.surplus()
         return surplus
 
     def fix_as_lower_bound(self, expr: ExpressionTree):
-        if 'lower_bound' not in expr.unary_equations:
-            eq = Equation(expr, Cmp.GE, ExpressionTree(self.gekko, expr.evaluate()), "lower_bound", hard=True)
+        if "lower_bound" not in expr.unary_equations:
+            eq = Equation(
+                expr,
+                Cmp.GE,
+                ExpressionTree(self.gekko, expr.evaluate()),
+                "lower_bound",
+                hard=True,
+            )
             self.add_constraint("Lower Bound", eq)
-            expr.unary_equations['lower_bound'] = eq
+            expr.unary_equations["lower_bound"] = eq
         else:
-            expr.unary_equations['lower_bound'].rhs = ExpressionTree(self.gekko, expr.evaluate())
+            expr.unary_equations["lower_bound"].rhs = ExpressionTree(
+                self.gekko, expr.evaluate()
+            )
 
     def fix(self, expr: ExpressionTree):
-        if 'exact_value' not in expr.unary_equations:
-            eq = Equation(expr, Cmp.EQ, ExpressionTree(self.gekko, expr.evaluate()), "exact_value", hard=True)
+        if "exact_value" not in expr.unary_equations:
+            eq = Equation(
+                expr,
+                Cmp.EQ,
+                ExpressionTree(self.gekko, expr.evaluate()),
+                "exact_value",
+                hard=True,
+            )
             self.add_constraint("Exact Value", eq)
-            expr.unary_equations['exact_value'] = eq
+            expr.unary_equations["exact_value"] = eq
         else:
-            expr.unary_equations['exact_value'].rhs = ExpressionTree(self.gekko, expr.evaluate())
+            expr.unary_equations["exact_value"].rhs = ExpressionTree(
+                self.gekko, expr.evaluate()
+            )
 
     def undo(self):
         for var in self.variable_list:
@@ -165,7 +235,7 @@ class ModelWrapper:
                     if not print_group_header:
                         print("[%s]" % group)
                         print_group_header = True
-                    if group == 'Inter' and not constraint.enforce:
+                    if group == "Inter" and not constraint.enforce:
                         print("\t[!] Equation %s not met [Far]" % constraint.name)
                         enforcer.add(constraint.name)
                         if do_undo and not done_undo:
