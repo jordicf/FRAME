@@ -88,7 +88,7 @@ class HananGrid:
     def shape(self) -> Shape:
         return self._shape
 
-    def get_adjacent_cells(self, cell: HananCell) -> list[HananCell]:
+    def get_adjacent_cells(self, cell: HananCell) -> list[HananCell | None]:
         """
         Get the adjacent cells from a HananCell.
 
@@ -112,7 +112,7 @@ class HananGrid:
             return None
         return self._cells[id]
 
-    def get_closest_cell_to_point(self, p: Point) -> HananCell:
+    def get_closest_cell_to_point(self, p: Point) -> HananCell | None:
         """Returns the HananCell that is the closest to Point p.
         The distance is computed with Manthattan distance."""
         return_cell = None
@@ -130,7 +130,7 @@ class HananGrid:
 class Layer:
     """Represents a metal layer in a routing process."""
 
-    def __init__(self, direction: str, pitch: float = None, name: str = "", h_cap=None, v_cap=None):
+    def __init__(self, direction: str, pitch: float | None = None, name: str = "", h_cap=None, v_cap=None):
         """
         Initialize a Layer instance.
 
@@ -144,7 +144,7 @@ class Layer:
                 "Invalid direction! Allowed values: 'H', 'V', 'HV'")
 
         self.direction: str = direction
-        self.pitch: float = pitch
+        self.pitch: float | None = pitch
         self.name: str = name
         self.h_cap = h_cap
         self.v_cap = v_cap
@@ -178,7 +178,7 @@ class HananGraph3D:
     _edges: list[HananEdge3D]
     _adj_list: dict[NodeId, dict[NodeId, HananEdge3D]]
 
-    def __init__(self, hanan_grid: HananGrid, layers: list[Layer], netlist: Netlist = None, **kwargs):
+    def __init__(self, hanan_grid: HananGrid, layers: list[Layer], netlist: Netlist | None = None, **kwargs):
         """
         **kwargs: 
         asap7: whether to use the pitches in asap7 tech (assumes microns)
@@ -216,7 +216,7 @@ class HananGraph3D:
             for cell in hanan_grid.cells:
                 adj_cells = hanan_grid.get_adjacent_cells(cell)
                 for adj_cell in adj_cells:
-                    if cell._id[0] == adj_cell._id[0]:
+                    if adj_cell and cell._id[0] == adj_cell._id[0]:
                         # They move vertical
                         cap = cell.width_capacity  # Assuming microns
                         direction = 'V'
@@ -228,13 +228,17 @@ class HananGraph3D:
                         direction = 'H'
                         if self.layers[layer_id].h_cap:
                             cap = self.layers[layer_id].h_cap
-                    if direction in self.layers[layer_id].direction:
+                    if adj_cell and direction in self.layers[layer_id].direction:
                         source_id = (cell._id[0], cell._id[1], layer_id)
                         target_id = (adj_cell._id[0],
                                      adj_cell._id[1], layer_id)
-                        if asap7:
+                        if asap7 and cap:
                             # floor(4000/76) = 52 wires for 4 μm edge and 76nm pitch
-                            new_cap = int(cap*1000/self.layers[layer_id].pitch)
+                            p = self.layers[layer_id].pitch
+                            if p:
+                                new_cap = int(cap*1000/p)
+                            else:
+                                new_cap = int(cap*1000)
                             self._adj_list.setdefault(source_id, {})[target_id] = self.add_edge3D(
                                 source_id, target_id, new_cap)
                         else:
@@ -248,6 +252,8 @@ class HananGraph3D:
         # Adding Terminals
         t = 0
         for m in netlist.modules:
+            if not m.center:
+                continue
             if m.is_terminal:
                 # Check module, Terminals always have a defined center
                 # Terminals are always on the lowest layer
@@ -261,6 +267,8 @@ class HananGraph3D:
                 t += 1
                 # Get the module that terminal is closest to, and create an edge
                 cell = hanan_grid.get_closest_cell_to_point(m.center)
+                if not cell:
+                    continue
                 # Connect the terminal to all layers.
                 # TODO For now just on the lowest level 0
                 # node_id = (cell._id[0], cell._id[1], 0)
@@ -358,9 +366,10 @@ class HananGraph3D:
     def get_adj_nodes(self, node: HananNode3D) -> list[HananNode3D]:
         """Returns a list of adjacent nodes to the given one. The input is not included in the return"""
         node_id = node._id
-        return [self.get_node(n) for n in self._adj_list[node_id]]
+        return [node for n in self._adj_list[node_id] if (node := self.get_node(n)) is not None]
 
-    def get_edge(self, source_id: NodeId, target_id: NodeId) -> HananEdge3D:
+
+    def get_edge(self, source_id: NodeId, target_id: NodeId) -> HananEdge3D | None:
         if (source_id in self._adj_list) and (target_id in self._adj_list[source_id]):
             return self._adj_list[source_id][target_id]
         return None

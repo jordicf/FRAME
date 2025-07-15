@@ -9,12 +9,12 @@ from tools.early_router.utils import rescale
 import warnings
 from typing import Dict, List, Tuple, Any
 import math
-from typing import List, Tuple, Optional
+from typing import List, Tuple, Optional, Iterable
 
 
 # STEP 1: Import solver
 from ortools.math_opt.python import mathopt
-from ortools.math_opt.python.mathopt import Model, Variable, SolveResult, SolveParameters, ModelSolveParameters
+from ortools.math_opt.python.mathopt import Model, Variable, LinearConstraint, SolveResult, SolveParameters, ModelSolveParameters
 
 
 class FeedThrough:
@@ -55,7 +55,7 @@ class FeedThrough:
                 else:
                     keys = []
             else:
-                keys = self._vars.keys()
+                keys = list(self._vars.keys())
             return [
                 info_var[0]
                 for k in keys
@@ -92,7 +92,7 @@ class FeedThrough:
                         wire + self._congestion.pop(reverse_key, 0)
 
         def get_unrouted(self, result: SolveResult,
-                         nets: dict[NetId, NamedHyperEdge | HyperEdge]) \
+                         nets: dict[NetId, NamedHyperEdge]) \
                 -> list[NetId]:
             """Update the routes and congestion properties.
             Useful after solving the problem."""
@@ -124,6 +124,7 @@ class FeedThrough:
             """Returns a dictionary with the routing solution for each net."""
             if hasattr(self, "_routes"):
                 return self._routes
+            return {}
 
         @property
         def congestion(self) -> dict[EdgeID, float]:
@@ -131,6 +132,7 @@ class FeedThrough:
             that cross each edge."""
             if hasattr(self, "_congestion"):
                 return self._congestion
+            return {}
 
         def __iter__(self):
             for edge_id, net_dict in self._vars.items():
@@ -143,7 +145,7 @@ class FeedThrough:
         such as layers"""
 
         self._nets: dict[int, NamedHyperEdge] = {}
-        self._m: dict[str, list] = {}  # Metrics
+        self._m: dict[str, int | str] = {}  # Metrics
         self.reweight = kwargs.get('reweight_nets_range', None)
     
         l = kwargs.get('layers')
@@ -160,7 +162,7 @@ class FeedThrough:
             self._m['n_terminals'] = len(
                 [1 for m in input_data.modules if m.is_terminal])
             self._m['n_modules'] = input_data.num_modules - \
-                self._m['n_terminals']
+                int(self._m['n_terminals'])
         elif isinstance(input_data, HananGrid):
             hanan_grid = input_data
             self._graph = HananGraph3D(hanan_grid, layers=lay)
@@ -169,11 +171,12 @@ class FeedThrough:
         self._m['n_layers'] = len(self._graph.layers)
         self._m['n_cells'] = len(hanan_grid.cells)
         self._m['n_nodes'] = len(self._graph.nodes)
-        self._m['size'] = hanan_grid.shape
+        self._m['size'] = f"{hanan_grid.shape.w} x {hanan_grid.shape.h}"
 
     def add_nets(self, nets: list[HyperEdge | NamedHyperEdge] |
                  dict[NetId, HyperEdge | NamedHyperEdge]) -> None:
         """Add to the class nets to be routed"""
+        it: Iterable[tuple[int, HyperEdge | NamedHyperEdge]]
         if isinstance(nets, list):
             it = enumerate(nets, start=max(self._nets)+1 if self._nets else 0)
         else:
@@ -319,7 +322,8 @@ class FeedThrough:
                     )
         return [var for key in specific_variables for var in specific_variables[key].values()]
 
-    def _add_sub2pin_net(self, net_id: int, subnet: NamedHyperEdge, subnet_id: str, nodes: list[HananNode3D], edgeids: set[EdgeID]) -> dict[VarId, Variable]:
+    def _add_sub2pin_net(self, net_id: int, subnet: NamedHyperEdge, subnet_id: str, nodes: list[HananNode3D],
+                          edgeids: set[EdgeID]) -> Tuple[dict[VarId, Variable], list[LinearConstraint]]:
         modulenames = subnet.modules
         net_variables: dict[VarId, Variable] ={}
         net_constraints: list=[]
@@ -363,7 +367,7 @@ class FeedThrough:
     def _add_capacity_constraints(self):
         # STEP 4: Add capacity constraints
         # Add constraints on not exceeding capacity
-        capacities: list = []
+        capacities = []
         visited = set()
         for source_id in self._graph.adjacent_list:
             if not (source_id in visited):
@@ -415,7 +419,7 @@ class FeedThrough:
         self.norms = (hpwl, mc, vu)
         return
 
-    def _find_opt_bb(self, unrouted_nets: list[NetId] = None, depth: int = 0, max_depth: int = 3):
+    def _find_opt_bb(self, unrouted_nets: list[NetId] | None = None, depth: int = 0, max_depth: int = 3):
 
         if unrouted_nets is None:  # Solving call
             hpwl = self.norms[0]
@@ -433,13 +437,17 @@ class FeedThrough:
                  self._solver, mathopt.SolverType.HIGHS, params=params)
             ### Retrieve results
             unrouted = self._variables.get_unrouted(
-                 self.pre_result,self._nets)
+                 self.pre_result, self._nets)
             print(f"[Iteration {depth}] Unrouted: {len(unrouted)} nets out of {len(self._nets)} "
                   f"with {self.pre_result.solve_time().total_seconds()} secs")
             if len(unrouted) > 10:
                 return False
-            self._m.setdefault('#unrouted_nets',[]).append(len(unrouted))
-            self._m.setdefault('unrouted_nets_ids',[]).append(unrouted)
+            
+            self._m['#unrouted_nets'] = str(self._m.get('#unrouted_nets', '')) + f"{len(unrouted)} - "
+            if len(unrouted) < 6:
+                self._m['unrouted_nets_ids'] = str(self._m.get('unrouted_nets_ids', '')) + f"{unrouted} - "
+            else:
+                self._m['unrouted_nets_ids'] = str(self._m.get('unrouted_nets_ids', ''))
             return self._find_opt_bb(unrouted, depth+1)
 
         elif len(unrouted_nets) == 0:  # Finish call
@@ -484,10 +492,10 @@ class FeedThrough:
     def build(self, optimize_bbox=True, max_depth= 3, infinite_cap = False, bounding_box=True) -> bool:
 
         self._variables = self.VariableStore()
+        self.nets_bb: defaultdict
         if bounding_box:
             self.nets_bb = defaultdict(int)
         else:
-            m = max([self._m['size'].w, self._m['size'].h])
             self.nets_bb = defaultdict(lambda:5)
         self._solver = mathopt.Model()
 
@@ -503,7 +511,7 @@ class FeedThrough:
                 net.weight = int(new_w)
 
         # Add to the model the varaibles and constraints
-        self.model_components: dict[NetId] = {}
+        self.model_components: dict[NetId, Any] = {}
         for net_id, net in self._nets.items():
             if len(net.modules)>2:
                 # TODO
@@ -533,7 +541,7 @@ class FeedThrough:
             self.is_build = True
         return True
 
-    def solve(self, f_wl: float = 0.1, f_mc: float = 0.2, f_vu: float = 0.7) -> tuple[bool, dict[str, int | float]]:
+    def solve(self, f_wl: float = 0.1, f_mc: float = 0.2, f_vu: float = 0.7) -> tuple[bool, dict[str, int | str]]:
         """
         :return is_solved (bool): Whether the solver found a solution or not
         :return metrics (dict[str,int|float]): Execution metrics and solution values
@@ -541,7 +549,7 @@ class FeedThrough:
         assert hasattr(self, 'is_build'), "Before solving, build the model"
         assert self.is_build, "The model has failed when building, change parameters before solving"
         
-        self._m['factors'] = (round(f_wl,3),round(f_mc,3),round(f_vu,3))
+        self._m['factors'] = f"wl={round(f_wl,3)} mc={round(f_mc,3)} vu={round(f_vu,3)}"
         self._m['norm_factwl'] = self.norms[0]
         self._m['norm_factmc'] = self.norms[1]
         self._m['norm_factvu'] = self.norms[2]
@@ -592,7 +600,7 @@ class FeedThrough:
         return self._graph
 
     @property
-    def metrics(self) -> dict[str, int | float]:
+    def metrics(self) -> dict[str, int | str]:
         return self._m
 
     def _metrics(self):
@@ -657,7 +665,7 @@ class FeedThrough:
             if hasattr(self, 'is_solved'):
                 return self.is_solved
             else:
-                return None
+                return False
         msg = status.termination.detail
         if status.termination.reason == mathopt.TerminationReason.OPTIMAL:
             print(
@@ -702,11 +710,11 @@ class FeedThrough:
             print("Unknown status returned!")
             return False
 
-    def get_route_path(self, identifiers: list[dict[EdgeID, float]]) -> list[dict[EdgeID, float]]:
+    def get_route_path(self, identifiers: list[dict[EdgeID, float]]) -> list[dict[EdgeID, float]] | None:
         """return path for a route"""
         # Step 1: Build graph and in-degree map
         graph = {}
-        in_degree = defaultdict(int)
+        in_degree:defaultdict = defaultdict(int)
         edge_weights = {
             list(edge_dict.keys())[0]: list(edge_dict.values())[0]
             for edge_dict in identifiers
@@ -751,8 +759,16 @@ class FeedThrough:
             if congestion < 1:
                 continue
             edge = self.hanan_graph.get_edge(edge_id[0], edge_id[1])
-            from_node = self.hanan_graph.get_node(edge_id[0])
-            to_node = self.hanan_graph.get_node(edge_id[1])
+            n = self.hanan_graph.get_node(edge_id[0])
+            if n:
+                from_node:HananNode3D = n
+            else:
+                continue
+            n = self.hanan_graph.get_node(edge_id[1])
+            if n:
+                to_node:HananNode3D = n
+            else:
+                continue
             # Skip vias
             if from_node._id[-1] != to_node._id[-1]:
                 continue
