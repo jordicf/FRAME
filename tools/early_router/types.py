@@ -3,10 +3,10 @@
 from typing import Tuple
 
 # Cell identifier as a tuple of two integers representing cell position
-CellId = Tuple[int,int]
+CellId = Tuple[int, int]
 
 # Node identifier as a tuple of three integers representing cell position and layer
-NodeId = Tuple[int,int,int]
+NodeId = Tuple[int, int, int]
 
 # Net identifier as an integer
 NetId = int
@@ -17,4 +17,4 @@ VarId = Tuple[NodeId, NodeId, NetId]
 
 # Edge identifier as a tuple of two nodes ids
 # Format: The source node id, the target node id
-EdgeID = Tuple[NodeId, NodeId]
+EdgeId = Tuple[NodeId, NodeId]

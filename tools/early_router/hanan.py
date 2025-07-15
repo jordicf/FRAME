@@ -3,7 +3,7 @@ from frame.netlist.netlist import Netlist
 from frame.netlist.netlist_types import HyperEdge, NamedHyperEdge
 from frame.geometry.geometry import Point, Shape
 from dataclasses import dataclass
-from tools.early_router.types import NodeId, EdgeID
+from tools.early_router.types import NodeId, EdgeId
 import itertools
 
 
@@ -27,7 +27,6 @@ class HananGrid:
     _cells: dict[tuple[int, int], HananCell]
 
     def __init__(self, netlist_or_cells: Netlist | list[HananCell]):
-
         if isinstance(netlist_or_cells, Netlist):
             # Collect all unique x-coordinates and y-coordinates
             x_coords = set()
@@ -211,9 +210,9 @@ class HananGraph3D:
         self._edges = []
         self._adj_list = {}
 
-        assert all(
-            [isinstance(l, Layer) for l in layers]
-        ), "layers values are not instances of Layer class"
+        assert all([isinstance(l, Layer) for l in layers]), (
+            "layers values are not instances of Layer class"
+        )
         self._layers = {i: l for i, l in enumerate(layers)}
         asap7 = kwargs.get("asap7", False)
 
@@ -307,9 +306,9 @@ class HananGraph3D:
     ) -> HananEdge3D:
         source = self._nodes.get(source_id, None)
         target = self._nodes.get(target_id, None)
-        assert (
-            source and target
-        ), "source_id or target_id not created when trying to add an edge"
+        assert source and target, (
+            "source_id or target_id not created when trying to add an edge"
+        )
         l = manhattan_dist(source.center, target.center)
         edge = HananEdge3D(
             source=source,
@@ -481,7 +480,7 @@ class HananGraph3D:
         selected.extend(bounding_box_nodes)
         return selected
 
-    def get_edgesid_subset(self, nodes: list[HananNode3D]) -> set[EdgeID]:
+    def get_edgesid_subset(self, nodes: list[HananNode3D]) -> set[EdgeId]:
         """
         Given a list of nodes, returns a list of edges where both endpoints are in the given node list.
 
@@ -499,7 +498,7 @@ class HananGraph3D:
             if a in node_set
         )
 
-    def apply_capacity_adjustments(self, cap_adjust: dict[EdgeID, float | int]) -> None:
+    def apply_capacity_adjustments(self, cap_adjust: dict[EdgeId, float | int]) -> None:
         for e_id in cap_adjust:
             e = self.get_edge(e_id[0], e_id[1])
             r_e = self.get_edge(e_id[1], e_id[0])
