@@ -1,6 +1,7 @@
 # (c) Marçal Comajoan Cara 2022
 # For the FRAME Project.
-# Licensed under the MIT License (see https://github.com/jordicf/FRAME/blob/master/LICENSE.txt).
+# Licensed under the MIT License
+# (see https://github.com/jordicf/FRAME/blob/master/LICENSE.txt).
 
 """FRAME command-line utility."""
 
@@ -23,7 +24,8 @@ import tools.all.all # To execute the whole flow
 import tools.uscs_parser.uscs_parser
 
 # Tool names and the entry function they execute.
-# The functions must accept two parameters: the tool name and the command-line arguments passed to it.
+# The functions must accept two parameters: the tool name and the
+# command-line arguments passed to it.
 TOOLS = {"hello": tools.hello.hello.main,
          "draw": tools.draw.draw.main,
          "netgen": tools.netgen.netgen.main,

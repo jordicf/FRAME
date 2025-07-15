@@ -427,7 +427,6 @@ class Equation:
         self.rhs.set_gekko(gekko)
 
     def is_equation_met(self):
-        global epsilon
         eps = epsilon.evaluate()
         if self.cmp is Cmp.LE:
             if self.hard:
