@@ -35,12 +35,10 @@ def set_epsilon(new_epsilon: ExpressionTree):
 
 
 def get_epsilon() -> float:
-    global epsilon
     return epsilon.evaluate()
 
 
 def set_epsilon_gekko(gekko: GEKKO):
-    global epsilon
     epsilon.set_gekko(gekko)
 
 
@@ -430,7 +428,6 @@ class Equation:
         self.rhs.set_gekko(gekko)
 
     def is_equation_met(self):
-        global epsilon
         eps = epsilon.evaluate()
         if self.cmp is Cmp.LE:
             if self.hard:
