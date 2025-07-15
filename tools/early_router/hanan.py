@@ -148,7 +148,7 @@ class Layer:
     
     def __repr__(self) -> str:
         """String representation of the Layer instance."""
-        return f"Layer(name='{self.name}', direction='{self.direction}', pitch={self.pitch})"
+        return f"Layer(name='{self.name}', direction='{self.direction}', pitch={self.pitch}, h_cap={self.h_cap}, v_cap={self.v_cap})"
 
 
 @dataclass

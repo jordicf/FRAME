@@ -7,11 +7,12 @@ from tools.early_router.types import NetId, VarId, EdgeID, NodeId, CellId
 from tools.early_router.utils import rescale
 import warnings
 from typing import Dict, List, Tuple, Any
+import math
 
 
 ### STEP 1: Import solver
 from ortools.math_opt.python import mathopt
-from ortools.math_opt.python.mathopt import Model, Variable, SolveResult
+from ortools.math_opt.python.mathopt import Model, Variable, SolveResult, SolveParameters, ModelSolveParameters
 
 class FeedThrough:
     _graph: HananGraph3D # Check if the 2D graph is a reduction of the 3D graph with one layer 'HV'
@@ -38,7 +39,13 @@ class FeedThrough:
             source: bool = None
             ) -> list[Variable]:
             """Retrieve variables stored in the class"""
-            keys = [edge_id] if edge_id is not None else self._vars.keys()
+            if edge_id is not None:
+                if edge_id in self._vars:
+                    keys = [edge_id]
+                else:
+                    keys = []
+            else:
+                keys = self._vars.keys()
             return [
                 info_var[0]
                 for k in keys
@@ -122,13 +129,11 @@ class FeedThrough:
         self._m: dict[str, list] = {} # Metrics
         self.reweight = kwargs.get('reweight_nets_range', None)
     
-        #l = kwargs.get('layers',[Layer('H',pitch=76), Layer('V',pitch=76)]) # TODO
-        h_pitch, v_pitch = kwargs.get('pitch_layers')
-        l = [Layer('H',pitch=h_pitch), Layer('V',pitch=v_pitch)]
-        # pitch for a sub 10nm technology M6 to M12 for the feedthrough
-        # l = [Layer('H',pitch=76,name='M6'), Layer('V',pitch=76, name='M7'),Layer('H',pitch=76, name='M8'),
-        #      Layer('V',pitch=76, name='M9'),Layer('H',pitch=76, name='M10'),Layer('V',pitch=76, name='M11'),
-        #      Layer('H',pitch=130, name='M12')]
+        l = kwargs.get('layers')
+        h_pitch, v_pitch = kwargs.get('pitch_layers', (1,1))
+        if not l:
+            l = [Layer('H',pitch=h_pitch), Layer('V',pitch=v_pitch)]
+
         asap7 = kwargs.get('asap7', False) # Uses asap7 tech for 76 nm layers
 
         if isinstance(input_data, Netlist):
@@ -221,20 +226,13 @@ class FeedThrough:
 
         return list(net_variables.values()), net_constraints, strict
 
-    def _add_multipin_net(self, net_id:int, net: HyperEdge| NamedHyperEdge):
-        
-        if isinstance(net, HyperEdge):
-            modulenames = [m.name for m in net.modules]
-        elif isinstance(net, NamedHyperEdge):
-            modulenames = net.modules
-        else:
-            assert False, "Net is neither HyperEdge not NamedHyperEdge"
-
-        wei = net.weight # wires to connect
-
+    def _add_multipin_net(self, net_id:int, net: NamedHyperEdge):
         net_nodes = self._graph.get_net_boundingbox(net, self.nets_bb[net_id])
         nodesids = set(n._id for n in net_nodes)
         net_edges = set(self._graph.get_edgesid_subset(net_nodes))
+
+        modulenames = net.modules
+        wei = net.weight # wires to connect
 
         shared_variables: dict[VarId, Variable] ={}
 
@@ -242,7 +240,7 @@ class FeedThrough:
         subnets = [NamedHyperEdge(modulenames[i:2+i],wei) for i in range(len(modulenames)-1)]
         specific_variables: dict[str,dict[VarId, Variable]] = {}
         for i, subnet in enumerate(subnets):
-            specific_variables[f"s{i}"] = self._add_sub2pin_net(net_id,subnet, f"s{i}",net_nodes, net_edges)
+            specific_variables[f"s{i}"], _ = self._add_sub2pin_net(net_id,subnet, f"s{i}",net_nodes, net_edges)
 
         ### STEP 3 & 4: Define the shared one-way variables and state constraints
         visited = set()
@@ -272,11 +270,13 @@ class FeedThrough:
                     self._solver.add_linear_constraint(
                         specific_variables[key][(source, target, net_id)] <= var
                         )
+        # in2pin net the constraints are in net_constraints[-2] and net_constraints[-4]
         return [var for key in specific_variables for var in specific_variables[key].values()]
     
     def _add_sub2pin_net(self, net_id:int, subnet:NamedHyperEdge, subnet_id: str, nodes: list[HananNode3D], edgeids:set[EdgeID])->dict[VarId, Variable]:
         modulenames = subnet.modules
         net_variables: dict[VarId, Variable] ={}
+        net_constraints: list=[]
         ### STEP 3: Define the variables
         for e_id in edgeids:
             var:Variable = self._solver.add_variable(lb = 0, ub = int(subnet.weight) + 1, name= f'{subnet_id}_{e_id[0]}_{e_id[1]}_{net_id}')
@@ -285,13 +285,6 @@ class FeedThrough:
         ### STEP 4: State the constraints
         source_edges = self._graph.get_crossings_by_modulename(modulenames[0])
         sink_edges = self._graph.get_crossings_by_modulename(modulenames[1])
-        # Source and Sink are the only nodes that have flow non-zero
-        # For source, the outflow is net weigth and the inflow is 0
-        self._solver.add_linear_constraint(sum(net_variables[(e.source._id, e.target._id, net_id)] for e in source_edges['out'] if (e.source._id, e.target._id) in edgeids) == subnet.weight)
-        self._solver.add_linear_constraint(sum(net_variables[(e.source._id, e.target._id, net_id)] for e in source_edges['in']  if (e.source._id, e.target._id) in edgeids) == 0)
-        # For sink, the inflow is the net weight and the outflow is 0
-        self._solver.add_linear_constraint(sum(net_variables[(e.source._id, e.target._id, net_id)] for e in sink_edges['in'] if (e.source._id, e.target._id) in edgeids) == subnet.weight)
-        self._solver.add_linear_constraint(sum(net_variables[(e.source._id, e.target._id, net_id)] for e in sink_edges['out'] if (e.source._id, e.target._id) in edgeids) == 0)
 
         # Adding constraints on flow conservation
         for n in nodes:
@@ -301,8 +294,24 @@ class FeedThrough:
             in_out_edges: dict[str, list[HananEdge3D]] = self._graph.get_edges_from_node(n)
             in_var = [net_variables[(e.source._id, e.target._id, net_id)] for e in in_out_edges["in"] if (e.source._id, e.target._id) in edgeids]
             out_var = [net_variables[(e.source._id, e.target._id, net_id)] for e in in_out_edges["out"] if (e.source._id, e.target._id) in edgeids]
-            self._solver.add_linear_constraint(sum(in_var) - sum(out_var) == 0)
-        return net_variables
+            c = self._solver.add_linear_constraint(sum(in_var) - sum(out_var) == 0)
+            net_constraints.append(c)
+
+        # Source and Sink are the only nodes that have flow non-zero
+        # For source, the outflow is net weigth and the inflow is 0
+        # ALL strict so we ensure that multiple-pin nets are routed  not as in <= in 2-pin nets
+        c = self._solver.add_linear_constraint(sum(net_variables[(e.source._id, e.target._id, net_id)] for e in source_edges['out'] if (e.source._id, e.target._id) in edgeids) == subnet.weight)
+        net_constraints.append(c)
+        c = self._solver.add_linear_constraint(sum(net_variables[(e.source._id, e.target._id, net_id)] for e in source_edges['in']  if (e.source._id, e.target._id) in edgeids) == 0)
+        net_constraints.append(c)
+        # For sink, the inflow is the net weight and the outflow is 0
+        c = self._solver.add_linear_constraint(sum(net_variables[(e.source._id, e.target._id, net_id)] for e in sink_edges['in'] if (e.source._id, e.target._id) in edgeids) == subnet.weight)
+        net_constraints.append(c)
+        c = self._solver.add_linear_constraint(sum(net_variables[(e.source._id, e.target._id, net_id)] for e in sink_edges['out'] if (e.source._id, e.target._id) in edgeids) == 0)
+        net_constraints.append(c)
+
+        # in2pin net the constraints are in net_constraints[-2] and net_constraints[-4]
+        return net_variables, net_constraints
 
     def _add_capacity_constraints(self):
         ### STEP 4: Add capacity constraints
@@ -341,8 +350,8 @@ class FeedThrough:
             # Manhattan distance
             if centers_x and centers_y:  # Ensure we don't call max/min on empty lists
                 hpwl += (max(centers_x) - min(centers_x) + max(centers_y) - min(centers_y)) * n.weight
-        mc = 1
-        vu = 1
+        vu = sum([n.weight for n in self._nets.values()])
+        mc = 4 * vu # This is an approximation based on some experiments
         if hasattr(self, 'pre_result'):
             module_crossings = self._variables.get_variables(crossing=True)
             mc = sum(self.pre_result.variable_values(module_crossings))
@@ -363,12 +372,18 @@ class FeedThrough:
                 sum(self._variables.get_variables(source=True)) - 
                 sum(self._variables.get_variables(source=False))/hpwl
             )
+            params = SolveParameters()
+            params.highs.int_options['user_cost_scale'] = int(math.log2(len(self._nets)))
+            params.highs.double_options['primal_feasibility_tolerance'] = 1e-5
+            params.highs.double_options['dual_feasibility_tolerance'] = 1e-3
             ### STEP 6: Solve the model
-            self.pre_result = mathopt.solve(self._solver, mathopt.SolverType.HIGHS)
+            self.pre_result = mathopt.solve(self._solver, mathopt.SolverType.HIGHS, params=params)
             ### Retrieve results
             unrouted = self._variables.get_unrouted(self.pre_result,self._nets)
-            print(f"[Iteration {depth}] Unrouted: {len(unrouted)} nets out of {len(self._nets)}")
-            # TODO print the execution time
+            print(f"[Iteration {depth}] Unrouted: {len(unrouted)} nets out of {len(self._nets)} "
+                  f"with {self.pre_result.solve_time().total_seconds()} secs")
+            if len(unrouted) > 10:
+                return False
             self._m.setdefault('#unrouted_nets',[]).append(len(unrouted))
             self._m.setdefault('unrouted_nets_ids',[]).append(unrouted)
             return self._find_opt_bb(unrouted, depth+1)
@@ -378,6 +393,7 @@ class FeedThrough:
             for net_id in self._nets:
                 net_vars, net_constraints, net_eq_constraints = self.model_components[net_id]
                 # In _add_2pin_net, the constraints are in net_constraints[-2] and net_constraints[-4]
+                # In multiple pin net...
                 self._solver.delete_linear_constraint(net_constraints[-2])
                 self._solver.delete_linear_constraint(net_constraints[-4])
                 for c in net_eq_constraints:
@@ -399,9 +415,10 @@ class FeedThrough:
                     self._solver.delete_linear_constraint(c)
                 net = self._nets[net_id]
                 if len(net.modules)>2:
-                    self.shared = self._add_multipin_net(net_id, net)
+                    self._add_multipin_net(net_id, net)
                 else:
-                    self.model_components[net_id] = self._add_2pin_net(net_id, net)
+                    r1,r2 = self._add_2pin_net(net_id, net)
+                    self.model_components[net_id] = r1
 
             model_constraints = self.model_components.pop(-1,[])
             for c in model_constraints:
@@ -409,10 +426,14 @@ class FeedThrough:
             self.model_components[-1] = self._add_capacity_constraints()
             return self._find_opt_bb(None, depth)
 
-    def build(self, optimize_bbox=True, max_depth= 3)-> bool:
+    def build(self, optimize_bbox=True, max_depth= 3, infinite_cap = False, bounding_box=True)-> bool:
 
         self._variables = self.VariableStore()
-        self.nets_bb = defaultdict(int)
+        if bounding_box:
+            self.nets_bb = defaultdict(int)
+        else:
+            m = max([self._m['size'].w, self._m['size'].h])
+            self.nets_bb = defaultdict(lambda:5)
         self._solver = mathopt.Model()
 
         if self.reweight:
@@ -429,14 +450,26 @@ class FeedThrough:
         self.model_components:dict[NetId]={}
         for net_id, net in self._nets.items():
             if len(net.modules)>2:
-                self.shared = self._add_multipin_net(net_id, net)
+                # TODO
+                self._add_multipin_net(net_id, net)
             else:
                 self.model_components[net_id] = self._add_2pin_net(net_id, net)
-                #net_vars, net_constraints, net_eq_constraints
+
+        if infinite_cap:
+            self._compute_norms()
+            self.is_build = True
+            for net_id in self._nets:
+                net_vars, net_constraints, net_eq_constraints = self.model_components[net_id]
+                # In _add_2pin_net, the constraints are in net_constraints[-2] and net_constraints[-4]
+                self._solver.delete_linear_constraint(net_constraints[-2])
+                self._solver.delete_linear_constraint(net_constraints[-4])
+                for c in net_eq_constraints:
+                    self._solver.add_linear_constraint(c)
+            return True
         self.model_components[-1] = self._add_capacity_constraints()
         
         self._compute_norms()
-        if optimize_bbox:
+        if bounding_box and optimize_bbox:
             if not self._find_opt_bb(max_depth= max_depth):
                 self.is_build = False
                 return False
@@ -451,10 +484,11 @@ class FeedThrough:
         """
         assert hasattr(self, 'is_build'), "Before solving, build the model"
         assert self.is_build, "The model has failed when building, change parameters before solving"
-        #assert abs(f_wl + f_mc + f_vu) <= 1.01, "The given factors are not unitary (their sum is not 1)"
         
         self._m['factors'] = (round(f_wl,3),round(f_mc,3),round(f_vu,3))
-        self._m['norm_fact'] = self.norms
+        self._m['norm_factwl'] = self.norms[0]
+        self._m['norm_factmc'] = self.norms[1]
+        self._m['norm_factvu'] = self.norms[2]
         
         ### STEP 5: Define the objective
         module_crossings = self._variables.get_variables(crossing=True)
@@ -465,15 +499,24 @@ class FeedThrough:
         self._solver.minimize_linear_objective(
             f_wl * sum(wire_length)/self.norms[0] +
             f_mc * sum(module_crossings)/self.norms[1] +
-            f_vu * sum(via_usage)/self.norms[2] #+ 
-            #100 * sum(self.shared) TODO think why
+            f_vu * sum(via_usage)/self.norms[2]
         )
-        # self._solver.minimize_linear_objective(
-        #     sum(wire_length)
-        # )
+        # Change params
+        params = SolveParameters(enable_output=True)
+        params.highs.int_options['user_cost_scale'] = int(math.log2(len(self._nets)))
+        # params.highs.string_options['solver'] = "ipm"
+        # params.highs.string_options['solver'] = "simplex" #(default)
         
-        ### STEP 6: Solve the model
-        status = mathopt.solve(self._solver, mathopt.SolverType.HIGHS)
+        #params.highs.double_options['primal_feasibility_tolerance'] = # Looser constraints (faster, but less accurate)
+        #params.highs.double_options['dual_feasibility_tolerance'] = # May accept suboptimal solutions faster
+        #params.highs.double_options['ipm_optimality_tolerance'] = # Only for Interior Point Method
+        
+        # Solve with these parameters
+        status = mathopt.solve(
+            self._solver,
+            mathopt.SolverType.HIGHS,
+            params=params
+        )
         self.execution_time = status.solve_time().total_seconds()
         self.is_solved = self.has_solution(status)
         self.result= status
@@ -507,10 +550,7 @@ class FeedThrough:
             self._m['via_usage'] = round(sum(self.result.variable_values(self.solution.get_variables(via=True))),1)
             self._m['n_bifurations'] = len([1 for netid, route in self.solution.routes.items() if self.has_bifurcation(self._nets[netid], route)])
             self._m['obj_val'] = round(self.result.objective_value(),3)
-            self._m['mrd'] = max(
-                (v[0] / v[1]) if v[1] != 0 else 0
-                for v in self._congestion_map().values()
-                ) #maximum routing density(MRD)
+            self._m['int_violations'] = self.check_integral_solution()[1]
 
     def has_bifurcation(self, net: NamedHyperEdge, route: list[dict[EdgeID, float]])->bool:
         """

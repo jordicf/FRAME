@@ -207,7 +207,7 @@ def convert_to_hanangrid(isdp_data):
             d = 'H' if int(h_cap[l])>0 else 'V'
             layers.append(Layer(d, h_cap=int(h_cap[l]), v_cap=int(v_cap[l])))
     else:
-        layers = [Layer('HV')]
+        layers = [Layer('H', h_cap=int(h_cap[0])), Layer('V', v_cap=int(v_cap[0]))]
     for i in range(int(isdp_data['header']['grid'][0])):
         for j in range(int(isdp_data['header']['grid'][1])):
             mod_name = f"M{i}_{j}"
@@ -227,8 +227,8 @@ def convert_to_hanangrid(isdp_data):
                 i = math.floor((pin["x"] - isdp_data['grid_origin']['lower_left_x']) / isdp_data['grid_origin']['tile_width'])
                 j = math.floor((pin["y"] - isdp_data['grid_origin']['lower_left_y']) / isdp_data['grid_origin']['tile_height'])
             else:
-                i = pin['x']
-                j = pin['y']
+                i = int(pin['x'])
+                j = int(pin['y'])
             mod_name = f"M{i}_{j}"
             net_module_names.add(mod_name)
         if len(net_module_names) < 2:

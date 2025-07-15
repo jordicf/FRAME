@@ -28,16 +28,28 @@ class ModelWrapper:
     def add_coordinates(self, x: ExpressionTree, y: ExpressionTree, w: ExpressionTree, h: ExpressionTree):
         self.coordinates.append((x, y, w, h))
 
+    # def dif_cost_objective(self):
+    #     obj = None
+    #     for var in self.variable_list:
+    #         if obj is None:
+    #             obj = sqrt((var - var.evaluate())**2 + 0.0001)
+    #         else:
+    #             obj += sqrt((var - var.evaluate()) ** 2 + 0.0001)
+    #     if obj is None:
+    #         return 0
+    #     return obj * self.dif_cost
+
     def dif_cost_objective(self):
-        obj = None
+        cost_terms = []  # 存储中间变量项
         for var in self.variable_list:
-            if obj is None:
-                obj = sqrt((var - var.evaluate())**2 + 0.0001)
-            else:
-                obj += sqrt((var - var.evaluate()) ** 2 + 0.0001)
-        if obj is None:
-            return 0
-        return obj * self.dif_cost
+            # 为每个变量创建中间表达式
+            delta_sq = self.gekko.Intermediate((var - var.evaluate())**2 + 0.0001)
+            term = self.gekko.Intermediate(self.gekko.sqrt(delta_sq))
+            cost_terms.append(term)
+        
+        # 使用gekko的sum函数进行高效求和
+        total_cost = self.gekko.sum(cost_terms) * self.dif_cost
+        return total_cost
 
     def add_constraint(self, group: str, eq: Equation):
         if group not in self.constraints:
@@ -68,6 +80,7 @@ class ModelWrapper:
         self.gekko.options.COLDSTART = 1
         self.gekko.options.MAX_ITER = 1
         self.gekko.MEAS_CHK = 0
+        self.gekko.options.REDUCE = 3  
         set_epsilon_gekko(self.gekko)
         self.macro_constraints = dict()
         for macro in self.macros:
@@ -109,14 +122,14 @@ class ModelWrapper:
             self.constraints['radius'][j+4] = Equation(w, Cmp.LE, ExpressionTree(self.gekko, w0 + radius), "Cap_w[%i]" % i, hard=True)
             self.constraints['radius'][j+5] = Equation(h, Cmp.LE, ExpressionTree(self.gekko, h0 + radius), "Cap_h[%i]" % i, hard=True)
 
-    def solve(self, verbose=False, small_steps=False, radius=None) -> None:
+    def solve(self, verbose=False, small_steps=False, radius=None, otol=None, rtol=None) -> None:
         self.turn_off_rects(0.1)
         self.fuse_rects()
         self.build_model(small_steps=small_steps, radius=radius)
         self.gekko.options.COLDSTART = 1
-        self.gekko.options.OTOL = 1e-2
-        self.gekko.options.RTOL = 1e-2
-        self.gekko.options.MAX_ITER += 1000
+        self.gekko.options.OTOL = otol
+        self.gekko.options.RTOL = rtol
+        self.gekko.options.MAX_ITER += 50000
         self.gekko.solve(disp=verbose, debug=0)
         for (x, v) in self.fixed_vars:
             x.value.value = [v]
