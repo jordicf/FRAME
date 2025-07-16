@@ -181,8 +181,9 @@ class FeedThrough:
 
     def add_nets(
         self,
-        nets: list[HyperEdge | NamedHyperEdge]
-        | dict[NetId, HyperEdge | NamedHyperEdge],
+        nets: (
+            list[HyperEdge | NamedHyperEdge] | dict[NetId, HyperEdge | NamedHyperEdge]
+        ),
     ) -> None:
         """Add to the class nets to be routed"""
         if isinstance(nets, list):
@@ -653,9 +654,9 @@ class FeedThrough:
         :return metrics (dict[str,int|float]): Execution metrics and solution values
         """
         assert hasattr(self, "is_build"), "Before solving, build the model"
-        assert self.is_build, (
-            "The model has failed when building, change parameters before solving"
-        )
+        assert (
+            self.is_build
+        ), "The model has failed when building, change parameters before solving"
         # assert abs(f_wl + f_mc + f_vu) <= 1.01, "The given factors are not unitary (their sum is not 1)"
 
         self._m["factors"] = (round(f_wl, 3), round(f_mc, 3), round(f_vu, 3))
