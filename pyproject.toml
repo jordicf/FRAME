@@ -55,6 +55,7 @@ packages = [
     "tools.glbfloor",
     "tools.rect",
     "tools.legalfloor",
+    "tools.legalizer",
     "tools.floorset_parser",
     "tools.rect.cpp_src",
     "tools.uscs_parser",

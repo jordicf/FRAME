@@ -16,6 +16,7 @@ venv10
 
 ignore
 tools/legalfloor/example_visuals/*
+tools/legalizer/example_visuals1/*
 
 tools/rect/bestbox.txt
 tools/rect/tofind.txt
