@@ -4,5 +4,8 @@
 			"path": "."
 		}
 	],
-	"settings": {}
+	"settings": {
+		"editor.defaultFormatter": "mikoz.black-py",
+		"editor.defaultFoldingRangeProvider": "ms-python.autopep8"
+	}
 }
