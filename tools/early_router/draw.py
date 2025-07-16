@@ -72,10 +72,10 @@ def draw_solution3D(
     fontsize=10,
 ):
     """
-    Uses Matplotlib library to plot a route solution on the 3D space. The modules that must be conected by the route solution are seen in 3D with their name tags.
+    Uses Matplotlib library to plot a route solution on the 3D space. The modules that must be connected by the route solution are seen in 3D with their name tags.
 
     :param netlist: Netlist class with all modules of the floorplan and list of hyperedges.
-    :param route: List of dictiornaries with keys edgeid corresponding to the segments to be routed.
+    :param route: List of dictionaries with keys edgeid corresponding to the segments to be routed.
     :param net: A HyperEdge class that contains the net information that is routed.
     :param hanan_graph: The hanan graph with nodes and edges, the edge positional points are retrieved from here.
     :param net_color: The color to draw the route of the net in float 0-1 values.
@@ -534,7 +534,7 @@ def draw_congestion(
         if from_node._id[-1] != to_node._id[-1]:
             continue
         elif layer_id and from_node._id[-1] in layer_id:
-            # Skip non-layer selecetd
+            # Skip non-layer selected
             continue
 
         sum_con, sum_cap = edge_map.get((from_node._id[:2], to_node._id[:2]), (0, 0))

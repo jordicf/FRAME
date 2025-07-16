@@ -492,7 +492,7 @@ class FeedThrough:
                 visited.add(source_id)
                 source = self._graph.get_node(source_id)
                 if self._graph.is_terminal(source):
-                    # The capacity is not set beause it is infinity
+                    # The capacity is not set because it is infinity
                     continue
                 for target_id, e in self._graph.adjacent_list[source_id].items():
                     target = self._graph.get_node(target_id)
@@ -626,7 +626,7 @@ class FeedThrough:
                 new_w = rescale(net.weight, old_min, old_max)
                 net.weight = int(new_w)
 
-        # Add to the model the varaibles and constraints
+        # Add to the model the variables and constraints
         self.model_components: dict[NetId] = {}
         for net_id, net in self._nets.items():
             if len(net.modules) > 2:
@@ -728,7 +728,7 @@ class FeedThrough:
                 sum(self.result.variable_values(self.solution.get_variables(via=True))),
                 1,
             )
-            self._m["n_bifurations"] = len(
+            self._m["n_bifurcations"] = len(
                 [
                     1
                     for netid, route in self.solution.routes.items()
@@ -901,7 +901,7 @@ class FeedThrough:
             if from_node._id[-1] != to_node._id[-1]:
                 continue
             elif layer_id and from_node._id[-1] in layer_id:
-                # Skip non-layer selecetd
+                # Skip non-layer selected
                 continue
 
             sum_con, sum_cap = edge_map.get(
