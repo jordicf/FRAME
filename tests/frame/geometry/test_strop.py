@@ -102,10 +102,10 @@ def check_matrix(matrix: str, sol: set[str] = set()) -> bool:
     """Check that the matrix generates the set of solutions."""
     s = Strop(matrix)
     for tree in s.instances():
-        s = str(tree)
-        if s not in sol:
+        str_tree = str(tree)
+        if str_tree not in sol:
             return False
-        sol.remove(s)
+        sol.remove(str_tree)
     return len(sol) == 0
 
 
