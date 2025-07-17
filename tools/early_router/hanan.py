@@ -5,6 +5,7 @@ from frame.geometry.geometry import Point, Shape
 from dataclasses import dataclass
 from tools.early_router.types import NodeId, EdgeID
 import itertools
+from typing import cast
 
 
 def manhattan_dist(p: Point, q: Point) -> float:
@@ -320,8 +321,8 @@ class HananGraph3D:
         nodes = self.get_nodes_by_modulename(module_name)
 
         return {
-            "in": [self.get_edge(nei, n._id) for n in nodes for nei in self._adj_list[n._id] if self.get_edge(nei, n._id).crossing],
-            "out": [self.get_edge(n._id, nei) for n in nodes for nei in self._adj_list[n._id] if self.get_edge(n._id, nei).crossing],
+            "in": [e for n in nodes for nei in self._adj_list[n._id] if (e := self.get_edge(nei, n._id)) and e.crossing],
+            "out": [e for n in nodes for nei in self._adj_list[n._id] if (e := self.get_edge(n._id, nei)) and e.crossing],
         }
 
     @property
@@ -366,8 +367,7 @@ class HananGraph3D:
     def get_adj_nodes(self, node: HananNode3D) -> list[HananNode3D]:
         """Returns a list of adjacent nodes to the given one. The input is not included in the return"""
         node_id = node._id
-        return [node for n in self._adj_list[node_id] if (node := self.get_node(n)) is not None]
-
+        return [cast(HananNode3D, self.get_node(n)) for n in self._adj_list[node_id]]
 
     def get_edge(self, source_id: NodeId, target_id: NodeId) -> HananEdge3D | None:
         if (source_id in self._adj_list) and (target_id in self._adj_list[source_id]):

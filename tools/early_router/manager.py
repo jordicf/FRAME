@@ -12,14 +12,14 @@ import time
 import csv
 import numpy as np
 import math
-from frame.netlist.netlist_types import NamedHyperEdge
+from frame.netlist.netlist_types import NamedHyperEdge, HyperEdge
 
 def run_compare(options: dict[str, Any]) -> None:
     input1 = Path(options["input1"])
     input2 = Path(options["input2"])
     # Implement comparison logic
     print(f"Comparing results between {input1} and {input2}...")
-    d:dict[int,int] = compare_solution_files(input1,input2)
+    d:dict[int,int] = compare_solution_files(str(input1),str(input2))
     # draw_nets, draw_congestion, asap7?
     l = [k for k,v in d.items() if v>20]
     return
@@ -149,7 +149,7 @@ def high_congestion_opt(file_path, options, low = 0., high=152.0, eps=0.01, max_
 def hyperparameter_analysis(ft:FeedThrough, output:Path, filename:str):
 
     results = []
-    data = []
+    data:list = []
 
     def evaluate(alpha, beta, data):
         gamma = 1.0 - alpha - beta
@@ -239,7 +239,7 @@ def draw_nets(ft:FeedThrough, netlist:Netlist, output:Path, filename:str, option
         draw_solution3D(netlist, routes[net_id], ft._nets[net_id], ft.hanan_graph, net_color=netid2color[net_id], filepath=f"{output}/{filename}route3d{net_id}")
 
 
-def run_solve(options: dict[str, Any]) -> None:
+def run_solve(options: dict[str, Any]) -> dict[str, int | str]:
     
     input_path: Path = Path(options["input"])
     output: Path = Path(options["output"])
@@ -269,7 +269,7 @@ def run_solve(options: dict[str, Any]) -> None:
     ft.solve(f_wl=fwl,f_mc=fmc,f_vu=fvu)
     metrics = ft.metrics
     metrics['name'] = filename
-    metrics['build_time'] = build_time
+    metrics['build_time'] = f"{build_time}"
     solve_time = time.perf_counter()
     print(f"Solving time: {solve_time - set_up_time:.6f} seconds")
     
@@ -326,7 +326,7 @@ def file_manager(options:dict[str, Any]):
         run_compare(options)
 
     elif command == "analyze":
-        input_path: Path = Path(options['input'])
+        input_path = Path(options['input'])
         if input_path.is_file():
             run_analyze(options)
         elif input_path.is_dir():

@@ -31,19 +31,9 @@ The ISDP file format is expected to have the following sections:
 
 Usage:
     python isdp_to_fpef.py input.isdp output_fpef.yaml
-
-Dependencies:
-    PyYAML (install via pip install pyyaml)
 """
 
-import sys
-import os
-#print("\n".join(sys.path))
-#sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "../../../..")))
-
-import re
 import math
-import yaml
 from tools.early_router.hanan import HananCell, Layer
 from frame.geometry.geometry import Point
 from frame.netlist.netlist_types import NamedHyperEdge

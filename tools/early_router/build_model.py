@@ -173,7 +173,7 @@ class FeedThrough:
         self._m['n_nodes'] = len(self._graph.nodes)
         self._m['size'] = f"{hanan_grid.shape.w} x {hanan_grid.shape.h}"
 
-    def add_nets(self, nets: list[HyperEdge | NamedHyperEdge] |
+    def add_nets(self, nets: list[HyperEdge] | list[NamedHyperEdge] |
                  dict[NetId, HyperEdge | NamedHyperEdge]) -> None:
         """Add to the class nets to be routed"""
         it: Iterable[tuple[int, HyperEdge | NamedHyperEdge]]
@@ -196,7 +196,9 @@ class FeedThrough:
                 wei = int(net.weight)
             self._nets[net_id] = NamedHyperEdge(modules, wei)
 
-    def _add_2pin_net(self, net_id: int, net: NamedHyperEdge):
+    def _add_2pin_net(self, net_id: int, 
+                      net: NamedHyperEdge) -> Tuple[
+                          list[Variable],list[LinearConstraint],list[LinearConstraint]]:
         net_nodes = self._graph.get_net_boundingbox(net, self.nets_bb[net_id])
         net_edges = self._graph.get_edgesid_subset(net_nodes)
 
@@ -210,6 +212,8 @@ class FeedThrough:
         # STEP 3: Define the variables
         for e_id in net_edges:
             e = self._graph.get_edge(e_id[0], e_id[1])
+            if not e:
+                continue
             var: Variable = self._solver.add_variable(lb=0, ub=int(
                 wei) + 1, name=f'x_{e.source._id}_{e.target._id}_{net_id}')
             net_variables[(e.source._id, e.target._id, net_id)] = var
@@ -286,7 +290,7 @@ class FeedThrough:
         specific_variables: dict[str, dict[VarId, Variable]] = {}
         for i, subnet in enumerate(subnets):
             specific_variables[f"s{i}"] = self._add_sub2pin_net(
-                net_id, subnet, f"s{i}", net_nodes, net_edges)
+                net_id, subnet, f"s{i}", net_nodes, net_edges)[0]
 
         # STEP 3 & 4: Define the shared one-way variables and state constraints
         visited = set()
@@ -310,6 +314,8 @@ class FeedThrough:
                 shared_variables[(source, target, net_id)] = var
                 avoidable_crossing = False
                 e = self._graph.get_edge(source, target)
+                if not e:
+                    continue
                 # From both direction we only save one, so just if source/target is in modulenames is unavoidable
                 if e.crossing and not (e.source.modulename in modulenames) and not (e.target.modulename in modulenames):
                     avoidable_crossing = True
@@ -364,7 +370,7 @@ class FeedThrough:
         # in2pin net the constraints are in net_constraints[-2] and net_constraints[-4]
         return net_variables, net_constraints
 
-    def _add_capacity_constraints(self):
+    def _add_capacity_constraints(self) -> List[LinearConstraint]:
         # STEP 4: Add capacity constraints
         # Add constraints on not exceeding capacity
         capacities = []
@@ -373,12 +379,16 @@ class FeedThrough:
             if not (source_id in visited):
                 visited.add(source_id)
                 source = self._graph.get_node(source_id)
-                if self._graph.is_terminal(source):
+                if not source:
+                    continue
+                elif self._graph.is_terminal(source):
                     # The capacity is not set beause it is infinity
                     continue
                 for target_id, e in self._graph.adjacent_list[source_id].items():
                     target = self._graph.get_node(target_id)
-                    if target_id in visited or self._graph.is_terminal(target):
+                    if not target:
+                        continue
+                    elif target_id in visited or self._graph.is_terminal(target):
                         continue
                     vars1 = self._variables.get_variables(
                         edge_id=(source_id, target_id))
@@ -419,7 +429,7 @@ class FeedThrough:
         self.norms = (hpwl, mc, vu)
         return
 
-    def _find_opt_bb(self, unrouted_nets: list[NetId] | None = None, depth: int = 0, max_depth: int = 3):
+    def _find_opt_bb(self, unrouted_nets: list[NetId] | None = None, depth: int = 0, max_depth: int = 3) -> bool:
 
         if unrouted_nets is None:  # Solving call
             hpwl = self.norms[0]
@@ -556,8 +566,9 @@ class FeedThrough:
         
         ### STEP 5: Define the objective
         module_crossings = self._variables.get_variables(crossing=True)
-        wire_length = [var * self._graph.get_edge(var_id[0], var_id[1]).length
-                       for var_id, var, _ in self._variables]
+        wire_length = [var * e.length
+                       for var_id, var, _ in self._variables 
+                       if (e:=self._graph.get_edge(var_id[0], var_id[1])) is not None]
         via_usage = self._variables.get_variables(via=True)
 
         self._solver.minimize_linear_objective(
@@ -759,15 +770,13 @@ class FeedThrough:
             if congestion < 1:
                 continue
             edge = self.hanan_graph.get_edge(edge_id[0], edge_id[1])
-            n = self.hanan_graph.get_node(edge_id[0])
-            if n:
-                from_node:HananNode3D = n
-            else:
+            if not edge:
                 continue
-            n = self.hanan_graph.get_node(edge_id[1])
-            if n:
-                to_node:HananNode3D = n
-            else:
+            from_node = self.hanan_graph.get_node(edge_id[0])
+            if not from_node:
+                continue
+            to_node = self.hanan_graph.get_node(edge_id[1])
+            if not to_node:
                 continue
             # Skip vias
             if from_node._id[-1] != to_node._id[-1]:

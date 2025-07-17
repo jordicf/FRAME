@@ -19,7 +19,7 @@ def rescale(value:float, old_min:float=0, old_max=1, new_min=500, new_max=1500):
 
 
 def compute_node_degrees(route:list[dict[EdgeID, float]])->dict[NodeId,int]:
-    node_degrees = {}
+    node_degrees: dict[NodeId,int] = {}
     for edge_dict in route:
         # Each edge is a tuple: (node1, node2) where node is a tuple (int, int, int)
         for edge, weight in edge_dict.items():

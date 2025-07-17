@@ -98,7 +98,8 @@ def main(prog: str | None = None, args: list[str] | None = None) -> None:
     try:
         file_manager(options)
     except Exception as e:
-        warnings.warn(f"Could not finish execution due to \n{traceback.print_exc()}", UserWarning)
+        warnings.warn(f"Could not finish execution due to \n", UserWarning)
+        traceback.print_exc()
         return
         # try:
         #     from tools.early_router.isdp_parser import parse_isdp_file, convert_to_hanangrid
