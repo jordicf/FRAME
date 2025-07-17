@@ -12,12 +12,14 @@ from tools.early_router.utils import compute_node_degrees
 from tools.early_router.types import NetId, VarId, EdgeId, CellId
 from tools.early_router.utils import rescale
 import warnings
-from typing import List, Tuple, Optional
+from typing import Dict, List, Tuple, Any
+import math
+from typing import List, Tuple, Optional, Iterable
 
 
 # STEP 1: Import solver
 from ortools.math_opt.python import mathopt
-from ortools.math_opt.python.mathopt import Model, Variable, SolveResult
+from ortools.math_opt.python.mathopt import Model, Variable, LinearConstraint, SolveResult, SolveParameters, ModelSolveParameters
 
 
 class FeedThrough:
@@ -59,7 +61,13 @@ class FeedThrough:
             source: Optional[bool] = None,
         ) -> list[Variable]:
             """Retrieve variables stored in the class"""
-            keys = [edge_id] if edge_id is not None else self._vars.keys()
+            if edge_id is not None:
+                if edge_id in self._vars:
+                    keys = [edge_id]
+                else:
+                    keys = []
+            else:
+                keys = list(self._vars.keys())
             return [
                 info_var[0]
                 for k in keys
@@ -95,9 +103,9 @@ class FeedThrough:
                         + self._congestion.pop(reverse_key, 0)
                     )
 
-        def get_unrouted(
-            self, result: SolveResult, nets: dict[NetId, NamedHyperEdge | HyperEdge]
-        ) -> list[NetId]:
+        def get_unrouted(self, result: SolveResult,
+                         nets: dict[NetId, NamedHyperEdge]) \
+                -> list[NetId]:
             """Update the routes and congestion properties.
             Useful after solving the problem."""
             vals = result.variable_values()  # Dict var:value
@@ -128,6 +136,7 @@ class FeedThrough:
             """Returns a dictionary with the routing solution for each net."""
             if hasattr(self, "_routes"):
                 return self._routes
+            return {}
 
         @property
         def congestion(self) -> dict[EdgeId, float]:
@@ -135,6 +144,7 @@ class FeedThrough:
             that cross each edge."""
             if hasattr(self, "_congestion"):
                 return self._congestion
+            return {}
 
         def __iter__(self):
             for edge_id, net_dict in self._vars.items():
@@ -147,45 +157,38 @@ class FeedThrough:
         such as layers"""
 
         self._nets: dict[int, NamedHyperEdge] = {}
-        self._m: dict[str, list] = {}  # Metrics
-        self.reweight = kwargs.get("reweight_nets_range", None)
+        self._m: dict[str, int | str] = {}  # Metrics
+        self.reweight = kwargs.get('reweight_nets_range', None)
+    
+        l = kwargs.get('layers')
+        h_pitch, v_pitch = kwargs.get('pitch_layers', (1,1))
+        if not l:
+            lay = [Layer('H',pitch=h_pitch), Layer('V',pitch=v_pitch)]
 
-        # l = kwargs.get('layers',[Layer('H',pitch=76),
-        # Layer('V',pitch=76)]) # TODO
-        h_pitch, v_pitch = kwargs.get("pitch_layers")
-        lay = [Layer("H", pitch=h_pitch), Layer("V", pitch=v_pitch)]
-        # pitch for a sub 10nm technology M6 to M12 for the feedthrough
-        # l = [Layer('H',pitch=76,name='M6'), Layer('V',pitch=76, name='M7'),
-        #      Layer('H',pitch=76, name='M8'), Layer('V',pitch=76, name='M9'),
-        #      Layer('H',pitch=76, name='M10'),
-        #      Layer('V',pitch=76, name='M11'),
-        #      Layer('H',pitch=130, name='M12')]
-        asap7 = kwargs.get("asap7", False)  # Uses asap7 tech for 76 nm layers
+        asap7 = kwargs.get('asap7', False) # Uses asap7 tech for 76 nm layers
 
         if isinstance(input_data, Netlist):
             hanan_grid = HananGrid(input_data)
-            self._graph = HananGraph3D(hanan_grid, lay, input_data, asap7=asap7)
-            self._m["n_terminals"] = len(
-                [1 for m in input_data.modules if m.is_terminal]
-            )
-            self._m["n_modules"] = input_data.num_modules - self._m["n_terminals"]
+            self._graph = HananGraph3D(hanan_grid, lay, input_data,
+                                       asap7=asap7)
+            self._m['n_terminals'] = len(
+                [1 for m in input_data.modules if m.is_terminal])
+            self._m['n_modules'] = input_data.num_modules - \
+                int(self._m['n_terminals'])
         elif isinstance(input_data, HananGrid):
             hanan_grid = input_data
             self._graph = HananGraph3D(hanan_grid, layers=lay)
 
         # Add some metrics
-        self._m["n_layers"] = len(self._graph.layers)
-        self._m["n_cells"] = len(hanan_grid.cells)
-        self._m["n_nodes"] = len(self._graph.nodes)
-        self._m["size"] = hanan_grid.shape
+        self._m['n_layers'] = len(self._graph.layers)
+        self._m['n_cells'] = len(hanan_grid.cells)
+        self._m['n_nodes'] = len(self._graph.nodes)
+        self._m['size'] = f"{hanan_grid.shape.w} x {hanan_grid.shape.h}"
 
-    def add_nets(
-        self,
-        nets: (
-            list[HyperEdge | NamedHyperEdge] | dict[NetId, HyperEdge | NamedHyperEdge]
-        ),
-    ) -> None:
+    def add_nets(self, nets: list[HyperEdge] | list[NamedHyperEdge] |
+                 dict[NetId, HyperEdge | NamedHyperEdge]) -> None:
         """Add to the class nets to be routed"""
+        it: Iterable[tuple[int, HyperEdge | NamedHyperEdge]]
         if isinstance(nets, list):
             it = enumerate(nets, start=max(self._nets) + 1 if self._nets else 0)
         else:
@@ -206,7 +209,9 @@ class FeedThrough:
                 wei = int(net.weight)
             self._nets[net_id] = NamedHyperEdge(modules, wei)
 
-    def _add_2pin_net(self, net_id: int, net: NamedHyperEdge):
+    def _add_2pin_net(self, net_id: int, 
+                      net: NamedHyperEdge) -> Tuple[
+                          list[Variable],list[LinearConstraint],list[LinearConstraint]]:
         net_nodes = self._graph.get_net_boundingbox(net, self.nets_bb[net_id])
         net_edges = self._graph.get_edgesid_subset(net_nodes)
 
@@ -220,9 +225,10 @@ class FeedThrough:
         # STEP 3: Define the variables
         for e_id in net_edges:
             e = self._graph.get_edge(e_id[0], e_id[1])
-            var: Variable = self._solver.add_variable(
-                lb=0, ub=int(wei) + 1, name=f"x_{e.source._id}_{e.target._id}_{net_id}"
-            )
+            if not e:
+                continue
+            var: Variable = self._solver.add_variable(lb=0, ub=int(
+                wei) + 1, name=f'x_{e.source._id}_{e.target._id}_{net_id}')
             net_variables[(e.source._id, e.target._id, net_id)] = var
             s = e in source_edges["out"]
             avoidable_crossing = False
@@ -329,21 +335,15 @@ class FeedThrough:
 
         return list(net_variables.values()), net_constraints, strict
 
-    def _add_multipin_net(self, net_id: int, net: HyperEdge | NamedHyperEdge):
-        if isinstance(net, HyperEdge):
-            modulenames = [m.name for m in net.modules]
-        elif isinstance(net, NamedHyperEdge):
-            modulenames = net.modules
-        else:
-            assert False, "Net is neither HyperEdge not NamedHyperEdge"
-
-        wei = net.weight  # wires to connect
-
+    def _add_multipin_net(self, net_id:int, net: NamedHyperEdge):
         net_nodes = self._graph.get_net_boundingbox(net, self.nets_bb[net_id])
         nodesids = set(n._id for n in net_nodes)
         net_edges = set(self._graph.get_edgesid_subset(net_nodes))
 
-        shared_variables: dict[VarId, Variable] = {}
+        modulenames = net.modules
+        wei = net.weight # wires to connect
+
+        shared_variables: dict[VarId, Variable] ={}
 
         # Split TODO MST (minimum spanning tree)?
         subnets = [
@@ -353,8 +353,7 @@ class FeedThrough:
         specific_variables: dict[str, dict[VarId, Variable]] = {}
         for i, subnet in enumerate(subnets):
             specific_variables[f"s{i}"] = self._add_sub2pin_net(
-                net_id, subnet, f"s{i}", net_nodes, net_edges
-            )
+                net_id, subnet, f"s{i}", net_nodes, net_edges)[0]
 
         # STEP 3 & 4: Define the shared one-way variables and state constraints
         visited = set()
@@ -381,6 +380,8 @@ class FeedThrough:
                 shared_variables[(source, target, net_id)] = var
                 avoidable_crossing = False
                 e = self._graph.get_edge(source, target)
+                if not e:
+                    continue
                 # From both direction we only save one, so just if source/target is in modulenames is unavoidable
                 if (
                     e.crossing
@@ -404,17 +405,12 @@ class FeedThrough:
             for var in specific_variables[key].values()
         ]
 
-    def _add_sub2pin_net(
-        self,
-        net_id: int,
-        subnet: NamedHyperEdge,
-        subnet_id: str,
-        nodes: list[HananNode3D],
-        edgeids: set[EdgeId],
-    ) -> dict[VarId, Variable]:
+    def _add_sub2pin_net(self, net_id: int, subnet: NamedHyperEdge, subnet_id: str, nodes: list[HananNode3D],
+                          edgeids: set[EdgeId]) -> Tuple[dict[VarId, Variable], list[LinearConstraint]]:
         modulenames = subnet.modules
-        net_variables: dict[VarId, Variable] = {}
-        # STEP 3: Define the variables
+        net_variables: dict[VarId, Variable] ={}
+        net_constraints: list=[]
+        ### STEP 3: Define the variables
         for e_id in edgeids:
             var: Variable = self._solver.add_variable(
                 lb=0,
@@ -426,78 +422,53 @@ class FeedThrough:
         # STEP 4: State the constraints
         source_edges = self._graph.get_crossings_by_modulename(modulenames[0])
         sink_edges = self._graph.get_crossings_by_modulename(modulenames[1])
-        # Source and Sink are the only nodes that have flow non-zero
-        # For source, the outflow is net weigth and the inflow is 0
-        self._solver.add_linear_constraint(
-            sum(
-                net_variables[(e.source._id, e.target._id, net_id)]
-                for e in source_edges["out"]
-                if (e.source._id, e.target._id) in edgeids
-            )
-            == subnet.weight
-        )
-        self._solver.add_linear_constraint(
-            sum(
-                net_variables[(e.source._id, e.target._id, net_id)]
-                for e in source_edges["in"]
-                if (e.source._id, e.target._id) in edgeids
-            )
-            == 0
-        )
-        # For sink, the inflow is the net weight and the outflow is 0
-        self._solver.add_linear_constraint(
-            sum(
-                net_variables[(e.source._id, e.target._id, net_id)]
-                for e in sink_edges["in"]
-                if (e.source._id, e.target._id) in edgeids
-            )
-            == subnet.weight
-        )
-        self._solver.add_linear_constraint(
-            sum(
-                net_variables[(e.source._id, e.target._id, net_id)]
-                for e in sink_edges["out"]
-                if (e.source._id, e.target._id) in edgeids
-            )
-            == 0
-        )
 
         # Adding constraints on flow conservation
         for n in nodes:
             # We have to add constraints on all nodes except the source and sink
             if n.modulename in modulenames:
                 continue
-            in_out_edges: dict[str, list[HananEdge3D]] = (
-                self._graph.get_edges_from_node(n)
-            )
-            in_var = [
-                net_variables[(e.source._id, e.target._id, net_id)]
-                for e in in_out_edges["in"]
-                if (e.source._id, e.target._id) in edgeids
-            ]
-            out_var = [
-                net_variables[(e.source._id, e.target._id, net_id)]
-                for e in in_out_edges["out"]
-                if (e.source._id, e.target._id) in edgeids
-            ]
-            self._solver.add_linear_constraint(sum(in_var) - sum(out_var) == 0)
-        return net_variables
+            in_out_edges: dict[str, list[HananEdge3D]] = self._graph.get_edges_from_node(n)
+            in_var = [net_variables[(e.source._id, e.target._id, net_id)] for e in in_out_edges["in"] if (e.source._id, e.target._id) in edgeids]
+            out_var = [net_variables[(e.source._id, e.target._id, net_id)] for e in in_out_edges["out"] if (e.source._id, e.target._id) in edgeids]
+            c = self._solver.add_linear_constraint(sum(in_var) - sum(out_var) == 0)
+            net_constraints.append(c)
 
-    def _add_capacity_constraints(self):
+        # Source and Sink are the only nodes that have flow non-zero
+        # For source, the outflow is net weigth and the inflow is 0
+        # ALL strict so we ensure that multiple-pin nets are routed  not as in <= in 2-pin nets
+        c = self._solver.add_linear_constraint(sum(net_variables[(e.source._id, e.target._id, net_id)] for e in source_edges['out'] if (e.source._id, e.target._id) in edgeids) == subnet.weight)
+        net_constraints.append(c)
+        c = self._solver.add_linear_constraint(sum(net_variables[(e.source._id, e.target._id, net_id)] for e in source_edges['in']  if (e.source._id, e.target._id) in edgeids) == 0)
+        net_constraints.append(c)
+        # For sink, the inflow is the net weight and the outflow is 0
+        c = self._solver.add_linear_constraint(sum(net_variables[(e.source._id, e.target._id, net_id)] for e in sink_edges['in'] if (e.source._id, e.target._id) in edgeids) == subnet.weight)
+        net_constraints.append(c)
+        c = self._solver.add_linear_constraint(sum(net_variables[(e.source._id, e.target._id, net_id)] for e in sink_edges['out'] if (e.source._id, e.target._id) in edgeids) == 0)
+        net_constraints.append(c)
+
+        # in2pin net the constraints are in net_constraints[-2] and net_constraints[-4]
+        return net_variables, net_constraints
+
+    def _add_capacity_constraints(self) -> List[LinearConstraint]:
         # STEP 4: Add capacity constraints
         # Add constraints on not exceeding capacity
-        capacities: list = []
+        capacities = []
         visited = set()
         for source_id in self._graph.adjacent_list:
             if not (source_id in visited):
                 visited.add(source_id)
                 source = self._graph.get_node(source_id)
-                if self._graph.is_terminal(source):
-                    # The capacity is not set because it is infinity
+                if not source:
+                    continue
+                elif self._graph.is_terminal(source):
+                    # The capacity is not set beause it is infinity
                     continue
                 for target_id, e in self._graph.adjacent_list[source_id].items():
                     target = self._graph.get_node(target_id)
-                    if target_id in visited or self._graph.is_terminal(target):
+                    if not target:
+                        continue
+                    elif target_id in visited or self._graph.is_terminal(target):
                         continue
                     vars1 = self._variables.get_variables(
                         edge_id=(source_id, target_id)
@@ -531,12 +502,11 @@ class FeedThrough:
             }
             # Manhattan distance
             if centers_x and centers_y:  # Ensure we don't call max/min on empty lists
-                hpwl += (
-                    max(centers_x) - min(centers_x) + max(centers_y) - min(centers_y)
-                ) * n.weight
-        mc = 1
-        vu = 1
-        if hasattr(self, "pre_result"):
+                hpwl += (max(centers_x) - min(centers_x) + 
+                         max(centers_y) - min(centers_y)) * n.weight
+        vu = sum([n.weight for n in self._nets.values()])
+        mc = 4 * vu # This is an approximation based on some experiments
+        if hasattr(self, 'pre_result'):
             module_crossings = self._variables.get_variables(crossing=True)
             mc = sum(self.pre_result.variable_values(module_crossings))
             via_usage = self._variables.get_variables(via=True)
@@ -550,9 +520,8 @@ class FeedThrough:
         self.norms = (hpwl, mc, vu)
         return
 
-    def _find_opt_bb(
-        self, unrouted_nets: list[NetId] = None, depth: int = 0, max_depth: int = 3
-    ):
+    def _find_opt_bb(self, unrouted_nets: list[NetId] | None = None, depth: int = 0, max_depth: int = 3) -> bool:
+
         if unrouted_nets is None:  # Solving call
             hpwl = self.norms[0]
             # STEP 5: Define the objective & Compute the normalization factors.
@@ -560,17 +529,27 @@ class FeedThrough:
                 sum(self._variables.get_variables(source=True))
                 - sum(self._variables.get_variables(source=False)) / hpwl
             )
-            # STEP 6: Solve the model
-            self.pre_result = mathopt.solve(self._solver, mathopt.SolverType.HIGHS)
-            # Retrieve results
-            unrouted = self._variables.get_unrouted(self.pre_result, self._nets)
-            print(
-                f"[Iteration {depth}] Unrouted: {len(unrouted)} nets out of {len(self._nets)}"
-            )
-            # TODO print the execution time
-            self._m.setdefault("#unrouted_nets", []).append(len(unrouted))
-            self._m.setdefault("unrouted_nets_ids", []).append(unrouted)
-            return self._find_opt_bb(unrouted, depth + 1)
+            params = SolveParameters()
+            params.highs.int_options['user_cost_scale'] = int(math.log2(len(self._nets)))
+            params.highs.double_options['primal_feasibility_tolerance'] = 1e-5
+            params.highs.double_options['dual_feasibility_tolerance'] = 1e-3
+            ### STEP 6: Solve the model
+            self.pre_result = mathopt.solve(
+                 self._solver, mathopt.SolverType.HIGHS, params=params)
+            ### Retrieve results
+            unrouted = self._variables.get_unrouted(
+                 self.pre_result, self._nets)
+            print(f"[Iteration {depth}] Unrouted: {len(unrouted)} nets out of {len(self._nets)} "
+                  f"with {self.pre_result.solve_time().total_seconds()} secs")
+            if len(unrouted) > 10:
+                return False
+            
+            self._m['#unrouted_nets'] = str(self._m.get('#unrouted_nets', '')) + f"{len(unrouted)} - "
+            if len(unrouted) < 6:
+                self._m['unrouted_nets_ids'] = str(self._m.get('unrouted_nets_ids', '')) + f"{unrouted} - "
+            else:
+                self._m['unrouted_nets_ids'] = str(self._m.get('unrouted_nets_ids', ''))
+            return self._find_opt_bb(unrouted, depth+1)
 
         elif len(unrouted_nets) == 0:  # Finish call
             # Change the last constraints of the model <= (sources and sinks) to ==.
@@ -579,6 +558,7 @@ class FeedThrough:
                     net_id
                 ]
                 # In _add_2pin_net, the constraints are in net_constraints[-2] and net_constraints[-4]
+                # In multiple pin net...
                 self._solver.delete_linear_constraint(net_constraints[-2])
                 self._solver.delete_linear_constraint(net_constraints[-4])
                 for c in net_eq_constraints:
@@ -612,9 +592,14 @@ class FeedThrough:
             self.model_components[-1] = self._add_capacity_constraints()
             return self._find_opt_bb(None, depth)
 
-    def build(self, optimize_bbox=True, max_depth=3) -> bool:
+    def build(self, optimize_bbox=True, max_depth= 3, infinite_cap = False, bounding_box=True) -> bool:
+
         self._variables = self.VariableStore()
-        self.nets_bb = defaultdict(int)
+        self.nets_bb: defaultdict
+        if bounding_box:
+            self.nets_bb = defaultdict(int)
+        else:
+            self.nets_bb = defaultdict(lambda:5)
         self._solver = mathopt.Model()
 
         if self.reweight:
@@ -627,18 +612,30 @@ class FeedThrough:
                 new_w = rescale(net.weight, old_min, old_max)
                 net.weight = int(new_w)
 
-        # Add to the model the variables and constraints
-        self.model_components: dict[NetId] = {}
+        # Add to the model the varaibles and constraints
+        self.model_components: dict[NetId, Any] = {}
         for net_id, net in self._nets.items():
-            if len(net.modules) > 2:
-                self.shared = self._add_multipin_net(net_id, net)
+            if len(net.modules)>2:
+                # TODO
+                self._add_multipin_net(net_id, net)
             else:
                 self.model_components[net_id] = self._add_2pin_net(net_id, net)
-                # net_vars, net_constraints, net_eq_constraints
+
+        if infinite_cap:
+            self._compute_norms()
+            self.is_build = True
+            for net_id in self._nets:
+                net_vars, net_constraints, net_eq_constraints = self.model_components[net_id]
+                # In _add_2pin_net, the constraints are in net_constraints[-2] and net_constraints[-4]
+                self._solver.delete_linear_constraint(net_constraints[-2])
+                self._solver.delete_linear_constraint(net_constraints[-4])
+                for c in net_eq_constraints:
+                    self._solver.add_linear_constraint(c)
+            return True
         self.model_components[-1] = self._add_capacity_constraints()
 
         self._compute_norms()
-        if optimize_bbox:
+        if bounding_box and optimize_bbox:
             if not self._find_opt_bb(max_depth=max_depth):
                 self.is_build = False
                 return False
@@ -646,42 +643,47 @@ class FeedThrough:
             self.is_build = True
         return True
 
-    def solve(
-        self, f_wl: float = 0.1, f_mc: float = 0.2, f_vu: float = 0.7
-    ) -> tuple[bool, dict[str, int | float]]:
+    def solve(self, f_wl: float = 0.1, f_mc: float = 0.2, f_vu: float = 0.7) -> tuple[bool, dict[str, int | str]]:
         """
         :return is_solved (bool): Whether the solver found a solution or not
         :return metrics (dict[str,int|float]): Execution metrics and solution values
         """
-        assert hasattr(self, "is_build"), "Before solving, build the model"
-        assert (
-            self.is_build
-        ), "The model has failed when building, change parameters before solving"
-        # assert abs(f_wl + f_mc + f_vu) <= 1.01, "The given factors are not unitary (their sum is not 1)"
-
-        self._m["factors"] = (round(f_wl, 3), round(f_mc, 3), round(f_vu, 3))
-        self._m["norm_fact"] = self.norms
-
-        # STEP 5: Define the objective
+        assert hasattr(self, 'is_build'), "Before solving, build the model"
+        assert self.is_build, "The model has failed when building, change parameters before solving"
+        
+        self._m['factors'] = f"wl={round(f_wl,3)} mc={round(f_mc,3)} vu={round(f_vu,3)}"
+        self._m['norm_factwl'] = self.norms[0]
+        self._m['norm_factmc'] = self.norms[1]
+        self._m['norm_factvu'] = self.norms[2]
+        
+        ### STEP 5: Define the objective
         module_crossings = self._variables.get_variables(crossing=True)
-        wire_length = [
-            var * self._graph.get_edge(var_id[0], var_id[1]).length
-            for var_id, var, _ in self._variables
-        ]
+        wire_length = [var * e.length
+                       for var_id, var, _ in self._variables 
+                       if (e:=self._graph.get_edge(var_id[0], var_id[1])) is not None]
         via_usage = self._variables.get_variables(via=True)
 
         self._solver.minimize_linear_objective(
-            f_wl * sum(wire_length) / self.norms[0]
-            + f_mc * sum(module_crossings) / self.norms[1]
-            + f_vu * sum(via_usage) / self.norms[2]  # +
-            # 100 * sum(self.shared) TODO think why
+            f_wl * sum(wire_length)/self.norms[0] +
+            f_mc * sum(module_crossings)/self.norms[1] +
+            f_vu * sum(via_usage)/self.norms[2]
         )
-        # self._solver.minimize_linear_objective(
-        #     sum(wire_length)
-        # )
-
-        # STEP 6: Solve the model
-        status = mathopt.solve(self._solver, mathopt.SolverType.HIGHS)
+        # Change params
+        params = SolveParameters(enable_output=True)
+        params.highs.int_options['user_cost_scale'] = int(math.log2(len(self._nets)))
+        # params.highs.string_options['solver'] = "ipm"
+        # params.highs.string_options['solver'] = "simplex" #(default)
+        
+        #params.highs.double_options['primal_feasibility_tolerance'] = # Looser constraints (faster, but less accurate)
+        #params.highs.double_options['dual_feasibility_tolerance'] = # May accept suboptimal solutions faster
+        #params.highs.double_options['ipm_optimality_tolerance'] = # Only for Interior Point Method
+        
+        # Solve with these parameters
+        status = mathopt.solve(
+            self._solver,
+            mathopt.SolverType.HIGHS,
+            params=params
+        )
         self.execution_time = status.solve_time().total_seconds()
         self.is_solved = self.has_solution(status)
         self.result = status
@@ -700,7 +702,7 @@ class FeedThrough:
         return self._graph
 
     @property
-    def metrics(self) -> dict[str, int | float]:
+    def metrics(self) -> dict[str, int | str]:
         return self._m
 
     def _metrics(self):
@@ -711,33 +713,18 @@ class FeedThrough:
         )
         self._m["elapsed_time_secs"] = round(self.execution_time, 3)
         if self.is_solved:
-            wire_length = [
-                self.result.variable_values(var)
-                * self._graph.get_edge(var_id[0], var_id[1]).length
-                for var_id, var, _ in self.solution
-            ]
-            self._m["total_wl"] = round(sum(wire_length), 0)
-            self._m["module_crossings"] = round(
-                sum(
-                    self.result.variable_values(
-                        self.solution.get_variables(crossing=True)
-                    )
-                ),
-                1,
-            )
-            self._m["via_usage"] = round(
-                sum(self.result.variable_values(self.solution.get_variables(via=True))),
-                1,
-            )
-            self._m["n_bifurcations"] = len(
-                [
-                    1
-                    for netid, route in self.solution.routes.items()
-                    if self.has_bifurcation(self._nets[netid], route)
-                ]
-            )
-            self._m["obj_val"] = round(self.result.objective_value(), 3)
-            self._m["mrd"] = max(
+            wire_length = [self.result.variable_values(var) * self._graph.get_edge(
+                var_id[0], var_id[1]).length for var_id, var, _ in self.solution]
+            self._m['total_wl'] = round(sum(wire_length), 0)
+            self._m['module_crossings'] = round(
+                sum(self.result.variable_values(self.solution.get_variables(crossing=True))), 1)
+            self._m['via_usage'] = round(
+                sum(self.result.variable_values(self.solution.get_variables(via=True))), 1)
+            self._m['n_bifurations'] = len([1 for netid, route in self.solution.routes.items(
+            ) if self.has_bifurcation(self._nets[netid], route)])
+            self._m['obj_val'] = round(self.result.objective_value(), 3)
+            self._m['int_violations'] = self.check_integral_solution()[1]
+            self._m['mrd'] = max(
                 (v[0] / v[1]) if v[1] != 0 else 0
                 for v in self._congestion_map().values()
             )  # maximum routing density(MRD)
@@ -791,7 +778,7 @@ class FeedThrough:
             if hasattr(self, "is_solved"):
                 return self.is_solved
             else:
-                return None
+                return False
         msg = status.termination.detail
         if status.termination.reason == mathopt.TerminationReason.OPTIMAL:
             print(
@@ -846,13 +833,11 @@ class FeedThrough:
             print("Unknown status returned!")
             return False
 
-    def get_route_path(
-        self, identifiers: list[dict[EdgeId, float]]
-    ) -> list[dict[EdgeId, float]]:
+    def get_route_path(self, identifiers: list[dict[EdgeId, float]]) -> list[dict[EdgeId, float]] | None:
         """return path for a route"""
         # Step 1: Build graph and in-degree map
         graph = {}
-        in_degree = defaultdict(int)
+        in_degree:defaultdict = defaultdict(int)
         edge_weights = {
             list(edge_dict.keys())[0]: list(edge_dict.values())[0]
             for edge_dict in identifiers
@@ -896,8 +881,14 @@ class FeedThrough:
             if congestion < 1:
                 continue
             edge = self.hanan_graph.get_edge(edge_id[0], edge_id[1])
+            if not edge:
+                continue
             from_node = self.hanan_graph.get_node(edge_id[0])
+            if not from_node:
+                continue
             to_node = self.hanan_graph.get_node(edge_id[1])
+            if not to_node:
+                continue
             # Skip vias
             if from_node._id[-1] != to_node._id[-1]:
                 continue

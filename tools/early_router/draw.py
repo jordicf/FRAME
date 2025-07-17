@@ -21,6 +21,7 @@ from tools.early_router.types import NetId, EdgeId, CellId
 from matplotlib.patches import Circle, Rectangle as MplRectangle
 import math
 import mpl_toolkits.mplot3d.art3d as art3d
+import mpl_toolkits.mplot3d.axes3d as Axes3D
 from PIL import Image, ImageDraw, ImageFont
 from typing import Tuple
 from frame.geometry.geometry import Shape, Rectangle
@@ -89,7 +90,7 @@ def draw_solution3D(
     scaling = calculate_scaling(die_shape, width, height, frame)
     # Create a 3D plot
     fig = plt.figure()
-    ax = fig.add_subplot(111, projection="3d")
+    ax:Axes3D = fig.add_subplot(111, projection='3d')
     # Assignment of a color to each block
     colors = distinctipy.get_colors(netlist.num_modules, rng=0)
     module2color = {b: colors[i] for i, b in enumerate(netlist.modules)}
@@ -220,13 +221,15 @@ def draw_solution3D(
                     ax.add_patch(p)
                     art3d.pathpatch_2d_to_3d(p, z=0, zdir="z")
     # Plot the route
-    wl = 0
-    cros = 0
-    via = 0
+    wl = 0.
+    cros =0.
+    via = 0.
     for i, edge_dict in enumerate(route):
         for (start, end), value in edge_dict.items():
             from_node = hanan_graph.get_node(start)
             to_node = hanan_graph.get_node(end)
+            if not from_node or not to_node:
+                continue
             canvas_start_p = scale(from_node.center, scaling)
             canvas_end_p = scale(to_node.center, scaling)
             x_vals, y_vals, z_vals = zip(
@@ -252,6 +255,8 @@ def draw_solution3D(
             )
 
             e = hanan_graph.get_edge(start, end)
+            if not e:
+                continue
             wl += e.length * value
             if (
                 e.crossing
@@ -311,8 +316,8 @@ def draw_solution2D(
     # Create a Transparent layer for later merge
     transp = Image.new("RGBA", im.size, (0, 0, 0, 0))
     drawing = ImageDraw.Draw(transp, "RGBA")
-
-    drawn_edges = []
+    
+    drawn_edges:list = []
     line_width = 5
     for net_id, route in routes.items():
         for path in route:
@@ -320,6 +325,8 @@ def draw_solution2D(
             other_way = edge_id[::-1]
             from_node = hanan_graph.get_node(edge_id[0])
             to_node = hanan_graph.get_node(edge_id[1])
+            if not from_node or not to_node:
+                continue
 
             canvas_start_p = scale(from_node.center, scaling)
             canvas_end_p = scale(to_node.center, scaling)
@@ -530,6 +537,8 @@ def draw_congestion(
         edge = hanan_graph.get_edge(edge_id[0], edge_id[1])
         from_node = hanan_graph.get_node(edge_id[0])
         to_node = hanan_graph.get_node(edge_id[1])
+        if not from_node or not to_node or not edge:
+            continue
         # Skip vias
         if from_node._id[-1] != to_node._id[-1]:
             continue
@@ -557,6 +566,8 @@ def draw_congestion(
         to_node = hanan_graph.get_node((cells[1][0], cells[1][1], 0))
 
         cell = hanan_graph.hanan_grid.get_cell(cells[0])
+        if not from_node or not to_node or not cell:
+            continue
 
         pct = (tcong[0] / tcong[1]) * 100
         if cell:
