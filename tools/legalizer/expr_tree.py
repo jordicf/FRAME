@@ -196,10 +196,13 @@ class ExpressionTree:
                 or isinstance(value, int)
                 or isinstance(value, GKVariable)
                 or isinstance(value, GK_MV)
+                or hasattr(value, "value")  #capture Gekko variable/intermediate expression
             ):
                 self.size = 1
-            else:
+            elif isinstance(value, list):
                 self.size = sum(map(lambda x: x.size, value)) + 1
+            else:
+                raise Exception(f"Unknown type for the base expression: {type(value)}")
         if isinstance(value, GKVariable) or isinstance(value, GK_MV):
             self.previous_value = value.value
 
@@ -288,12 +291,10 @@ class ExpressionTree:
     def __repr__(self) -> str:
         return self.get_string()
 
-    def get_gekko_expression_aux(
-        self,
-        getter: Callable[[Any], Any] = lambda x: x,
-        root: Callable[[Any], Any] | None = None,
-        aux_var: bool = True,
-    ) -> tuple[GKVariable | GK_MV | float, ExpressionTree]:
+    def get_gekko_expression_aux(self,
+                                 getter: Callable[[Any], Any] = lambda x: x,
+                                 root: Callable[[Any], Any] | None = None,
+                                 aux_var: bool = True) -> tuple[GKVariable | GK_MV | float, ExpressionTree]:
         if root is None:
             root = self.gekko.sqrt
         blank: Callable[[Any, Any], Any] = lambda x, y: 0
@@ -301,47 +302,33 @@ class ExpressionTree:
         sub: Callable[[Any, Any], Any] = lambda x, y: x - y
         mul: Callable[[Any, Any], Any] = lambda x, y: x * y
         div: Callable[[Any, Any], Any] = lambda x, y: x / y
-        exp: Callable[[Any, Any], Any] = lambda x, y: x**y
-        operations: list[Callable[[Any, Any], Any]] = [
-            blank,
-            blank,
-            add,
-            sub,
-            mul,
-            div,
-            exp,
-            blank,
-        ]
+        exp: Callable[[Any, Any], Any] = lambda x, y: x ** y
+        operations: list[Callable[[Any, Any], Any]] = [blank, blank, add, sub, mul, div, exp, blank]
         if self.type is NodeType.CST or self.type is NodeType.VAR:
             return getter(self.value), ExpressionTree(self.gekko, self.value, self.type)
         if self.type is NodeType.SRT:
             expr, tree = self.value[0].get_gekko_expression_aux(getter, root, aux_var)
             if tree.size > 50 and aux_var:
-                new_var = ExpressionTree(self.gekko, self.gekko.Var())
-                new_var.value.value = [self.value[0].evaluate()]
-                add_equation(self.gekko, new_var, Cmp.EQ, tree, "aux_var")
-                return root(new_var), ExpressionTree(self.gekko, [new_var], self.type)
+                intermediate_gekko_obj = self.gekko.Intermediate(expr)
+                intermediate_et_node = ExpressionTree(self.gekko, intermediate_gekko_obj, NodeType.VAR)
+                return root(intermediate_gekko_obj), ExpressionTree(self.gekko, [intermediate_et_node], self.type)
             return root(expr), ExpressionTree(self.gekko, [tree], self.type)
         lhs, tree1 = self.value[0].get_gekko_expression_aux(getter, root, aux_var)
         rhs, tree2 = self.value[1].get_gekko_expression_aux(getter, root, aux_var)
         if tree1.size + tree2.size > 50 and aux_var:
-            lhs_var, rhs_var = ExpressionTree(
-                self.gekko, self.gekko.Var()
-            ), ExpressionTree(self.gekko, self.gekko.Var())
-            lhs_var.value.value = [self.value[0].evaluate()]
-            rhs_var.value.value = [self.value[1].evaluate()]
-            add_equation(self.gekko, lhs_var, Cmp.EQ, tree1, "aux_var")
-            add_equation(self.gekko, rhs_var, Cmp.EQ, tree2, "aux_var")
-            return operations[self.type](lhs_var.value, rhs_var.value), ExpressionTree(
-                self.gekko, [lhs_var, rhs_var], self.type
-            )
+            lhs_intermediate_gk_obj = self.gekko.Intermediate(lhs)
+            rhs_intermediate_gk_obj = self.gekko.Intermediate(rhs)
+            
+            lhs_intermediate_et_node = ExpressionTree(self.gekko, lhs_intermediate_gk_obj, NodeType.VAR)
+            rhs_intermediate_et_node = ExpressionTree(self.gekko, rhs_intermediate_gk_obj, NodeType.VAR)
+            
+            return (operations[self.type](lhs_intermediate_gk_obj, rhs_intermediate_gk_obj), 
+                    ExpressionTree(self.gekko, [lhs_intermediate_et_node, rhs_intermediate_et_node], self.type))
         if isinstance(lhs, ExpressionTree):
             raise Exception("lhs is an expression tree!")
         if isinstance(rhs, ExpressionTree):
             raise Exception("rhs is an expression tree!")
-        return operations[self.type](lhs, rhs), ExpressionTree(
-            self.gekko, [tree1, tree2], self.type
-        )
+        return operations[self.type](lhs, rhs), ExpressionTree(self.gekko, [tree1, tree2], self.type)
 
     def get_gekko_expression(
         self,

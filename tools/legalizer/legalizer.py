@@ -1,4 +1,4 @@
-# (c) Víctor Franco Sanchez 2022
+# (c) Ylham Imam, 2025
 # For the FRAME Project.
 # Licensed under the MIT License (see https://github.com/jordicf/FRAME/blob/master/LICENSE.txt).
 from random import randint
@@ -15,11 +15,9 @@ import sys
 from frame.die.die import Die
 from frame.netlist.netlist import Netlist
 from frame.geometry.geometry import Rectangle
-from tools.legalfloor.expression_tree import (ExpressionTree, Cmp,
-                                              set_epsilon, get_epsilon,
-                                              turn_off_flag, Equation)
-from tools.legalfloor.expression_tree import sqrt as expr_sqrt
-from tools.legalfloor.model import ModelWrapper
+from tools.legalizer.expr_tree import ExpressionTree, Cmp, set_epsilon, get_epsilon, turn_off_flag, Equation
+from tools.legalizer.expr_tree import sqrt as expr_sqrt
+from tools.legalizer.modelwrap import ModelWrapper
 from tools.rect.canvas import Canvas
 from argparse import ArgumentParser
 import matplotlib.pyplot as plt
@@ -61,9 +59,9 @@ def parse_options(prog: str | None = None, args: list[str] | None = None) -> dic
     parser = ArgumentParser(prog=prog, description="A tool for module legalization", usage='%(prog)s [options]')
     parser.add_argument("netlist", type=str, help="Input netlist (.yaml)")
     parser.add_argument("die", type=str, help="Input die (.yaml)")
-    parser.add_argument("--max_ratio", type=float, dest='max_ratio', default=2.00,
+    parser.add_argument("--max_ratio", type=float, dest='max_ratio', default=3.00,
                         help="The maximum allowable ratio for a rectangle")
-    parser.add_argument("--num_iter", type=int, dest='num_iter', default=100,
+    parser.add_argument("--num_iter", type=int, dest='num_iter', default=15,
                         help="The number of iterations")
     parser.add_argument("--radius", type=float, dest='radius', default=1,
                         help="The radius for the no overlap constraint.")
@@ -77,7 +75,7 @@ def parse_options(prog: str | None = None, args: list[str] | None = None) -> dic
                         help="Shows additional debug information")
     parser.add_argument("--ini_temp", dest="t0", type=float, default=0.9,
                         help="Initial annealing temperature")
-    parser.add_argument("--alpha_temp", dest="dt", type=float, default=0.3,
+    parser.add_argument("--alpha_temp", dest="dt", type=float, default=0.03,
                         help="Temperature annealing factor")
     parser.add_argument("--dcost", dest="dcost", type=float, default=0.00001,
                         help="Delta cost of an iteration")
@@ -85,6 +83,20 @@ def parse_options(prog: str | None = None, args: list[str] | None = None) -> dic
                         help="The output file path (yaml)")
     parser.add_argument('--palette_seed', type=int, dest='palette_seed', default=None,
                         help="The seed for the random color palette")
+    parser.add_argument('--tau_initial', type=float, default=None, 
+                       help='Initial tau value for soft constraints')
+    parser.add_argument('--tau_decay', type=float, default=0.3,
+                       help='Decay rate for tau per time step')
+    parser.add_argument('--otol_initial', type=float, default=1e-1,
+                       help='Initial optimality tolerance')
+    parser.add_argument('--otol_final', type=float, default=1e-4,
+                       help='Final optimality tolerance (minimum value)')
+    parser.add_argument('--rtol_initial', type=float, default=1e-1,
+                       help='Initial residual tolerance')
+    parser.add_argument('--rtol_final', type=float, default=1e-4,
+                       help='Final residual tolerance (minimum value)')
+    parser.add_argument('--tol_decay', type=float, default=0.5,
+                       help='Decay rate for tolerance values per iteration')
     return vars(parser.parse_args(args))
 
 
@@ -162,7 +174,9 @@ class ModelModule:
                  die_width: float,
                  die_height: float,
                  max_ratio: float,
-                 n_mods: int):
+                 n_mods: int,
+                 is_terminal: bool = False):  # add is_terminal parameter
+        self.is_terminal = is_terminal  # add is_terminal attribute
         self.N: list[int] = []
         self.S: list[int] = []
         self.E: list[int] = []
@@ -182,7 +196,7 @@ class ModelModule:
         self.degree = 0  # 0 = soft, 1 = hard, 2 = fixed. Just required for output purposes
         self.constraints: list[list[tuple[str, Equation]]] = []
         self.codependent_constraints: dict[tuple[int, int], list[tuple[str, Equation]]] = {}
-        self.enable = list[bool]()
+        self.enable = []
         self.set_trunk(gekko, trunk)
 
     def set_degree(self, degree: int):
@@ -386,6 +400,15 @@ class Model:
 
     temperature_decay: float
     temperature_ini: float
+    
+    # Tolerance parameters
+    otol_initial: float
+    otol_final: float
+    rtol_initial: float
+    rtol_final: float
+    tol_decay: float  # decay rate
+
+    terminal_map: dict[str, tuple[float, float]]
 
     def time_advance(self, amount: float):
         if amount <= 0:
@@ -396,15 +419,18 @@ class Model:
     def define_time(self) -> None:
         self.time = ExpressionTree.create_variable(self.gekko.gekko, value=0, lb=0, ub=1000, name="time")
         set_epsilon((ExpressionTree(self.gekko.gekko, self.temperature_decay) ** self.time) * self.temperature_ini)
+        self.tau = (ExpressionTree(self.gekko.gekko, self.tau_decay) ** self.time) * self.tau_initial
         self.time_advance(self.fixed_t)
         print("")
 
-    def define_module(self, trunk_box: BoxType) -> int:
+    def define_module(self, trunk_box: BoxType, is_terminal: bool = False) -> int:
         x: list[ExpressionTree] = []
         y: list[ExpressionTree] = []
         w: list[ExpressionTree] = []
         h: list[ExpressionTree] = []
-        m = ModelModule(x, y, w, h, self.gekko, trunk_box, self.dw, self.dh, self.max_ratio, len(self.M))
+        # pass is_terminal parameter correctly
+        m = ModelModule(x, y, w, h, self.gekko, trunk_box, self.dw, self.dh, 
+                       self.max_ratio, len(self.M), is_terminal=is_terminal)
         self.gekko.add_macro(m)
         self.M.append(m)
         self.x.append(x)
@@ -414,7 +440,7 @@ class Model:
         return len(self.M) - 1
 
     def add_rect(self, m: int, box: BoxType, direction: Cardinal) -> int:
-        call = self.M[m].add_rect_north
+        call = self.M[m].add_rect_blank
         if direction is Cardinal.NORTH:
             call = self.M[m].add_rect_north
         elif direction is Cardinal.SOUTH:
@@ -423,8 +449,6 @@ class Model:
             call = self.M[m].add_rect_east
         elif direction is Cardinal.WEST:
             call = self.M[m].add_rect_west
-        else:
-            raise Exception("Unknown cardinal when adding rectangle")
         # xv, yv, wv, hv =
         call(self.gekko, box)
         return len(self.M) - 1
@@ -470,30 +494,73 @@ class Model:
     def objective(self) -> ExpressionTree:
         maximum_size = float('inf')
         obj = ExpressionTree(self.gekko.gekko, 0.0)
-        for (weight, Set) in self.hyper:
-            centroid_x: ExpressionTree = ExpressionTree(self.gekko.gekko, 0.0)
-            centroid_y: ExpressionTree = ExpressionTree(self.gekko.gekko, 0.0)
-            for i in Set:
-                centroid_x += self.M[i].x_sum / self.M[i].area
-                centroid_y += self.M[i].y_sum / self.M[i].area
-                for j in range(0, self.M[i].c):
-                    obj += (
-                                   (self.M[i].x[j] - self.M[i].x_sum / self.M[i].area) ** 2 +
-                                   (self.M[i].y[j] - self.M[i].y_sum / self.M[i].area) ** 2
-                           ) * (weight * weight)
+        
+        # traverse all hyper edges (including modules and terminals)
+        for (weight, vertices, terminals) in self.hyper:
+            # collect all relevant coordinates (module center + terminals)
+            all_points = []
+            
+            # 1. deal with module internal shape optimization (keep original coefficient)
+            for i in vertices:
+                mod = self.M[i]
+                
+                # check if the module has valid area, if not, skip (maybe terminal)
+                area_value = mod.area.evaluate()
+                if area_value < 1e-5:
+                    # for zero area modules (terminals), use the center of the first rectangle as the coordinate
+                    if mod.c > 0:
+                        mod_center_x = mod.x[0]
+                        mod_center_y = mod.y[0]
+                        all_points.append((mod_center_x, mod_center_y))
+                    continue
+                
+                area_safe = mod.area + ExpressionTree(self.gekko.gekko, 1e-10)
+                mod_center_x = mod.x_sum / area_safe
+                mod_center_y = mod.y_sum / area_safe
+                all_points.append((mod_center_x, mod_center_y))
+                
+                # internal shape optimization term (keep original coefficient 0.5)
+                for j in range(mod.c):
+                    term = (
+                        (mod.x[j] - mod_center_x)**2 +
+                        (mod.y[j] - mod_center_y)**2
+                    ) * 0.5
+                    obj += term
                     if obj.size >= maximum_size:
                         return obj
-            centroid_x /= len(Set)
-            centroid_y /= len(Set)
-            for i in Set:
-                obj += (
-                               (self.M[i].x_sum / self.M[i].area - centroid_x) ** 2 +
-                               (self.M[i].y_sum / self.M[i].area - centroid_y) ** 2
-                       ) * (weight * weight)
+
+            # 2. add terminals coordinates
+            for term_name in terminals:
+                if term_name in self.terminal_map:
+                    tx, ty = self.terminal_map[term_name]
+                    # create constant expression tree
+                    t_x = ExpressionTree(self.gekko.gekko, tx)
+                    t_y = ExpressionTree(self.gekko.gekko, ty)
+                    all_points.append((t_x, t_y))
+
+            # 3. calculate global center (including modules and terminals)
+            if len(all_points) < 2:
+                continue
+                
+            centroid_x = ExpressionTree(self.gekko.gekko, 0.0)
+            centroid_y = ExpressionTree(self.gekko.gekko, 0.0)
+            for x, y in all_points:
+                centroid_x += x
+                centroid_y += y
+            centroid_x /= len(all_points)
+            centroid_y /= len(all_points)
+
+            # 4. add connection optimization term (keep original square weight)
+            for x, y in all_points:
+                dx = x - centroid_x
+                dy = y - centroid_y
+                obj += (dx**2 + dy**2) * (weight**2)
                 if obj.size >= maximum_size:
                     return obj
-        return obj
 
+        return obj
+   
+    
     def reinforce_fixed(self):
         for (x, v) in self.enforces:
             x.value.value = [v]
@@ -511,31 +578,41 @@ class Model:
         max_ratio = self.max_ratio
         og_names = self.og_names
 
-        self.M = list[ModelModule]()
-        self.x = list[list[ExpressionTree]]()
-        self.y = list[list[ExpressionTree]]()
-        self.w = list[list[ExpressionTree]]()
-        self.h = list[list[ExpressionTree]]()
-        self.dw = die_width
-        self.dh = die_height
-        self.max_ratio = max_ratio
-        self.og_names = og_names
-        self.og_area = al
+        self.M: list[ModelModule] = []
+        self.x: list[list[ExpressionTree]] = []
+        self.y: list[list[ExpressionTree]] = []
+        self.w: list[list[ExpressionTree]] = []
+        self.h: list[list[ExpressionTree]] = []
+        self.dw: float = die_width
+        self.dh: float = die_height
+        self.max_ratio: float = max_ratio
+        self.og_names: list[str] = og_names
+        self.og_area: list[float] = al
         self.hyper = hyper
-        self.inter_eqs = dict[tuple[int, int, int, int], Equation]()
-        self.enforces = list[tuple[ExpressionTree, float]]()
+        self.inter_eqs: dict[tuple[int, int, int, int], Equation] = {}
+
+        self.enforces: list[tuple[ExpressionTree, float]] = []
 
         """Constructs the GEKKO object and initializes the model"""
         self.gekko = ModelWrapper(GEKKO(remote=False), self.wl_mult)
 
-        # self.tau = self.gekko.Var(lb = 0, name="tau")
-        # self.tau.value = [5]
-        self.tau = ExpressionTree(self.gekko.gekko, 0.01 * min(die_width, die_height) / len(ml))
+        if self.tau_initial is None:
+            self.tau_initial = sum(al) / 1  # default value based on total area
+        else:
+            self.tau_initial = self.tau_initial
+        #self.tau= ExpressionTree(self.gekko.gekko,self.tau_initial)
         self.define_time()
 
         # Variable definition
-        for (trunk, Nb, Sb, Eb, Wb) in ml:
-            m = self.define_module(trunk)
+        for idx, (trunk, Nb, Sb, Eb, Wb) in enumerate(ml):
+            # check if it is terminal: if the module's area is small or fixed in xl/yl
+            is_terminal = (al[idx] < 1e-10) or (idx in xl and 0 in xl[idx] and idx in yl and 0 in yl[idx])
+            m = self.define_module(trunk, is_terminal=is_terminal)
+            
+            # if it is terminal, skip adding extra rectangles
+            if is_terminal:
+                continue
+                
             for box_i in Nb:
                 self.add_rect(m, box_i, Cardinal.NORTH)
             for box_i in Sb:
@@ -552,6 +629,9 @@ class Model:
 
         # Minimal area requirements
         for m in range(0, len(al)):
+            # skip area constraints for terminals
+            if self.M[m].is_terminal:
+                continue
             self.gekko.add_constraint("Area",
                                       Equation(self.M[m].area, Cmp.GE, ExpressionTree(self.gekko.gekko, al[m]),
                                                "min_area[%i]" % m))
@@ -607,6 +687,9 @@ class Model:
         # No Inter-Module Intersection
         for m in range(0, len(al)):
             for n in range(m + 1, len(al)):
+                # skip overlap constraints between two terminals
+                if self.M[m].is_terminal and self.M[n].is_terminal:
+                    continue
                 for i in range(0, self.M[m].c):
                     for j in range(0, self.M[n].c):
                         t1 = (self.x[m][i] - self.x[n][j]) ** two - qrt * (self.w[m][i] + self.w[n][j]) ** two
@@ -626,7 +709,7 @@ class Model:
         self.apply_objective_function()
         self.build_model(small_steps=True)
 
-    def build_model(self, small_steps: bool = False, radius: float = 0.2):
+    def build_model(self, small_steps: bool = False, radius: float = 1):
         dist_threshold = radius * max(self.die_width, self.die_height)
         self.gekko.build_model(small_steps=small_steps, radius=dist_threshold)
         al = self.al
@@ -637,12 +720,17 @@ class Model:
                 w1 = self.w[m][i].evaluate()
                 h1 = self.h[m][i].evaluate()
                 for n in range(m + 1, len(al)):
+                    # skip distance check between two terminals
+                    if self.M[m].is_terminal and self.M[n].is_terminal:
+                        continue
                     for j in range(0, self.M[n].c):
                         x2 = self.x[n][j].evaluate()
                         y2 = self.y[n][j].evaluate()
                         w2 = self.w[n][j].evaluate()
                         h2 = self.h[n][j].evaluate()
-                        e = self.inter_eqs[(m, n, i, j)]
+                        e = self.inter_eqs.get((m, n, i, j))
+                        if e is None:
+                            continue
                         e.enforce = Model.dist(x1, y1, w1, h1, x2, y2, w2, h2, 1) <= dist_threshold
                         if e.name in self.force_enforce:
                             e.enforce = True
@@ -680,6 +768,14 @@ class Model:
                  temp0: float,
                  alpha_temp: float,
                  wl_mult: float,
+                 tau_initial: float,
+                 tau_decay: float,
+                 otol_initial: float,
+                 otol_final: float,
+                 rtol_initial: float,
+                 rtol_final: float,
+                 tol_decay: float,
+                 terminal_map: dict[str, tuple[float, float]],
                  palette_seed: int | None = None):
         assert len(ml) == len(al), "M and A need to have the same length!"
         self.palette_seed = palette_seed
@@ -701,12 +797,97 @@ class Model:
         self.output_counter = 0
         self.wl_mult = wl_mult
         self.fixed_t = 1
-        self.objective_list = list[float]()
-        self.surplus_list = list[float]()
+        self.objective_list = []
+        self.surplus_list = []
+        self.hpwl_list = []  # store HPWL values
+        self.overlap_list = []  # store overlap area values
+        self.tau_initial = tau_initial
+        self.tau_decay = tau_decay
+        
+        # Initialize tolerance parameters
+        self.otol_initial = otol_initial
+        self.otol_final = otol_final
+        self.rtol_initial = rtol_initial
+        self.rtol_final = rtol_final
+        self.tol_decay = tol_decay
+        
+        # store terminals information
+        self.terminal_map = terminal_map
+        
         self.first_build_model()
 
     def apply_objective_function(self):
-        self.gekko.set_objective_function(self.objective() + self.tau)
+        #self.gekko.set_objective_function(self.objective() + self.tau)
+        self.gekko.set_objective_function(self.objective())
+
+
+    def calculate_hpwl(self) -> float:
+        """calculate hpwl including terminals"""
+        hpwl = 0.0
+        for hyperedge in self.hyper:
+            weight, vertices, terminals = hyperedge
+            
+            # collect module coordinates
+            x_coords = []
+            y_coords = []
+            
+            # add module center coordinates
+            for i in vertices:
+                if i < len(self.M):
+                    x_coords.append(self.M[i].x[0].evaluate())
+                    y_coords.append(self.M[i].y[0].evaluate())
+            
+            # add terminals coordinates
+            for terminal_name in terminals:
+                if terminal_name in self.terminal_map:
+                    x, y = self.terminal_map[terminal_name]
+                    x_coords.append(x)
+                    y_coords.append(y)
+            
+            if len(x_coords) > 1:  # at least 2 points are needed to calculate HPWL
+                delta_x = max(x_coords) - min(x_coords)
+                delta_y = max(y_coords) - min(y_coords)
+                hpwl += (delta_x + delta_y) * weight * 1
+        
+        return hpwl
+    
+    def calculate_total_overlap(self) -> float:
+        """Calculate total overlap area between all module rectangles"""
+        total_overlap = 0.0
+        
+        # Check all pairs of modules
+        for m in range(len(self.M)):
+            for n in range(m + 1, len(self.M)):
+                mod_m = self.M[m]
+                mod_n = self.M[n]
+                
+                # skip overlap check between two terminals
+                if mod_m.is_terminal and mod_n.is_terminal:
+                    continue
+                
+                # Check all enabled rectangles in each module
+                for i in range(mod_m.c):
+                    if not hasattr(mod_m, 'enable') or mod_m.enable[i]:
+                        x1 = mod_m.x[i].evaluate()
+                        y1 = mod_m.y[i].evaluate()
+                        w1 = mod_m.w[i].evaluate()
+                        h1 = mod_m.h[i].evaluate()
+                        
+                        for j in range(mod_n.c):
+                            if not hasattr(mod_n, 'enable') or mod_n.enable[j]:
+                                x2 = mod_n.x[j].evaluate()
+                                y2 = mod_n.y[j].evaluate()
+                                w2 = mod_n.w[j].evaluate()
+                                h2 = mod_n.h[j].evaluate()
+                                
+                                # Calculate overlap area
+                                x_overlap = max(0, min(x1 + w1/2, x2 + w2/2) - max(x1 - w1/2, x2 - w2/2))
+                                y_overlap = max(0, min(y1 + h1/2, y2 + h2/2) - max(y1 - h1/2, y2 - h2/2))
+                                overlap_area = x_overlap * y_overlap
+                                
+                                total_overlap += overlap_area
+        
+        return total_overlap
 
     def interactive_draw(self, canvas_width=500, canvas_height=500) -> None:
         canvas = Canvas(width=canvas_width, height=canvas_height)
@@ -726,25 +907,40 @@ class Model:
                     j = randint(i, len(self.M) - 1)
                 self.hue_array[i], self.hue_array[j] = self.hue_array[j], self.hue_array[i]
 
+        # draw modules
         for i in range(0, len(self.M)):
             m = self.M[i]
             for j in range(0, len(m.x)):
-                if not m.enable[j]:
+                if hasattr(m, 'enable') and not m.enable[j]:
                     continue
                 a = m.x[j].evaluate() - 0.5 * m.w[j].evaluate()
                 b = m.y[j].evaluate() - 0.5 * m.h[j].evaluate()
                 c = m.x[j].evaluate() + 0.5 * m.w[j].evaluate()
                 d = m.y[j].evaluate() + 0.5 * m.h[j].evaluate()
-                canvas.drawbox(((a, b), (c, d)), col=self.hue_array[i])
+                
+                # for terminals, use different colors or markers
+                if m.is_terminal:
+                    canvas.drawbox(((a, b), (c, d)), col="#FFFFFF", out="#000000")
+                else:
+                    canvas.drawbox(((a, b), (c, d)), col=self.hue_array[i])
 
+        # draw bounding boxes
         canvas.drawbox(((0, 0), (self.dw, self.dh)), "#00000000", "#FFFFFF")
+        
+        # draw terminals (small white dots)
+        for term_name, (tx, ty) in self.terminal_map.items():
+            canvas.dot((tx, ty), color="#FFFFFF", dot_type="thin_circle")
+            # optional: add terminal name label
+            # canvas.draw_text((tx, ty-1), term_name, size=8, align='center')
 
-        for hyper_edge in self.hyper:
-            modules = hyper_edge[1]
-            x_center = 0.0
-            y_center = 0.0
-            list_x = []
-            list_y = []
+        # draw connection lines
+        for hyperedge in self.hyper:
+            weight, modules, terminals = hyperedge
+            if not modules:
+                continue
+                
+            # calculate module centers
+            module_centers = []
             for module in modules:
                 x_sum = 0.0
                 y_sum = 0.0
@@ -756,21 +952,30 @@ class Model:
                     x_sum += self.M[module].x[rect_id].evaluate() * r_area
                     y_sum += self.M[module].y[rect_id].evaluate() * r_area
                     area += r_area
-                x, y = x_sum / area, y_sum / area
-                for rect_id in range(0, self.M[module].c):
-                    if not self.M[module].enable[rect_id]:
-                        continue
-                    x_r = self.M[module].x[rect_id].evaluate()
-                    y_r = self.M[module].y[rect_id].evaluate()
-                    canvas.dot((x_r, y_r), color="#FFFFFF", dot_type="thin_circle")
-                    canvas.line(((x_r, y_r), (x, y)), color="#FFFFFF50", thickness=1, line_type="dashed")
-                canvas.dot((x, y), color="#FFFFFF", dot_type="solid_circle")
-                x_center += x / len(modules)
-                y_center += y / len(modules)
-                list_x.append(x)
-                list_y.append(y)
-            for i in range(0, len(list_x)):
-                canvas.line(((x_center, y_center), (list_x[i], list_y[i])), color="#FFFFFF50")
+                if area > 0:
+                    module_centers.append((x_sum / area, y_sum / area))
+            
+            # get terminal coordinates
+            terminal_positions = []
+            for term in terminals:
+                if term in self.terminal_map:
+                    terminal_positions.append(self.terminal_map[term])
+            
+            # calculate center of all points (including terminals)
+            all_points = module_centers + terminal_positions
+            if not all_points:
+                continue
+                
+            x_center = sum(p[0] for p in all_points) / len(all_points)
+            y_center = sum(p[1] for p in all_points) / len(all_points)
+            
+            # draw lines from module centers to global center
+            for x, y in module_centers:
+                canvas.line(((x, y), (x_center, y_center)), color="#FFFFFF50", thickness=1)
+            
+            # draw lines from terminals to global center
+            for x, y in terminal_positions:
+                canvas.line(((x, y), (x_center, y_center)), color="#FFFF0050", thickness=1)  # yellow lines
 
         surplus = self.gekko.total_surplus()
         canvas.draw_text((10, canvas_height - 22), "Wire length: %f" % self.gekko.objective.evaluate())
@@ -778,56 +983,150 @@ class Model:
         self.objective_list.append(self.gekko.objective.evaluate())
         self.surplus_list.append(surplus)
 
-        canvas.save("./example_visuals/frame" + str(self.output_counter) + ".png")
+        canvas.save("./example_visuals1//frame" + str(self.output_counter) + ".png")
         self.output_counter += 1
 
+    
+
+    def adaptive_tolerance(self, iteration: int, max_iterations: int) -> tuple[float, float]:
+        """
+        Calculate adaptive tolerance values based on iteration number using exponential decay
+        
+        :param iteration: Current iteration number (0-based)
+        :param max_iterations: Maximum number of iterations
+        :return: Tuple of (OTOL, RTOL) values for current iteration
+        """
+        # use exponential decay formula: initial_value * decay_rate^iteration
+        decay_power = min(iteration, max_iterations-1)  # avoid exceeding maximum iterations
+        
+        # calculate current tolerance values
+        current_otol = max(self.otol_initial * (self.tol_decay ** decay_power), self.otol_final)
+        current_rtol = max(self.rtol_initial * (self.tol_decay ** decay_power), self.rtol_final)
+        
+        return current_otol, current_rtol
+
     def solve(self, verbose=False, small_steps=False, radius=None) -> None:
-        self.gekko.solve(verbose, small_steps=small_steps, radius=radius)
+        try:          
+            self.gekko.gekko.options.MAX_ITER += 500
+            self.gekko.gekko.options.REDUCE=3
+            
+            # get current time value and calculate adaptive tolerance
+            current_time = self.time.evaluate()
+            iteration = int(current_time)
+            total_iterations = self.fixed_t + self.time.evaluate()
+            
+            # set adaptive tolerance
+            otol, rtol = self.adaptive_tolerance(iteration, int(total_iterations))
+            self.gekko.gekko.options.OTOL = otol
+            self.gekko.gekko.options.RTOL = rtol
+            
+            if verbose:
+                print(f"Iteration {iteration}: OTOL={otol:.6f}, RTOL={rtol:.6f}")
+            
+            self.gekko.solve(verbose, small_steps=small_steps, radius=radius)
+           
+        except Exception as e:
+            print(f"Optimization error: {e}")
+            raise
 
     def get_netlist(self) -> Netlist:
         yaml = "Modules: {\n"
+        # first output normal modules
+        first_module = True
         for i in range(0, len(self.M)):
-            if i != 0:
+            # if it is terminal and in terminal_map, skip (avoid duplicate output)
+            if self.M[i].is_terminal and self.og_names[i] in self.terminal_map:
+                continue
+                
+            if not first_module:
                 yaml += ",\n"
+            first_module = False
+            
             yaml += "  " + self.og_names[i] + ": {\n"
-            if self.M[i].degree == 0:
-                yaml += "    area: " + str(self.og_area[i]) + ",\n"
-            elif self.M[i].degree == 1:
-                yaml += "    hard: true,\n"
+            
+            # if it is terminal, output terminal format
+            if self.M[i].is_terminal:
+                yaml += "    terminal: true,\n"
+                x_pos = self.M[i].x[0].evaluate()
+                y_pos = self.M[i].y[0].evaluate()
+                yaml += f"    center: [{x_pos}, {y_pos}]\n  }}"
             else:
-                yaml += "    fixed: true,\n"
-            yaml += "    rectangles: ["
-            for j in range(0, len(self.M[i].x)):
-                rect = [self.M[i].x[j].evaluate(),
-                        self.M[i].y[j].evaluate(),
-                        self.M[i].w[j].evaluate(),
-                        self.M[i].h[j].evaluate()]
-                if j != 0:
-                    yaml += ", "
-                yaml += str(rect)
-            yaml += "]\n  }"
+                if self.M[i].degree == 0:
+                    yaml += "    area: " + str(self.og_area[i]) + ",\n"
+                elif self.M[i].degree == 1:
+                    yaml += "    hard: true,\n"
+                else:
+                    yaml += "    fixed: true,\n"
+                yaml += "    rectangles: ["
+                for j in range(0, len(self.M[i].x)):
+                    rect = [self.M[i].x[j].evaluate(),
+                            self.M[i].y[j].evaluate(),
+                            self.M[i].w[j].evaluate(),
+                            self.M[i].h[j].evaluate()]
+                    if j != 0:
+                        yaml += ", "
+                    yaml += str(rect)
+                yaml += "]\n  }"
+        
+        # then output remaining terminals (not in module list)
+        for term_name, (tx, ty) in self.terminal_map.items():
+            # check if already output in module list
+            already_output = False
+            for i, og_name in enumerate(self.og_names):
+                if og_name == term_name and i < len(self.M) and self.M[i].is_terminal:
+                    already_output = True
+                    break
+            
+            if not already_output:
+                if not first_module:
+                    yaml += ",\n"
+                first_module = False
+                yaml += "  " + term_name + ": {\n"
+                yaml += "    terminal: true,\n"
+                yaml += f"    center: [{tx}, {ty}]\n  }}"
+            
         yaml += "\n}\nNets: [\n  "
+        
+        # deal with edges
         for i in range(0, len(self.hyper)):
+            weight, vertices, term_names = self.hyper[i]
+            
+            # skip empty edges or edges with only one connection point
+            if len(vertices) + len(term_names) < 2:
+                continue
+                
             if i != 0:
                 yaml += ",\n  ["
             else:
                 yaml += "["
-            for j in range(0, len(self.hyper[i][1])):
-                if j != 0:
+                
+            # add modules
+            module_count = 0
+            for j in range(0, len(vertices)):
+                if module_count > 0:
                     yaml += ", "
-                m = self.hyper[i][1][j]
+                m = vertices[j]
                 if m < len(self.og_names):
                     yaml += self.og_names[m]
+                    module_count += 1
                 else:
                     yaml += "__fixed_region_" + str(m - len(self.og_names))
+                    module_count += 1
+            
+            # add terminals
+            for term_name in term_names:
+                if module_count > 0:
+                    yaml += ", "
+                yaml += term_name
+                module_count += 1
+                
             yaml += "]"
+        
         yaml += "\n]\n"
-        # print(yaml)
         return Netlist(yaml)
 
     def is_solved(self):
         return self.gekko.gekko.options.APPSTATUS == 1
-
 
 def netlist_to_utils(netlist: Netlist):
     ml: list[InputModule] = []
@@ -838,7 +1137,30 @@ def netlist_to_utils(netlist: Netlist):
     hl: OptionalMatrix = {}
     mod_map: dict[str, int] = {}
     og_names = []
+    terminal_map: dict[str, tuple[float, float]] = {}  # store terminals' positions
+    
+    # first deal with all modules, distinguish terminals and normal modules
     for module in netlist.modules:
+        # check if it is terminal: use is_terminal attribute
+        is_terminal = module.is_terminal
+        
+        if is_terminal:
+            # deal with terminals - maybe center field or rectangles field
+            if hasattr(module, 'center') and module.center:
+                # use center field - maybe Point object or list
+                if hasattr(module.center, 'x') and hasattr(module.center, 'y'):
+                    # deal with Point object
+                    terminal_map[module.name] = (module.center.x, module.center.y)
+                else:
+                    # deal with list
+                    terminal_map[module.name] = (module.center[0], module.center[1])
+            else:
+                # use rectangles field
+                rect = module.rectangles[0]
+                terminal_map[module.name] = (rect.center.x, rect.center.y)
+            continue  # skip terminals, do not add them to normal module list
+            
+        # deal with normal modules
         mod_map[module.name] = len(ml)
         og_names.append(module.name)
         b: InputModule = ((0, 0, 0, 0), [], [], [], [])
@@ -885,12 +1207,26 @@ def netlist_to_utils(netlist: Netlist):
         ml.append(b)
         al.append(module.area())
 
+    # create hypergraph, special handling terminals
     hyper: HyperGraph = []
     for edge in netlist.edges:
-        connection = list(map(lambda e_mod: mod_map[e_mod.name], edge.modules))
+        modules = []
+        terminals = []
         weight = edge.weight
-        hyper.append((weight, connection))
-    return ml, al, xl, yl, wl, hl, hyper, og_names
+        
+        # distinguish modules and terminals in edge
+        for e_mod in edge.modules:
+            if e_mod.name in mod_map:
+                modules.append(mod_map[e_mod.name])
+            elif e_mod.name in terminal_map:
+                terminals.append(e_mod.name)
+        
+        # only add edge with at least one module to hyper
+        if modules:
+            # add extra information to hyper to store terminals
+            hyper.append((weight, modules, terminals))
+    
+    return ml, al, xl, yl, wl, hl, hyper, og_names, terminal_map
 
 
 def compute_options(options) -> tuple[list[InputModule],  # Module list
@@ -902,16 +1238,20 @@ OptionalMatrix,  # heights
 float,  # Die width
 float,  # Die height
 HyperGraph,  # Hypergraph
-float,  # Max ratio
-list[str]]:  # Original manes
+float,  # Max ratioa
+list[str],  # Original manes
+dict[str, tuple[float, float]]]:  # Terminal map
     max_ratio: float = options['max_ratio']
 
     die = Die(options['die'])
     die_width: float = die.width
     die_height: float = die.height
     netlist = Netlist(options['netlist'])
-    ml, al, xl, yl, wl, hl, hyper, og_names = netlist_to_utils(netlist)
-    return ml, al, xl, yl, wl, hl, die_width, die_height, hyper, max_ratio, og_names
+    ml, al, xl, yl, wl, hl, hyper, og_names, terminal_map = netlist_to_utils(netlist)
+    return ml, al, xl, yl, wl, hl, die_width, die_height, hyper, max_ratio, og_names, terminal_map
+
+
+
 
 
 def main(prog: str | None = None, args: list[str] | None = None) -> int:
@@ -920,9 +1260,25 @@ def main(prog: str | None = None, args: list[str] | None = None) -> int:
     """
     sys.setrecursionlimit(10000)
     options = parse_options(prog, args)
-    ml, al, xl, yl, wl, hl, die_width, die_height, hyper, max_ratio, og_names = compute_options(options)
+    ml, al, xl, yl, wl, hl, die_width, die_height, hyper, max_ratio, og_names, terminal_map = compute_options(options)
+    
+    print(f"Found {len(ml)} modules and {len(terminal_map)} terminals")
+    
     m = Model(ml, al, xl, yl, wl, hl, die_width, die_height, hyper, max_ratio, og_names,
-              options['t0'], options['dt'], options['wl_mult'], options['palette_seed'])
+              options['t0'], options['dt'], options['wl_mult'],
+              tau_initial=options.get('tau_initial', None),
+              tau_decay=options.get('tau_decay', 0.3),
+              otol_initial=options.get('otol_initial', 1e-1),
+              otol_final=options.get('otol_final', 1e-6),
+              rtol_initial=options.get('rtol_initial', 1e-1),
+              rtol_final=options.get('rtol_final', 1e-6),
+              tol_decay=options.get('tol_decay', 0.3),
+              terminal_map=terminal_map,
+              palette_seed=options['palette_seed'])
+              
+    # use Bayesian surrogate model to select initial parameters
+    #m.build_tau_surrogate_model()
+    
     turn_off_flag(1)
 
     print("Initial cost: ", m.objective().evaluate())
@@ -935,19 +1291,42 @@ def main(prog: str | None = None, args: list[str] | None = None) -> int:
     m.gekko.dif_cost = options['dcost']
 
     start = time()
+    total_time = 0.0  # add total time statistics
 
     # noinspection PyBroadException
     # try:
     if True:
         m.apply_objective_function()
         for i in range(0, options['num_iter'], 1):  # type: ignore
+   # record single iteration start time
             t = m.time.evaluate()
             print("time t =", t)
             print("epsilon =", get_epsilon())
+            print("tau=",m.tau.evaluate())
 
             m.set_fixed_t(i + 1)
+
+
+            otol, rtol = m.adaptive_tolerance(i, options['num_iter'])
+            decay_power = min(i, options['num_iter'] - 1)
+            print(f"=== Iteration {i+1}/{options['num_iter']}: OTOL={otol:.6e}, RTOL={rtol:.6e} ===")
+            #print(f"    Decay formula: {m.otol_initial:.4e} * ({m.tol_decay:.2f}^{decay_power}) = {m.otol_initial * (m.tol_decay ** decay_power):.6e}")
+            
             m.build_model(options['small_steps'], options['radius'])
             m.solve(options['verbose'], options['small_steps'], options['radius'])
+            iter_time = m.gekko.gekko.options.SOLVETIME
+            print(f"Solve {i+1} CPU time: {iter_time:.4f}s")
+            # calculate and display cpu time
+
+            hpwl = m.calculate_hpwl()
+            overlap_area = m.calculate_total_overlap()
+            print("HPWL: ", hpwl)
+            print("Total Overlap Area: ", overlap_area)
+            
+            # Store metrics for plotting
+            m.hpwl_list.append(hpwl)
+            m.overlap_list.append(overlap_area)
+
             m.force_enforce = m.gekko.verify(m.force_enforce, False)
             n_tuple = netlist_to_utils(m.get_netlist())
             ml = n_tuple[0]
@@ -956,7 +1335,9 @@ def main(prog: str | None = None, args: list[str] | None = None) -> int:
             m.time_advance(1)
             if options['plot']:
                 m.interactive_draw()
-            if m.is_solved() and get_epsilon() < 1e-10:
+            
+            # remove early convergence termination condition, ensure running all iterations
+            if m.is_solved() and get_epsilon() < 1e-10 and m.calculate_total_overlap() < 1e-10:
                 print("")
                 break
     # except Exception:
@@ -965,12 +1346,43 @@ def main(prog: str | None = None, args: list[str] | None = None) -> int:
     end = time()
     print("Final cost: ", m.objective().evaluate())
     print("Elapsed time: ", end - start, "s")
+    print("Final HPWL: ", m.hpwl_list[-1] if m.hpwl_list else "N/A")
+    print("Final Overlap Area: ", m.overlap_list[-1] if m.overlap_list else "N/A")
 
     if len(m.objective_list) > 0:
+        # Plot HPWL and Overlap Area on the same figure with two y-axes
+        fig, ax1 = plt.subplots(figsize=(10, 6))
+        
+        # Plot HPWL on the primary y-axis
+        ax1.set_xlabel('Iteration')
+        ax1.set_ylabel('HPWL', color='blue')
+        ax1.plot(range(len(m.hpwl_list)), m.hpwl_list, 'b-', label='HPWL')
+        ax1.tick_params(axis='y', labelcolor='blue')
+        
+        # Create a second y-axis for Overlap Area
+        ax2 = ax1.twinx()
+        ax2.set_ylabel('Overlap Area', color='red')
+        ax2.plot(range(len(m.overlap_list)), m.overlap_list, 'r-', label='Overlap Area')
+        ax2.tick_params(axis='y', labelcolor='red')
+        
+        # Add legend
+        lines1, labels1 = ax1.get_legend_handles_labels()
+        lines2, labels2 = ax2.get_legend_handles_labels()
+        ax1.legend(lines1 + lines2, labels1 + labels2, loc='upper right')
+        
+        plt.title('HPWL and Overlap Area vs Iterations')
+        plt.tight_layout()
+        plt.savefig("hpwl_overlap_plot.png")
+        plt.show()
+        
+        # Original plots
+        plt.figure()
         plt.plot(range(0, len(m.objective_list)), m.objective_list)
         plt.xlabel("Iteration")
         plt.ylabel("Objective Function")
         plt.show()
+        
+        plt.figure()
         plt.plot(range(0, len(m.surplus_list)), m.surplus_list)
         plt.xlabel("Iteration")
         plt.ylabel("Surplus")
@@ -981,6 +1393,8 @@ def main(prog: str | None = None, args: list[str] | None = None) -> int:
         print(net)
     else:
         net.write_yaml(options['file'])
+
+
     return 0
 
 

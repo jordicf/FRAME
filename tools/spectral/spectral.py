@@ -1,11 +1,14 @@
 # (c) Jordi Cortadella 2022
 # For the FRAME Project.
-# Licensed under the MIT License (see https://github.com/jordicf/FRAME/blob/master/LICENSE.txt).
+# Licensed under the MIT License
+# (see https://github.com/jordicf/FRAME/blob/master/LICENSE.txt).
 
 """
-Tool for spectral floorplan. The algorithm implemented in this tool is based on the one for Spectral Drawing
-proposed by Yehuda Koren in his paper 'Drawing Graphs by Eigenvectors: Theory and Practice'. The algorithm has been
-modified to incorporate the mass of each node. The mass is interpreted as the multiplicity of the node.
+Tool for spectral floorplan. The algorithm implemented in this tool is based on 
+the one for Spectral Drawing proposed by Yehuda Koren in his paper
+'Drawing Graphs by Eigenvectors: Theory and Practice'.
+The algorithm has been modified to incorporate the mass of each node.
+The mass is interpreted as the multiplicity of the node.
 """
 import argparse
 from itertools import combinations

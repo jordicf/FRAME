@@ -9,7 +9,7 @@ description = "Floorplanning with RectilineAr ModulEs"
 readme = "README.md"
 license = { file = "LICENSE.txt" }
 dependencies = [
-    "ruamel.yaml",
+    "pyyaml",
     "gekko",
     "numpy",
     "matplotlib",
@@ -55,6 +55,7 @@ packages = [
     "tools.glbfloor",
     "tools.rect",
     "tools.legalfloor",
+    "tools.legalizer",
     "tools.floorset_parser",
     "tools.rect.cpp_src",
     "tools.uscs_parser",
@@ -63,6 +64,6 @@ packages = [
 ]
 
 [tool.mypy]
-python_version = "3.10"
+python_version = "3.11"
 ignore_missing_imports = true
 plugins = "numpy.typing.mypy_plugin"

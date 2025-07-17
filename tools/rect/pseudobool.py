@@ -104,7 +104,7 @@ class Expr:
     A linear expression is an affine combination of literals, aka. a sum of terms plus a constant.
     No term has negative constants. Instead, -a * l is turned into -a * (1 - not l) = -a + a * not l
     """
-    def __init__(self, c: int = 0, t: dict = None) -> None:
+    def __init__(self, c: int = 0, t = dict()) -> None:
         if t is None:
             t = {}
         self.c = int(c)
@@ -398,7 +398,7 @@ T = typing.TypeVar('T')
 def constructrobdd(data: typing.Any, bccond: typing.Callable[[T], bool], bcconstr: typing.Callable[[T], int],
                    dvar: typing.Callable[[T], str | int], ifprop: typing.Callable[[T], T],
                    elprop: typing.Callable[[T], T], serdat: typing.Callable[[T], str],
-                   memo: dict[str, int] = None) -> int:
+                   memo = dict[str, int]()) -> int:
     """
     Generates the ROBDD that represents the given binary function
     :param data: The data yet to be converted into an ROBDD
@@ -410,8 +410,7 @@ def constructrobdd(data: typing.Any, bccond: typing.Callable[[T], bool], bcconst
     :param serdat: Short for "serialize data". Turns the arbitrary input type into a string - Important for efficiency
     :param memo: Short for "memoization". Remembers previous results for greater efficiency
     """
-    if memo is None:
-        memo = {}
+    
     if serdat(data) in memo:
         return memo[serdat(data)]
     if bccond(data):

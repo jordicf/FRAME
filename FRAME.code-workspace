@@ -4,5 +4,14 @@
 			"path": "."
 		}
 	],
-	"settings": {}
+	"settings": {
+		"editor.defaultFormatter": "ms-python.black-formatter",
+		"editor.defaultFoldingRangeProvider": "ms-python.autopep8",
+		"editor.formatOnSave": true,
+		"editor.formatOnPaste": true,
+		"cSpell.words": [
+			"autopep",
+			"Ylham"
+		]
+	}
 }

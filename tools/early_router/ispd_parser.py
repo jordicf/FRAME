@@ -1,16 +1,16 @@
 #!/usr/bin/env python3
 """
-ISDP-to-FPEF Netlist Converter
+ISPD-to-FPEF Netlist Converter
 
-This script parses an ISDP benchmark file (global routing contest format) and converts it 
-to an FPEF netlist format (YAML). In this conversion, each net's pin is represented as a 
-separate module with a fixed location (its pin coordinates), and each net is translated into 
-a hyperedge connecting those modules. The minimum routed width for the net is appended as 
+This script parses an ISPD benchmark file (global routing contest format) and converts it
+to an FPEF netlist format (YAML). In this conversion, each net's pin is represented as a
+separate module with a fixed location (its pin coordinates), and each net is translated into
+a hyperedge connecting those modules. The minimum routed width for the net is appended as
 the net weight (if greater than the default 1).
 
-The ISDP file format is expected to have the following sections:
+The ISPD file format is expected to have the following sections:
 
-    grid # # # 
+    grid # # #
     vertical capacity # # # # #
     horizontal capacity # # # # #
     minimum width # # # # #
@@ -39,9 +39,9 @@ from frame.geometry.geometry import Point
 from frame.netlist.netlist_types import NamedHyperEdge
 
 
-def parse_isdp_file(filename):
+def parse_ispd_file(filename):
     """
-    Parses the ISDP file and returns a dictionary containing:
+    Parses the ISPD file and returns a dictionary containing:
       - grid info (ignored for FPEF conversion)
       - nets: a list of nets; each net is a dict with:
           "netname": string
@@ -51,23 +51,33 @@ def parse_isdp_file(filename):
           "pins": a list of dicts, each with keys "x", "y", "layer"
       - capacity_adjustments: (if any; ignored in conversion)
     """
-    with open(filename, 'r') as f:
+    with open(filename, "r") as f:
         # remove blank lines and comment lines (comments start with a character such as #)
-        lines = [line.strip() for line in f if line.strip() and not line.strip().startswith('//')]
+        lines = [
+            line.strip()
+            for line in f
+            if line.strip() and not line.strip().startswith("//")
+        ]
 
     i = 0
     # Parse the header lines (grid and capacities)
-    header_keys = ["grid", "vertical capacity", "horizontal capacity", "minimum width",
-                   "minimum spacing", "via spacing"]
+    header_keys = [
+        "grid",
+        "vertical capacity",
+        "horizontal capacity",
+        "minimum width",
+        "minimum spacing",
+        "via spacing",
+    ]
     header = {}
     for key in header_keys:
         tokens = lines[i].split()
-        if not " ".join(tokens[:len(key.split())]).lower() == key:
-            print(f"Expected header line starting with '{key}' at line {i+1}")
+        if not " ".join(tokens[: len(key.split())]).lower() == key:
+            print(f"Expected header line starting with '{key}' at line {i + 1}")
             continue
         # Store the remaining tokens as numbers (convert to float/int as needed)
         # For simplicity, we store them as strings/numbers but we won't use them further.
-        header[key] = tokens[len(key.split()):]
+        header[key] = tokens[len(key.split()) :]
         i += 1
 
     # Parse the lower left and tile size line
@@ -80,8 +90,12 @@ def parse_isdp_file(filename):
         lower_left_y = float(tokens[1])
         tile_width = float(tokens[2])
         tile_height = float(tokens[3])
-        grid_origin = {"lower_left_x": lower_left_x, "lower_left_y": lower_left_y,
-                    "tile_width": tile_width, "tile_height": tile_height}
+        grid_origin = {
+            "lower_left_x": lower_left_x,
+            "lower_left_y": lower_left_y,
+            "tile_width": tile_width,
+            "tile_height": tile_height,
+        }
         i += 1
 
     # Parse the number of nets
@@ -96,14 +110,14 @@ def parse_isdp_file(filename):
         # Parse net header: netname id_# number_of_pins minimum_width
         header_tokens = lines[i].split()
         if len(header_tokens) < 3:
-            raise ValueError(f"Invalid net header at net {net_idx+1}")
+            raise ValueError(f"Invalid net header at net {net_idx + 1}")
         elif len(header_tokens) < 4:
             net = {
                 "netname": header_tokens[0],
                 "id": header_tokens[1],
                 "num_pins": int(header_tokens[2]),
                 "min_width": 1,
-                "pins": []
+                "pins": [],
             }
         else:
             net = {
@@ -111,7 +125,7 @@ def parse_isdp_file(filename):
                 "id": header_tokens[1],
                 "num_pins": int(header_tokens[2]),
                 "min_width": float(header_tokens[3]),
-                "pins": []
+                "pins": [],
             }
         i += 1
         for _ in range(net["num_pins"]):
@@ -119,10 +133,7 @@ def parse_isdp_file(filename):
             if len(pin_tokens) < 2:
                 raise ValueError(f"Invalid pin specification at net {net['netname']}")
             elif len(pin_tokens) < 3:
-                pin = {
-                    "x": float(pin_tokens[0]),
-                    "y": float(pin_tokens[1])
-                }
+                pin = {"x": float(pin_tokens[0]), "y": float(pin_tokens[1])}
             else:
                 # Note: The pin coordinates are given in absolute units.
                 # They can be converted to tile indices if needed:
@@ -131,7 +142,7 @@ def parse_isdp_file(filename):
                 pin = {
                     "x": float(pin_tokens[0]),
                     "y": float(pin_tokens[1]),
-                    "layer": int(pin_tokens[2])
+                    "layer": int(pin_tokens[2]),
                 }
             net["pins"].append(pin)
             i += 1
@@ -142,8 +153,10 @@ def parse_isdp_file(filename):
         # Number of capacity adjustments
         tokens = lines[i].split()
         if len(tokens) > 1:
-            raise ValueError(f"No information of how many adjustments are needed in line {i}")
-        n_ajustments = int(tokens[0])
+            raise ValueError(
+                f"No information of how many adjustments are needed in line {i}"
+            )
+        n_adjustments = int(tokens[0])
         i += 1
         capacity_adjustments = []
         while i < len(lines):
@@ -157,7 +170,7 @@ def parse_isdp_file(filename):
                 "target_column": int(tokens[3]),
                 "target_row": int(tokens[4]),
                 "target_layer": int(tokens[5]),
-                "reduced_capacity": int(tokens[6])
+                "reduced_capacity": int(tokens[6]),
             }
             capacity_adjustments.append(adjustment)
             i += 1
@@ -166,13 +179,13 @@ def parse_isdp_file(filename):
         "header": header,
         "grid_origin": grid_origin,
         "nets": nets,
-        "capacity_adjustments": capacity_adjustments
+        "capacity_adjustments": capacity_adjustments,
     }
 
 
-def convert_to_hanangrid(isdp_data):
+def convert_to_hanangrid(ispd_data):
     """
-    Converts the parsed ISDP data into list of HananCells format.
+    Converts the parsed ISPD data into list of HananCells format.
     In this conversion, each pin is mapped to a module.
     The module name is built as: net_<netname>_<pin_index>.
     The module's center is set to the pin's (x, y) coordinate.
@@ -182,43 +195,55 @@ def convert_to_hanangrid(isdp_data):
     cells = []
     named_nets = dict()
 
-    if isdp_data['grid_origin']:
-        w=isdp_data['grid_origin']['tile_width'] + isdp_data['grid_origin']['lower_left_x']
-        h=isdp_data['grid_origin']['tile_height'] + isdp_data['grid_origin']['lower_left_y']
+    if ispd_data["grid_origin"]:
+        w = (
+            ispd_data["grid_origin"]["tile_width"]
+            + ispd_data["grid_origin"]["lower_left_x"]
+        )
+        h = (
+            ispd_data["grid_origin"]["tile_height"]
+            + ispd_data["grid_origin"]["lower_left_y"]
+        )
     else:
-        w=1
-        h=1
-    v_cap = isdp_data['header']['vertical capacity']
-    h_cap = isdp_data['header']['horizontal capacity']
-    if len(isdp_data['header']['grid'])>2:
-        n_layers = int(isdp_data['header']['grid'][2])
-        layers =[]
+        w = 1
+        h = 1
+    v_cap = ispd_data["header"]["vertical capacity"]
+    h_cap = ispd_data["header"]["horizontal capacity"]
+    if len(ispd_data["header"]["grid"]) > 2:
+        n_layers = int(ispd_data["header"]["grid"][2])
+        layers = []
         for l in range(n_layers):
-            d = 'H' if int(h_cap[l])>0 else 'V'
+            d = "H" if int(h_cap[l]) > 0 else "V"
             layers.append(Layer(d, h_cap=int(h_cap[l]), v_cap=int(v_cap[l])))
     else:
         layers = [Layer('H', h_cap=int(h_cap[0])), Layer('V', v_cap=int(v_cap[0]))]
-    for i in range(int(isdp_data['header']['grid'][0])):
-        for j in range(int(isdp_data['header']['grid'][1])):
+    for i in range(int(ispd_data['header']['grid'][0])):
+        for j in range(int(ispd_data['header']['grid'][1])):
             mod_name = f"M{i}_{j}"
-            x = i*w + w/2
-            y = j*h + h/2
-            cells.append(HananCell((i,j),Point(x,y),h_cap[0],v_cap[0],mod_name))
-    for net in isdp_data["nets"]:
+            x = i * w + w / 2
+            y = j * h + h / 2
+            cells.append(HananCell((i, j), Point(x, y), h_cap[0], v_cap[0], mod_name))
+    for net in ispd_data["nets"]:
         net_module_names = set()
         if net["num_pins"] > 1000:
             continue
         for idx, pin in enumerate(net["pins"]):
-            mod_name = f"{net['netname']}_{idx+1}"
+            mod_name = f"{net['netname']}_{idx + 1}"
             # For each pin, create a module with its center.
             #    tile_x = math.floor((pin_x - lower_left_x) / tile_width)
             #    tile_y = math.floor((pin_y - lower_left_y) / tile_height)
-            if isdp_data['grid_origin']:
-                i = math.floor((pin["x"] - isdp_data['grid_origin']['lower_left_x']) / isdp_data['grid_origin']['tile_width'])
-                j = math.floor((pin["y"] - isdp_data['grid_origin']['lower_left_y']) / isdp_data['grid_origin']['tile_height'])
+            if ispd_data["grid_origin"]:
+                i = math.floor(
+                    (pin["x"] - ispd_data["grid_origin"]["lower_left_x"])
+                    / ispd_data["grid_origin"]["tile_width"]
+                )
+                j = math.floor(
+                    (pin["y"] - ispd_data["grid_origin"]["lower_left_y"])
+                    / ispd_data["grid_origin"]["tile_height"]
+                )
             else:
-                i = int(pin['x'])
-                j = int(pin['y'])
+                i = pin["x"]
+                j = pin["y"]
             mod_name = f"M{i}_{j}"
             net_module_names.add(mod_name)
         if len(net_module_names) < 2:
@@ -229,18 +254,14 @@ def convert_to_hanangrid(isdp_data):
             net_entry = NamedHyperEdge(list(net_module_names), net["min_width"])
         else:
             net_entry = NamedHyperEdge(list(net_module_names), 1)
-        named_nets[net["id"]]= net_entry
+        named_nets[net["id"]] = net_entry
 
-    return {
-        "HananCells": cells,
-        "Nets": named_nets,
-        "Layers": layers
-    }
+    return {"HananCells": cells, "Nets": named_nets, "Layers": layers}
 
 
-def convert_to_fpef(isdp_data):
+def convert_to_fpef(ispd_data):
     """
-    Converts the parsed ISDP data into FPEF netlist format.
+    Converts the parsed ISPD data into FPEF netlist format.
     In this conversion, each pin is mapped to a module.
     The module name is built as: net_<netname>_<pin_index>.
     The module's center is set to the pin's (x, y) coordinate.
@@ -250,37 +271,49 @@ def convert_to_fpef(isdp_data):
     modules = {}
     fpef_nets = []
 
-    if isdp_data['grid_origin']:
-        w=isdp_data['grid_origin']['tile_width'] + isdp_data['grid_origin']['lower_left_x']
-        h=isdp_data['grid_origin']['tile_height'] + isdp_data['grid_origin']['lower_left_y']
+    if ispd_data["grid_origin"]:
+        w = (
+            ispd_data["grid_origin"]["tile_width"]
+            + ispd_data["grid_origin"]["lower_left_x"]
+        )
+        h = (
+            ispd_data["grid_origin"]["tile_height"]
+            + ispd_data["grid_origin"]["lower_left_y"]
+        )
     else:
-        w=1
-        h=1
-    for i in range(int(isdp_data['header']['grid'][0])):
-        for j in range(int(isdp_data['header']['grid'][1])):
+        w = 1
+        h = 1
+    for i in range(int(ispd_data["header"]["grid"][0])):
+        for j in range(int(ispd_data["header"]["grid"][1])):
             mod_name = f"M{i}_{j}"
-            x = i*w + w/2
-            y = j*h + h/2
+            x = i * w + w / 2
+            y = j * h + h / 2
             modules[mod_name] = {
                 "center": [x, y],
-                "area": w*h,
-                "rectangles": [[x,y,w,h]]
-            }   
-    for net in isdp_data["nets"]:
+                "area": w * h,
+                "rectangles": [[x, y, w, h]],
+            }
+    for net in ispd_data["nets"]:
         net_module_names = set()
         if net["num_pins"] > 1000:
             continue
         for idx, pin in enumerate(net["pins"]):
-            mod_name = f"{net['netname']}_{idx+1}"
+            mod_name = f"{net['netname']}_{idx + 1}"
             # For each pin, create a module with its center.
             #    tile_x = math.floor((pin_x - lower_left_x) / tile_width)
             #    tile_y = math.floor((pin_y - lower_left_y) / tile_height)
-            if isdp_data['grid_origin']:
-                i = math.floor((pin["x"] - isdp_data['grid_origin']['lower_left_x']) / isdp_data['grid_origin']['tile_width'])
-                j = math.floor((pin["y"] - isdp_data['grid_origin']['lower_left_y']) / isdp_data['grid_origin']['tile_height'])
+            if ispd_data["grid_origin"]:
+                i = math.floor(
+                    (pin["x"] - ispd_data["grid_origin"]["lower_left_x"])
+                    / ispd_data["grid_origin"]["tile_width"]
+                )
+                j = math.floor(
+                    (pin["y"] - ispd_data["grid_origin"]["lower_left_y"])
+                    / ispd_data["grid_origin"]["tile_height"]
+                )
             else:
-                i = pin['x']
-                j = pin['y']
+                i = pin["x"]
+                j = pin["y"]
             mod_name = f"M{i}_{j}"
             net_module_names.add(mod_name)
         # In FPEF, a hyperedge is a list of module names.
@@ -293,8 +326,4 @@ def convert_to_fpef(isdp_data):
             continue
         fpef_nets.append(net_entry)
 
-    return {
-        "Modules": modules,
-        "Nets": fpef_nets
-    }
-
+    return {"Modules": modules, "Nets": fpef_nets}

@@ -1,4 +1,4 @@
-from tools.early_router.types import EdgeID,NodeId
+from tools.early_router.types import EdgeId, NodeId
 from collections import deque
 import math
 
@@ -9,17 +9,17 @@ def to_scientific_notation(number):
     return v, x
 
 
-def rescale(value:float, old_min:float=0, old_max=1, new_min=500, new_max=1500):
+def rescale(value: float, old_min: float = 0, old_max=1, new_min=500, new_max=1500):
     assert value >= 0, "Formula do not hold for negative values"
     if abs(old_max - old_min) < 1e-6:
         print("Division by 0!")
-        return (new_max - new_min)/2.
-    new_value = 500 + (value - old_min)*(new_max - new_min)/(old_max - old_min)
+        return (new_max - new_min) / 2.0
+    new_value = 500 + (value - old_min) * (new_max - new_min) / (old_max - old_min)
     return new_value
 
 
-def compute_node_degrees(route:list[dict[EdgeID, float]])->dict[NodeId,int]:
-    node_degrees: dict[NodeId,int] = {}
+def compute_node_degrees(route: list[dict[EdgeId, float]]) -> dict[NodeId, int]:
+    node_degrees: dict[NodeId, int] = {}
     for edge_dict in route:
         # Each edge is a tuple: (node1, node2) where node is a tuple (int, int, int)
         for edge, weight in edge_dict.items():
@@ -31,6 +31,7 @@ def compute_node_degrees(route:list[dict[EdgeID, float]])->dict[NodeId,int]:
 
 class UnionFind:
     """Union-Find (Disjoint Set) with path compression and union by rank."""
+
     def __init__(self, nodes):
         """Initialize Union-Find with nodes (arbitrary tuple IDs)."""
         self.parent = {node: node for node in nodes}  # Each node is its own parent
@@ -59,10 +60,10 @@ class UnionFind:
         return False  # Edge forms a cycle, ignore
 
 
-def kruskal(nodes:set[NodeId], edges:list)->list[EdgeID]:
+def kruskal(nodes: set[NodeId], edges: list) -> list[EdgeId]:
     """
     Kruskal's Algorithm for Minimum Spanning Tree (MST) with arbitrary node IDs.
-    
+
     :param nodes: Set of node IDs (tuples like (x, y, z))
     :param edges: List of HananEdges3D representing edges
     :return: Minimum spanning tree cost and the edges in the MST
@@ -99,6 +100,7 @@ def bfs_find_order(mst_graph, start, required_nodes):
                 queue.append(neighbor)
 
     return found_order
+
 
 # # Example Usage
 # nodes = {

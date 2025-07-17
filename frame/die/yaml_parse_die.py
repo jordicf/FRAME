@@ -77,7 +77,9 @@ def parse_die_rectangle(r: list):
     for i in range(4):
         assert is_number(
             r[i]) and r[i] >= 0, "Incorrect value for die rectangle"
-    assert isinstance(r[4], str) and (valid_identifier(r[4]) or r[4] == KW_GROUND or r[4] == KW_BLOCKAGE), \
+    assert (isinstance(r[4], str) and
+            (valid_identifier(r[4]) or
+             r[4] == KW_GROUND or r[4] == KW_BLOCKAGE)), \
         f"Invalid identifier for die region: {r[4]}"
     assert r[4] != KW_GROUND, "Only non-ground regions can be specified in the die"
     kwargs = {KW_CENTER: Point(r[0], r[1]), KW_SHAPE: Shape(
