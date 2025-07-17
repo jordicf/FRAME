@@ -1,9 +1,11 @@
 """
 Testing the stop module.
-A set of matrices matrix? are given, with their corresponding STrOP instances (sol?_*). The test checks that all these solutions are generated.
+A set of matrices are given, with their corresponding STROP instances.
+The test checks that all these solutions are generated.
 """
+import unittest
+from frame.geometry.strop import Strop
 
-import strop
 
 matrix1 = """
 001100
@@ -98,7 +100,7 @@ matrix4 = """
 
 def check_matrix(matrix: str, sol: set[str] = set()) -> bool:
     """Check that the matrix generates the set of solutions."""
-    s = strop.Strop(matrix)
+    s = Strop(matrix)
     for tree in s.instances():
         s = str(tree)
         if s not in sol:
@@ -108,7 +110,7 @@ def check_matrix(matrix: str, sol: set[str] = set()) -> bool:
 
 
 class TestSTROP(unittest.TestCase):
-    def test_check_matrices_and_soilutions(self):
+    def test_check_matrices_and_solutions(self):
         self.assertTrue(check_matrix(matrix1, {sol1_1, sol1_2}))
         self.assertTrue(check_matrix(matrix2))
         self.assertTrue(check_matrix(matrix3, {sol3_1, sol3_2, sol3_3, sol3_4}))
