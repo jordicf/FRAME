@@ -91,7 +91,7 @@ python tools/legalizer/legalizer.py bench-exam/MCNC/ami33.netlist.yaml bench-exa
 ### Output
 
 - The result is written to the specified YAML file, compatible with the input netlist format.
-- If `--plot` is enabled, layout images for each iteration are saved in `example_visuals/`.
+- If `--plot` is enabled, layout images for each iteration are saved in `example_visuals1/`.
 - After execution, HPWL and Overlap curves are plotted automatically.
 
 ---
