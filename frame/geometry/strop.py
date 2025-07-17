@@ -202,33 +202,38 @@ class Strop:
         """Returns a list of rectangles that could potentially be the trunk
         of the polygon"""
         nrows = len(M)
+        # We build a square matrix rect (nrows x nrows).
+        # rect[i][j] represents the largest interval of columns in M
+        # for a rectangle between rows i and j (i <= j)
         rect: list[list[Interval]] = \
             [[EMPTY_INTERVAL]*nrows for _ in range(nrows)]
-        # Fill-up diagonals with the longes interval of columns
+        # Fill-up diagonals with the longest interval of columns at row i
         for i in range(nrows):
             rect[i][i] = Strop._row_interval(M[i])
 
         # Now fill up the upper triangle
-        for column in range(1, nrows):
-            for row in range(column-1, -1, -1):
-                rect[row][column] = \
-                    rect[row + 1][column].intersection(rect[row][column-1])
+        for last_row in range(1, nrows):
+            for row in range(last_row-1, -1, -1):
+                rect[row][last_row] = \
+                    rect[row + 1][last_row].intersection(rect[row][row])
 
         # Remove the non-prime rectangles by rows
         for row in range(nrows-1):
-            for column in range(row, nrows-1):
-                if rect[row][column] == rect[row][column+1]:
-                    rect[row][column] = EMPTY_INTERVAL
+            for last_row in range(row, nrows-1):
+                if rect[row][last_row] == rect[row][last_row+1]:
+                    rect[row][last_row] = EMPTY_INTERVAL
 
         # Remove the non-prime rectangles by columns
-        for column in range(1, nrows):
-            for row in range(column, 0, -1):
-                if rect[row][column] == rect[row-1][column]:
-                    rect[row][column] = EMPTY_INTERVAL
-        return {Rectangle(Interval(row, column), rect[row][column])
+        for last_row in range(1, nrows):
+            for row in range(last_row, 0, -1):
+                if rect[row][last_row] == rect[row-1][last_row]:
+                    rect[row][last_row] = EMPTY_INTERVAL
+        
+        # Return the non-empty intervals 
+        return {Rectangle(Interval(row, last_row), rect[row][last_row])
                 for row in range(nrows)
-                for column in range(row, nrows)
-                if rect[row][column] != EMPTY_INTERVAL}
+                for last_row in range(row, nrows)
+                if rect[row][last_row] != EMPTY_INTERVAL}
 
     @staticmethod
     def _row_interval(R: BoolRow) -> Interval:
