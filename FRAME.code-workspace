@@ -5,7 +5,12 @@
 		}
 	],
 	"settings": {
-		"editor.defaultFormatter": "mikoz.black-py",
-		"editor.defaultFoldingRangeProvider": "ms-python.autopep8"
+		"editor.defaultFormatter": "ms-python.black-formatter",
+		"editor.defaultFoldingRangeProvider": "ms-python.autopep8",
+		"editor.formatOnSave": true,
+		"editor.formatOnPaste": true,
+		"cSpell.words": [
+			"autopep"
+		]
 	}
 }
