@@ -2,6 +2,7 @@
 Testing the stop module.
 A set of matrices matrix? are given, with their corresponding STrOP instances (sol?_*). The test checks that all these solutions are generated.
 """
+
 import strop
 
 matrix1 = """
@@ -95,17 +96,24 @@ matrix4 = """
 #######################################################
 
 
-def check_matrix(matrix: str, sol: set[str] = set()) -> None:
+def check_matrix(matrix: str, sol: set[str] = set()) -> bool:
+    """Check that the matrix generates the set of solutions."""
     s = strop.Strop(matrix)
     for tree in s.instances():
         s = str(tree)
-        assert s in sol
+        if s not in sol:
+            return False
         sol.remove(s)
-    assert len(sol) == 0
+    return len(sol) == 0
 
 
-def test_strop() -> None:
-    check_matrix(matrix1, {sol1_1, sol1_2})
-    check_matrix(matrix2)
-    check_matrix(matrix3, {sol3_1, sol3_2, sol3_3, sol3_4})
-    check_matrix(matrix4)
+class TestSTROP(unittest.TestCase):
+    def test_check_matrices_and_soilutions(self):
+        self.assertTrue(check_matrix(matrix1, {sol1_1, sol1_2}))
+        self.assertTrue(check_matrix(matrix2))
+        self.assertTrue(check_matrix(matrix3, {sol3_1, sol3_2, sol3_3, sol3_4}))
+        self.assertTrue(check_matrix(matrix4))
+
+
+if __name__ == "__main__":
+    unittest.main()

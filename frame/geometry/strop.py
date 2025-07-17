@@ -375,7 +375,7 @@ class StropInstance:
                 Interval(trunk.columns.high+1, trunk.columns.high+v)))
 
     def valid(self) -> bool:
-        """Reports whether it is a valid Strop"""
+        """Reports whether it is a valid STROP"""
         return self._valid
 
     def trunk(self) -> Rectangle:
@@ -383,7 +383,7 @@ class StropInstance:
         return self._trunk
 
     def rectangles(self, which: str = '') -> Iterator[Rectangle]:
-        """Returns the rectangles of the STrOP instance depending on the
+        """Returns the rectangles of the STROP instance depending on the
         value of which.
         '' -> all rectangles (default)
         'T' -> the trunk
@@ -392,7 +392,7 @@ class StropInstance:
         any combination of the previous characters in the string which,
         e.g. 'NST'
         """
-        assert self.valid(), "Invalid OrthoTree"
+        assert self.valid(), "Invalid STROP"
         assert all(x in {'N', 'S', 'W', 'E', 'T', 'B'} for x in which), \
             "Unknown type of rectangles"
 
@@ -406,7 +406,7 @@ class StropInstance:
                     yield r
 
     def __str__(self) -> str:
-        """Returns a string representing the OrthoTree.
+        """Returns a string representing the STROP.
         The string represents a grid in which 0 represents the trunk and
         1, 2, ... represent the branches."""
         grid: list[list[str]] = [[' ']*self._poly.num_columns
