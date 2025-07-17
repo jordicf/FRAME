@@ -606,7 +606,7 @@ class Model:
         # Variable definition
         for idx, (trunk, Nb, Sb, Eb, Wb) in enumerate(ml):
             # check if it is terminal: if the module's area is small or fixed in xl/yl
-            is_terminal = (al[idx] < 1e-10) or (idx in xl and 0 in xl[idx] and idx in yl and 0 in yl[idx])
+            is_terminal = (al[idx] < 1e-5) or (idx in xl and 0 in xl[idx] and idx in yl and 0 in yl[idx])
             m = self.define_module(trunk, is_terminal=is_terminal)
             
             # if it is terminal, skip adding extra rectangles
