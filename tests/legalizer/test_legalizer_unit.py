@@ -1,17 +1,17 @@
 import unittest
-import os
+from pathlib import Path
 from tools.legalizer.legalizer import compute_options, Model
 
-ROOT_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), '../../'))
-EXAMPLE_DIR = os.path.join(ROOT_DIR, 'tools/legalizer/bench-exam')
-NETLIST_PATH = os.path.join(EXAMPLE_DIR, 'test_netlist.yaml')
-DIE_PATH = os.path.join(EXAMPLE_DIR, 'test_die.yaml')
+PROJECT_ROOT = Path(__file__).resolve().parents[2]  #back to the FRAME
+BENCH_EXAM_DIR = PROJECT_ROOT / 'tools' / 'legalizer' / 'bench-exam'  #locate the bench-exam directory
 
+DIE_PATH = BENCH_EXAM_DIR / 'test_die.yaml'
+NETLIST_PATH = BENCH_EXAM_DIR / 'test_netlist.yaml'
 class TestLegalizerUnit(unittest.TestCase):
     def setUp(self):
         self.options = {
-            'netlist': NETLIST_PATH,
-            'die': DIE_PATH,
+            'netlist': str(NETLIST_PATH),
+            'die': str(DIE_PATH),
             'max_ratio': 3.0,
             'num_iter': 2,
             'radius': 1,
