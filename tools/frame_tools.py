@@ -20,6 +20,7 @@ import tools.force.force
 import tools.glbfloor.glbfloor
 import tools.rect.rect  # To normalize fuzzy module assignments
 import tools.legalfloor.legalfloor  # To legalize the floorplan
+import tools.legalizer.legalizer  # Legalize with tau
 import tools.all.all # To execute the whole flow
 import tools.uscs_parser.uscs_parser
 
@@ -34,6 +35,7 @@ TOOLS = {"hello": tools.hello.hello.main,
          "glbfloor": tools.glbfloor.glbfloor.main,
          "rect": tools.rect.rect.main,
          "legalfloor": tools.legalfloor.legalfloor.main,
+         "legalizer": tools.legalizer.legalizer.main,
          "parse_floorset": tools.floorset_parser.floorset_handler.main,
          "uscs_parser": tools.uscs_parser.uscs_parser.main,
          "early_router": tools.early_router.main_router.main,
