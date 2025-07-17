@@ -91,65 +91,6 @@ def parse_options(prog: str | None = None, args: list[str] | None = None) -> dic
     return vars(parser.parse_args(args))
 
 
-# def parse_options(prog: str | None = None, args: list[str] | None = None) -> dict[str, Any]:
-#     """
-#     Parse command-line arguments for the FloorplanSet handler.
-
-#     Args:
-#         prog (str | None): The program name to display in help messages.
-#         args (list[str] | None): A list of arguments to parse (defaults to sys.argv).
-
-#     Returns:
-#         dict[str, Any]: A dictionary containing the parsed arguments.
-#     """
-#     parser = argparse.ArgumentParser(
-#         prog=prog,
-#         description="An Early Global Routing router.",
-#         usage="%(prog)s [options]",
-#     )
-#     # Input file argument
-#     parser.add_argument(
-#         "--input",
-#         required=True,
-#         type=str,
-#         help="Path to the folder of file (.yaml) containing one input floorplan data per file."
-#     )
-#     # output folder argument
-#     parser.add_argument(
-#         "--output",
-#         required=True,
-#         type=str,
-#         help="Path folder to store data"
-#     )
-#     parser.add_argument(
-#         "--importance",
-#         nargs=3,
-#         metavar=('wire_lenght', 'module_crossing', 'via_usage'),
-#         type=float,
-#         default=[0.4, 0.3, 0.3],  # or require=True if you want it mandatory
-#         help="Three importance factors for wirelength, module interference, and via usage. Must be floats in [0,1] that sum to 1."
-#     )
-#     parser.add_argument("--importance-analysis", action="store_true", help="Analyse the the best importance factors")
-#     parser.add_argument(
-#         "--reweight-nets-range",
-#         type=float,
-#         nargs=2,
-#         metavar=('LOWER', 'UPPER'),
-#         help="Specify the lower and upper bounds for the nets weight range"
-#     )
-#     parser.add_argument(
-#         "--draw-nets",
-#         nargs="*",
-#         type=int,
-#         default=None,
-#         help="List of net IDs to draw. If omitted after the flag, 3 random nets will be chosen."
-#     )
-#     parser.add_argument("--draw-congestion", action="store_true", help="Draw the congestion map")
-#     parser.add_argument("--asap7", action="store_true", help="Find optinal pre-routing bounding box for all nets.")
-#     parser.add_argument("--optimize-nlayers", action="store_true", help="Compute the optimal number of 76 pitch layers")
-#     return vars(parser.parse_args(args))
-
-
 def main(prog: str | None = None, args: list[str] | None = None) -> None:
     """Main function."""
     options = parse_options(prog, args)
@@ -157,7 +98,32 @@ def main(prog: str | None = None, args: list[str] | None = None) -> None:
     try:
         file_manager(options)
     except Exception as e:
-        warnings.warn(f"Could not finish execution due to \n{traceback.print_exc()}", UserWarning)
+        warnings.warn(f"Could not finish execution due to \n", UserWarning)
+        traceback.print_exc()
+        return
+        # try:
+        #     from tools.early_router.isdp_parser import parse_isdp_file, convert_to_hanangrid
+        #     from tools.early_router.hanan import HananGrid
+        #     from tools.early_router.build_model import FeedThrough
+        #     isdp_data = parse_isdp_file(str(options['input']))
+        #     data = convert_to_hanangrid(isdp_data)
+        #     hg = HananGrid(data['HananCells'])
+        #     ft = FeedThrough(hg, layers=data['Layers'])
+        #     nets = list(data['Nets'].values())
+        #     if isdp_data['capacity_adjustments']:
+        #         ft.set_capacity_adjustments({(
+        #                 (a['row'], a['column'], a['layer']), (a['target_row'],a['target_column'], a['target_layer'])
+        #                 ): a['reduced_capacity'] for a in isdp_data['capacity_adjustments']})
+        #     ft.add_nets(nets)
+        #     ft.build()
+        #     fwl,fmc,fvu = options['importance']
+        #     ft.solve(f_wl=fwl,f_mc=fmc,f_vu=fvu)
+        #     metrics = ft.metrics
+        #     metrics['name'] = 'ISPD98'
+        #     csv_filename = f"{str(options['output'])}/ispdmetrics.csv"
+
+        # except Exception as e:
+        #     warnings.warn(f"Could not finish execution due to \n{traceback.print_exc()}", UserWarning)
 
     return
 

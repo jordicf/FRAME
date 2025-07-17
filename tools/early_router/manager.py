@@ -17,7 +17,7 @@ import time
 import csv
 import numpy as np
 import math
-from frame.netlist.netlist_types import NamedHyperEdge
+from frame.netlist.netlist_types import NamedHyperEdge, HyperEdge
 
 
 def run_compare(options: dict[str, Any]) -> None:
@@ -25,7 +25,7 @@ def run_compare(options: dict[str, Any]) -> None:
     input2 = Path(options["input2"])
     # Implement comparison logic
     print(f"Comparing results between {input1} and {input2}...")
-    d: dict[int, int] = compare_solution_files(input1, input2)
+    d:dict[int,int] = compare_solution_files(str(input1),str(input2))
     # draw_nets, draw_congestion, asap7?
     l = [k for k, v in d.items() if v > 20]
     return
@@ -52,8 +52,12 @@ def run_analyze(options: dict[str, Any]) -> None:
 
     elif analyze_type == "layers":
         print(f"Analyzing routing layers using {input_path}")
-        ft1, p1 = high_congestion_opt(file_path, options)
-        ft2, p2 = low_congestion_opt(file_path, options, high=p1)
+        ft1, p1 = high_congestion_opt(file_path, options, high= 76)
+        ft2, p2 = low_congestion_opt(file_path, options,high=p1)
+        
+        fwl,fmc,fvu = options['importance']
+        ft1.solve(f_wl=fwl,f_mc=fmc,f_vu=fvu)
+        ft2.solve(f_wl=fwl,f_mc=fmc,f_vu=fvu)
 
         fwl, fmc, fvu = options["importance"]
         ft1.solve(f_wl=fwl, f_mc=fmc, f_vu=fvu)
@@ -164,7 +168,7 @@ def high_congestion_opt(
 
 def hyperparameter_analysis(ft: FeedThrough, output: Path, filename: str):
     results = []
-    data = []
+    data:list = []
 
     def evaluate(alpha, beta, data):
         gamma = 1.0 - alpha - beta
@@ -271,7 +275,8 @@ def draw_nets(ft: FeedThrough, netlist: Netlist, output: Path, filename: str, op
         )
 
 
-def run_solve(options: dict[str, Any]) -> None:
+def run_solve(options: dict[str, Any]) -> dict[str, int | str]:
+    
     input_path: Path = Path(options["input"])
     output: Path = Path(options["output"])
 
@@ -282,8 +287,7 @@ def run_solve(options: dict[str, Any]) -> None:
     line = "################################################"
     dashed = "-----------------------------------------------"
     print(f"{line}\n\t\tRouting: {filename} ...")
-    start_time = time.perf_counter()
-
+    
     netlist = Netlist(str(input_path))
     nets = netlist.edges
     ft = FeedThrough(netlist, **options)
@@ -291,14 +295,17 @@ def run_solve(options: dict[str, Any]) -> None:
     # from frame.netlist.netlist_types import NamedHyperEdge
     # n = NamedHyperEdge(['M1', 'M3', 'M6'], 500)
     # ft.add_nets([n])
+    start_time = time.perf_counter()
     ft.build()
     set_up_time = time.perf_counter()
+    build_time = round(set_up_time - start_time,2)
     print(f"Build time: {set_up_time - start_time:.6f} seconds")
 
     fwl, fmc, fvu = options["importance"]
     ft.solve(f_wl=fwl, f_mc=fmc, f_vu=fvu)
     metrics = ft.metrics
-    metrics["name"] = filename
+    metrics['name'] = filename
+    metrics['build_time'] = f"{build_time}"
     solve_time = time.perf_counter()
     print(f"Solving time: {solve_time - set_up_time:.6f} seconds")
 
@@ -328,19 +335,7 @@ def run_solve(options: dict[str, Any]) -> None:
     return metrics
 
 
-def file_manager(options: dict[str, Any]):
-    # if not file_path.suffix.lower() == ".yaml":
-    #     ispd_data = parse_ispd_file(str(file_path))
-    #     data = convert_to_hanangrid(ispd_data)
-    #     hg = HananGrid(data['HananCells'])
-    #     ft = FeedThrough(hg, layers=data['Layers'])
-    #     nets = list(data['Nets'].values())
-    #     if ispd_data['capacity_adjustments']:
-    #         ft.set_capacity_adjustments({(
-    #             (a['row'], a['column'], a['layer']), (a['target_row'],a['target_column'], a['target_layer'])
-    #             ): a['reduced_capacity'] for a in ispd_data['capacity_adjustments']})
-    #     ft.add_nets(nets)
-    #     ft.build()
+def file_manager(options:dict[str, Any]):
 
     command = options["command"]
 
@@ -351,13 +346,17 @@ def file_manager(options: dict[str, Any]):
             floorplans.append(run_solve(options))
         elif input_path.is_dir():
             for file in input_path.iterdir():
-                options["input"] = file
-                floorplans.append(file_manager(options))
+                # if file.stem < 'FPEF_60':
+                #     continue
+                # if file.stem > 'FPEF_28':
+                #     break
+                options['input'] = file
+                floorplans.append(run_solve(options))
 
         csv_filename = f"{Path(options['output'])}/all_metrics.csv"
-        # Get the keys from the first dictionary to use as headers
+        #Get the keys from the first dictionary to use as headers
         all_keys = {key for floorplan in floorplans for key in floorplan.keys()}
-        # Write data to CSV
+        #Write data to CSV
         with open(csv_filename, "w", newline="") as file:
             writer = csv.DictWriter(file, fieldnames=all_keys)
             writer.writeheader()  # Write column names
@@ -367,12 +366,13 @@ def file_manager(options: dict[str, Any]):
         run_compare(options)
 
     elif command == "analyze":
-        input_path: Path = Path(options["input"])
+        input_path = Path(options['input'])
         if input_path.is_file():
             run_analyze(options)
         elif input_path.is_dir():
             for file in input_path.iterdir():
-                options["input"] = file
+                # if file.stem < 'FPEF_17':
+                #     continue
+                options['input'] = file
                 run_analyze(options)
-
-    return
+    return 

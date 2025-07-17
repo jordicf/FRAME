@@ -30,20 +30,10 @@ The ISPD file format is expected to have the following sections:
     [repeat]
 
 Usage:
-    python ispd_to_fpef.py input.ispd output_fpef.yaml
-
-Dependencies:
-    PyYAML (install via pip install pyyaml)
+    python isdp_to_fpef.py input.isdp output_fpef.yaml
 """
 
-import sys
-import os
-# print("\n".join(sys.path))
-# sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "../../../..")))
-
-import re
 import math
-import yaml
 from tools.early_router.hanan import HananCell, Layer
 from frame.geometry.geometry import Point
 from frame.netlist.netlist_types import NamedHyperEdge
@@ -226,9 +216,9 @@ def convert_to_hanangrid(ispd_data):
             d = "H" if int(h_cap[l]) > 0 else "V"
             layers.append(Layer(d, h_cap=int(h_cap[l]), v_cap=int(v_cap[l])))
     else:
-        layers = [Layer("HV")]
-    for i in range(int(ispd_data["header"]["grid"][0])):
-        for j in range(int(ispd_data["header"]["grid"][1])):
+        layers = [Layer('H', h_cap=int(h_cap[0])), Layer('V', v_cap=int(v_cap[0]))]
+    for i in range(int(ispd_data['header']['grid'][0])):
+        for j in range(int(ispd_data['header']['grid'][1])):
             mod_name = f"M{i}_{j}"
             x = i * w + w / 2
             y = j * h + h / 2
