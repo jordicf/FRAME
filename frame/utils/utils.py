@@ -23,9 +23,10 @@ TextIO_String = TextIO | str | Python_object
 
 class StrFileType(Enum):
     """File type according to its contents"""
-    JSON = 1    # It's a JSON string
-    YAML = 2    # It's a YAML string
-    FILE = 3    # It's a file (neither JSON nor YAML)
+
+    JSON = 1  # It's a JSON string
+    YAML = 2  # It's a YAML string
+    FILE = 3  # It's a file (neither JSON nor YAML)
     UNKNOWN = 4  # Unknown type
 
 
@@ -39,7 +40,7 @@ def valid_identifier(ident: Any) -> bool:
     """
     if not isinstance(ident, str):
         return False
-    _valid_id = '^[A-Za-z_][A-Za-z0-9_]*'
+    _valid_id = "^[A-Za-z_][A-Za-z0-9_]*"
     return re.fullmatch(_valid_id, ident) is not None
 
 
@@ -76,7 +77,7 @@ def string_file_type(s: str) -> StrFileType:
         StrFileType: the type of file corresponding to the file
     """
 
-    forbidden = ['\n', '{', '[', ':']
+    forbidden = ["\n", "{", "["]
 
     if all(s.count(c) == 0 for c in forbidden):
         return StrFileType.FILE  # One line without JSON/YAML characters
@@ -113,7 +114,9 @@ def read_json_yaml(stream: TextIO_String) -> Python_object:
         if ftype == StrFileType.FILE:  # It's a file name
             with open(stream) as f:
                 txt = f.read()
+                print(txt)
                 ftype = string_file_type(txt)
+            print("end with")
 
     else:  # It's a TextIO
         assert isinstance(stream, TextIO)
@@ -131,8 +134,9 @@ def read_json_yaml(stream: TextIO_String) -> Python_object:
     return yaml.safe_load(txt)
 
 
-def write_json_yaml(data: Any, is_json: bool = True,
-                    filename: Optional[str] = None) -> None | str:
+def write_json_yaml(
+    data: Any, is_json: bool = True, filename: Optional[str] = None
+) -> None | str:
     """
     Writes the data into a JSON or YAML file. If no file name is given,
     a string with the yaml contents is returned
@@ -146,7 +150,7 @@ def write_json_yaml(data: Any, is_json: bool = True,
         dump_func = json.dumps if is_json else yaml.dump
         return dump_func(data)
 
-    with open(filename, 'w') as stream:  # dump into a file
+    with open(filename, "w") as stream:  # dump into a file
         dump_func = json.dump if is_json else yaml.dump
         if is_json:
             json.dump(data, stream)
