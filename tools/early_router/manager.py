@@ -179,7 +179,9 @@ def hyperparameter_analysis(ft: FeedThrough, output: Path, filename: str):
         if not _:
             return None
         data.append(ft.metrics.copy())
-        wl, mc, vu = m["norm_fact"]
+        wl = m["norm_factwl"]
+        mc = m["norm_factmc"]
+        vu = m["norm_factvu"]
         delta_wl = round(m["total_wl"] / wl - 1, 4)
         delta_mc = round(m["module_crossings"] / mc - 1, 4)
         delta_vu = round(m["via_usage"] / vu - 1, 4)
@@ -291,10 +293,9 @@ def run_solve(options: dict[str, Any]) -> dict[str, int | str]:
     netlist = Netlist(str(input_path))
     nets = netlist.edges
     ft = FeedThrough(netlist, **options)
-    ft.add_nets(nets)
-    # from frame.netlist.netlist_types import NamedHyperEdge
-    # n = NamedHyperEdge(['M1', 'M3', 'M6'], 500)
-    # ft.add_nets([n])
+    #ft.add_nets(nets)
+    n = NamedHyperEdge(['M1', 'M3', 'M6'], 500)
+    ft.add_nets([n])
     start_time = time.perf_counter()
     ft.build()
     set_up_time = time.perf_counter()

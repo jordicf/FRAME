@@ -335,7 +335,7 @@ class FeedThrough:
 
         return list(net_variables.values()), net_constraints, strict
 
-    def _add_multipin_net(self, net_id:int, net: NamedHyperEdge):
+    def _add_multipin_net(self, net_id:int, net: NamedHyperEdge) -> dict[VarId, Variable]:
         net_nodes = self._graph.get_net_boundingbox(net, self.nets_bb[net_id])
         nodesids = set(n._id for n in net_nodes)
         net_edges = set(self._graph.get_edgesid_subset(net_nodes))
@@ -345,10 +345,13 @@ class FeedThrough:
 
         shared_variables: dict[VarId, Variable] ={}
 
-        # Split TODO MST (minimum spanning tree)?
+        # The idea is to take one source (position 0) and others as sinks
+        source_edges:set[EdgeId] = {e_id 
+                                   for e in self._graph.get_crossings_by_modulename(modulenames[0])["out"] 
+                                   if (e_id:=(e.source._id,e.target._id)) in net_edges}
         subnets = [
-            NamedHyperEdge(modulenames[i : 2 + i], wei)
-            for i in range(len(modulenames) - 1)
+            NamedHyperEdge([modulenames[0], modulenames[i]], wei)
+            for i in range(1,len(modulenames))
         ]
         specific_variables: dict[str, dict[VarId, Variable]] = {}
         for i, subnet in enumerate(subnets):
@@ -383,7 +386,7 @@ class FeedThrough:
                 if not e:
                     continue
                 # From both direction we only save one, so just if source/target is in modulenames is unavoidable
-                if (
+                elif (
                     e.crossing
                     and not (e.source.modulename in modulenames)
                     and not (e.target.modulename in modulenames)
@@ -394,16 +397,13 @@ class FeedThrough:
                     var,
                     crossing=avoidable_crossing,
                     via=e.via,
+                    source = (source, target) in source_edges
                 )
                 for key in specific_variables:
                     self._solver.add_linear_constraint(
                         specific_variables[key][(source, target, net_id)] <= var
                     )
-        return [
-            var
-            for key in specific_variables
-            for var in specific_variables[key].values()
-        ]
+        return shared_variables
 
     def _add_sub2pin_net(self, net_id: int, subnet: NamedHyperEdge, subnet_id: str, nodes: list[HananNode3D],
                           edgeids: set[EdgeId]) -> Tuple[dict[VarId, Variable], list[LinearConstraint]]:
@@ -436,18 +436,33 @@ class FeedThrough:
 
         # Source and Sink are the only nodes that have flow non-zero
         # For source, the outflow is net weigth and the inflow is 0
-        # ALL strict so we ensure that multiple-pin nets are routed  not as in <= in 2-pin nets
-        c = self._solver.add_linear_constraint(sum(net_variables[(e.source._id, e.target._id, net_id)] for e in source_edges['out'] if (e.source._id, e.target._id) in edgeids) == subnet.weight)
+        # ALL strict so we ensure that multiple-pin nets are routed
+        c = self._solver.add_linear_constraint(sum(
+            net_variables[(e.source._id, e.target._id, net_id)] 
+            for e in source_edges['out'] 
+            if (e.source._id, e.target._id) in edgeids
+            ) == subnet.weight)
         net_constraints.append(c)
-        c = self._solver.add_linear_constraint(sum(net_variables[(e.source._id, e.target._id, net_id)] for e in source_edges['in']  if (e.source._id, e.target._id) in edgeids) == 0)
+        c = self._solver.add_linear_constraint(sum(
+            net_variables[(e.source._id, e.target._id, net_id)] 
+            for e in source_edges['in']  
+            if (e.source._id, e.target._id) in edgeids
+            ) == 0)
         net_constraints.append(c)
         # For sink, the inflow is the net weight and the outflow is 0
-        c = self._solver.add_linear_constraint(sum(net_variables[(e.source._id, e.target._id, net_id)] for e in sink_edges['in'] if (e.source._id, e.target._id) in edgeids) == subnet.weight)
+        c = self._solver.add_linear_constraint(sum(
+            net_variables[(e.source._id, e.target._id, net_id)] 
+            for e in sink_edges['in'] 
+            if (e.source._id, e.target._id) in edgeids
+            ) == subnet.weight)
         net_constraints.append(c)
-        c = self._solver.add_linear_constraint(sum(net_variables[(e.source._id, e.target._id, net_id)] for e in sink_edges['out'] if (e.source._id, e.target._id) in edgeids) == 0)
+        c = self._solver.add_linear_constraint(sum(
+            net_variables[(e.source._id, e.target._id, net_id)] 
+            for e in sink_edges['out'] 
+            if (e.source._id, e.target._id) in edgeids
+            ) == 0)
         net_constraints.append(c)
 
-        # in2pin net the constraints are in net_constraints[-2] and net_constraints[-4]
         return net_variables, net_constraints
 
     def _add_capacity_constraints(self) -> List[LinearConstraint]:
@@ -554,6 +569,8 @@ class FeedThrough:
         elif len(unrouted_nets) == 0:  # Finish call
             # Change the last constraints of the model <= (sources and sinks) to ==.
             for net_id in self._nets:
+                if len(self._nets[net_id].modules) > 2:
+                    continue
                 net_vars, net_constraints, net_eq_constraints = self.model_components[
                     net_id
                 ]
@@ -616,7 +633,6 @@ class FeedThrough:
         self.model_components: dict[NetId, Any] = {}
         for net_id, net in self._nets.items():
             if len(net.modules)>2:
-                # TODO
                 self._add_multipin_net(net_id, net)
             else:
                 self.model_components[net_id] = self._add_2pin_net(net_id, net)
