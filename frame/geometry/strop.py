@@ -47,6 +47,7 @@ BoolMatrix = list[BoolRow]
 class Interval:
     """Represents an interval of integer numbers.
     [-1, -1] represents the empty interval."""
+
     low: int
     high: int
 
@@ -54,13 +55,12 @@ class Interval:
         """Returns whether the interval is empty"""
         return self.low == -1
 
-    def intersection(self, other: 'Interval') -> 'Interval':
+    def intersection(self, other: "Interval") -> "Interval":
         """Returns the intersection of two intervals. If the intersection
         is empty, it returns the empty interval"""
         if self.empty() or other.empty():
             return EMPTY_INTERVAL
-        i: Interval = Interval(max(self.low, other.low),
-                               min(self.high, other.high))
+        i: Interval = Interval(max(self.low, other.low), min(self.high, other.high))
         return i if i.low <= i.high else EMPTY_INTERVAL
 
     def length(self) -> int:
@@ -76,13 +76,15 @@ EMPTY_INTERVAL = Interval(-1, -1)
 @dataclass
 class Rectangle:
     """Represents a rectangle (interval of rows and interval of columns)"""
+
     rows: Interval
     columns: Interval
 
     def __hash__(self) -> int:
         """Hash function"""
-        return hash((self.rows.low, self.rows.high,
-                     self.columns.low, self.columns.high))
+        return hash(
+            (self.rows.low, self.rows.high, self.columns.low, self.columns.high)
+        )
 
     def empty(self) -> bool:
         """Checks whether the rectangle is empty"""
@@ -90,21 +92,23 @@ class Rectangle:
 
     def area(self) -> int:
         """Returns the area (number of cells) of the rectangle"""
-        return self.rows.length()*self.columns.length()
+        return self.rows.length() * self.columns.length()
 
 
 class Strop:
     """Class to represent orthogonal polygons"""
+
     _m: BoolMatrix  # matrix to represent the grid of the STrOP
     _nrows: int  # number of rows
     _ncols: int  # number of columns
     _height: list[float]  # heights of the rows
     _width: list[float]  # widths of the columns
-    _instances: list['StropInstance']
+    _instances: list["StropInstance"]
     _valid: bool  # Is it a strop?
 
-    def __init__(self, str_matrix: str, height: list[float] = list(),
-                 width: list[float] = list()):
+    def __init__(
+        self, str_matrix: str, height: list[float] = list(), width: list[float] = list()
+    ):
         """Constructor from a Boolean matrix represented as a string of 0's
         and 1's. Each row is separated by a whitespace.
         height ahd width represent the heights and the widths of the rows and
@@ -114,21 +118,26 @@ class Strop:
         self._nrows = len(lst)
         assert self._nrows > 0, "Creating an empty STrOP"
         self._ncols = len(lst[0])
-        assert all(
-            len(x) == self._ncols for x in lst), \
+        assert all(len(x) == self._ncols for x in lst), (
             "Illegal STrOP: rows with different size"
-        assert all(lst[i][j] in {'0', '1'}
-                   for i in range(self._nrows) for j in range(self._ncols)), \
-            "Non-binary elements in Boolean matrix"
-        self._m = [[lst[i][j] == '1' for j in range(self._ncols)]
-                   for i in range(self._nrows)]
+        )
+        assert all(
+            lst[i][j] in {"0", "1"}
+            for i in range(self._nrows)
+            for j in range(self._ncols)
+        ), "Non-binary elements in Boolean matrix"
+        self._m = [
+            [lst[i][j] == "1" for j in range(self._ncols)] for i in range(self._nrows)
+        ]
         # Heights and widths
-        assert len(height) == 0 or len(
-            height) == self._nrows, "Wrong number of rows in height"
-        assert len(width) == 0 or len(
-            width) == self._ncols, "Wrong number of columns in width"
-        self._height = height[:] if len(height) > 0 else [1]*self._nrows
-        self._width = width[:] if len(width) > 0 else [1]*self._ncols
+        assert len(height) == 0 or len(height) == self._nrows, (
+            "Wrong number of rows in height"
+        )
+        assert len(width) == 0 or len(width) == self._ncols, (
+            "Wrong number of columns in width"
+        )
+        self._height = height[:] if len(height) > 0 else [1] * self._nrows
+        self._width = width[:] if len(width) > 0 else [1] * self._ncols
 
         # Generate OrthoTrees
         self._instances = list()
@@ -162,7 +171,7 @@ class Strop:
         """Returns the list of widths of the grid"""
         return self._width
 
-    def instances(self) -> Iterator['StropInstance']:
+    def instances(self) -> Iterator["StropInstance"]:
         """Generates a list of orthogonal trees (trunk+branches)"""
         for tree in self._instances:
             yield tree
@@ -170,12 +179,12 @@ class Strop:
     def _get_potential_trunks(self) -> set[Rectangle]:
         """Returns a set of rectangles that could be potentially
         trunks of the polygon"""
-        Mt = [[self._m[j][i]
-               for j in range(self._nrows)] for i in range(self._ncols)]
+        Mt = [[self._m[j][i] for j in range(self._nrows)] for i in range(self._ncols)]
         return {
-            t for t in Strop._get_trunks_matrix(self._m).intersection(
-                {Rectangle(r.columns, r.rows)
-                 for r in Strop._get_trunks_matrix(Mt)})
+            t
+            for t in Strop._get_trunks_matrix(self._m).intersection(
+                {Rectangle(r.columns, r.rows) for r in Strop._get_trunks_matrix(Mt)}
+            )
             if self._empty_corners(t)
         }
 
@@ -184,17 +193,22 @@ class Strop:
         empty in the matrix"""
 
         return not (
-            any(self._m[i][j] for i in range(R.rows.low)
-                for j in range(R.columns.low))
-            or
-            any(self._m[i][j] for i in range(R.rows.low)
-                for j in range(R.columns.high+1, self._ncols))
-            or
-            any(self._m[i][j] for i in range(R.rows.high+1, self._nrows)
-                for j in range(R.columns.low))
-            or
-            any(self._m[i][j] for i in range(R.rows.high+1, self._nrows)
-                for j in range(R.columns.high+1, self._ncols))
+            any(self._m[i][j] for i in range(R.rows.low) for j in range(R.columns.low))
+            or any(
+                self._m[i][j]
+                for i in range(R.rows.low)
+                for j in range(R.columns.high + 1, self._ncols)
+            )
+            or any(
+                self._m[i][j]
+                for i in range(R.rows.high + 1, self._nrows)
+                for j in range(R.columns.low)
+            )
+            or any(
+                self._m[i][j]
+                for i in range(R.rows.high + 1, self._nrows)
+                for j in range(R.columns.high + 1, self._ncols)
+            )
         )
 
     @staticmethod
@@ -205,35 +219,37 @@ class Strop:
         # We build a square matrix rect (nrows x nrows).
         # rect[i][j] represents the largest interval of columns in M
         # for a rectangle between rows i and j (i <= j)
-        rect: list[list[Interval]] = \
-            [[EMPTY_INTERVAL]*nrows for _ in range(nrows)]
+        rect: list[list[Interval]] = [[EMPTY_INTERVAL] * nrows for _ in range(nrows)]
         # Fill-up diagonals with the longest interval of columns at row i
         for i in range(nrows):
             rect[i][i] = Strop._row_interval(M[i])
 
         # Now fill up the upper triangle
         for last_row in range(1, nrows):
-            for row in range(last_row-1, -1, -1):
-                rect[row][last_row] = \
-                    rect[row + 1][last_row].intersection(rect[row][row])
+            for row in range(last_row - 1, -1, -1):
+                rect[row][last_row] = rect[row + 1][last_row].intersection(
+                    rect[row][row]
+                )
 
         # Remove the non-prime rectangles by rows
-        for row in range(nrows-1):
-            for last_row in range(row, nrows-1):
-                if rect[row][last_row] == rect[row][last_row+1]:
+        for row in range(nrows - 1):
+            for last_row in range(row, nrows - 1):
+                if rect[row][last_row] == rect[row][last_row + 1]:
                     rect[row][last_row] = EMPTY_INTERVAL
 
         # Remove the non-prime rectangles by columns
         for last_row in range(1, nrows):
             for row in range(last_row, 0, -1):
-                if rect[row][last_row] == rect[row-1][last_row]:
+                if rect[row][last_row] == rect[row - 1][last_row]:
                     rect[row][last_row] = EMPTY_INTERVAL
-        
-        # Return the non-empty intervals 
-        return {Rectangle(Interval(row, last_row), rect[row][last_row])
-                for row in range(nrows)
-                for last_row in range(row, nrows)
-                if rect[row][last_row] != EMPTY_INTERVAL}
+
+        # Return the non-empty intervals
+        return {
+            Rectangle(Interval(row, last_row), rect[row][last_row])
+            for row in range(nrows)
+            for last_row in range(row, nrows)
+            if rect[row][last_row] != EMPTY_INTERVAL
+        }
 
     @staticmethod
     def _row_interval(R: BoolRow) -> Interval:
@@ -250,18 +266,19 @@ class Strop:
         try:
             first_false = R.index(False, first_true + 1)
         except ValueError:
-            return Interval(first_true, len(R)-1)  # segment at the tail
+            return Interval(first_true, len(R) - 1)  # segment at the tail
 
         # Find a new True. If it exists, bad row for a trunk
         try:
             R.index(True, first_false + 1)
             return EMPTY_INTERVAL  # Found, not a good row
         except ValueError:
-            return Interval(first_true, first_false-1)  # Not found, good row
+            return Interval(first_true, first_false - 1)  # Not found, good row
 
 
 class StropInstance:
     """Class to represent an instance of a STrOP"""
+
     _poly: Strop  # Representation of the orthogonal polygon
     _trunk: Rectangle  # Trunk
     _north: list[Rectangle]  # North branches
@@ -275,38 +292,39 @@ class StropInstance:
         self._poly = p
         self._trunk = trunk
         m = p.matrix
-        self._num_cells = sum(1 for i in range(p.num_rows)
-                              for j in range(p.num_columns) if m[i][j])
+        self._num_cells = sum(
+            1 for i in range(p.num_rows) for j in range(p.num_columns) if m[i][j]
+        )
         # Generate histograms for the borders of the trunk
-        h_north: list[int] = [0]*p.num_columns
-        h_south: list[int] = [0]*p.num_columns
-        h_east: list[int] = [0]*p.num_rows
-        h_west: list[int] = [0]*p.num_rows
+        h_north: list[int] = [0] * p.num_columns
+        h_south: list[int] = [0] * p.num_columns
+        h_east: list[int] = [0] * p.num_rows
+        h_west: list[int] = [0] * p.num_rows
 
         # In total we will accumulate the area of trunk and branches
         total = trunk.area()
 
         # North and South histograms
-        for c in range(trunk.columns.low, trunk.columns.high+1):
-            for r in range(trunk.rows.low-1, -1, -1):
+        for c in range(trunk.columns.low, trunk.columns.high + 1):
+            for r in range(trunk.rows.low - 1, -1, -1):
                 if not m[r][c]:
                     break
                 h_north[c] += 1
                 total += 1
-            for r in range(trunk.rows.high+1, p.num_rows):
+            for r in range(trunk.rows.high + 1, p.num_rows):
                 if not m[r][c]:
                     break
                 h_south[c] += 1
                 total += 1
 
         # East and West histograms
-        for r in range(trunk.rows.low, trunk.rows.high+1):
-            for c in range(trunk.columns.low-1, -1, -1):
+        for r in range(trunk.rows.low, trunk.rows.high + 1):
+            for c in range(trunk.columns.low - 1, -1, -1):
                 if not m[r][c]:
                     break
                 h_west[r] += 1
                 total += 1
-            for c in range(trunk.columns.high+1, p.num_columns):
+            for c in range(trunk.columns.high + 1, p.num_columns):
                 if not m[r][c]:
                     break
                 h_east[r] += 1
@@ -317,67 +335,95 @@ class StropInstance:
         if not self.valid():
             return
 
-        self._north, self._south, self._east, self._west = \
-            list(), list(), list(), list()
+        self._north, self._south, self._east, self._west = (
+            list(),
+            list(),
+            list(),
+            list(),
+        )
         # Generate the north branches visiting the north histogram
         init_c, v = trunk.columns.low, h_north[trunk.columns.low]
-        for c in range(trunk.columns.low + 1, trunk.columns.high+1):
+        for c in range(trunk.columns.low + 1, trunk.columns.high + 1):
             if h_north[c] != v:
                 if v != 0:
-                    self._north.append(Rectangle(
-                        Interval(trunk.rows.low-v, trunk.rows.low-1),
-                        Interval(init_c, c-1)))
+                    self._north.append(
+                        Rectangle(
+                            Interval(trunk.rows.low - v, trunk.rows.low - 1),
+                            Interval(init_c, c - 1),
+                        )
+                    )
                 init_c = c
                 v = h_north[c]
         if v != 0:  # Last rectangle
-            self._north.append(Rectangle(
-                Interval(trunk.rows.low-v, trunk.rows.low-1),
-                Interval(init_c, trunk.columns.high)))
+            self._north.append(
+                Rectangle(
+                    Interval(trunk.rows.low - v, trunk.rows.low - 1),
+                    Interval(init_c, trunk.columns.high),
+                )
+            )
 
         # Generate the south branches
         init_c, v = trunk.columns.low, h_south[trunk.columns.low]
-        for c in range(trunk.columns.low + 1, trunk.columns.high+1):
+        for c in range(trunk.columns.low + 1, trunk.columns.high + 1):
             if h_south[c] != v:
                 if v != 0:
-                    self._south.append(Rectangle(
-                        Interval(trunk.rows.high+1, trunk.rows.high+v),
-                        Interval(init_c, c-1)))
+                    self._south.append(
+                        Rectangle(
+                            Interval(trunk.rows.high + 1, trunk.rows.high + v),
+                            Interval(init_c, c - 1),
+                        )
+                    )
                 init_c = c
                 v = h_south[c]
         if v != 0:  # Last rectangle
-            self._south.append(Rectangle(
-                Interval(trunk.rows.high+1, trunk.rows.high+v),
-                Interval(init_c, trunk.columns.high)))
+            self._south.append(
+                Rectangle(
+                    Interval(trunk.rows.high + 1, trunk.rows.high + v),
+                    Interval(init_c, trunk.columns.high),
+                )
+            )
 
         # Generate the west branches
         init_r, v = trunk.rows.low, h_west[trunk.rows.low]
-        for r in range(trunk.rows.low + 1, trunk.rows.high+1):
+        for r in range(trunk.rows.low + 1, trunk.rows.high + 1):
             if h_west[r] != v:
                 if v != 0:
-                    self._west.append(Rectangle(
-                        Interval(init_r, r-1),
-                        Interval(trunk.columns.low-v, trunk.columns.low-1)))
+                    self._west.append(
+                        Rectangle(
+                            Interval(init_r, r - 1),
+                            Interval(trunk.columns.low - v, trunk.columns.low - 1),
+                        )
+                    )
                 init_r = r
                 v = h_west[r]
         if v != 0:  # Last rectangle
-            self._west.append(Rectangle(
-                Interval(init_r, trunk.rows.high),
-                Interval(trunk.columns.low-v, trunk.columns.low-1)))
+            self._west.append(
+                Rectangle(
+                    Interval(init_r, trunk.rows.high),
+                    Interval(trunk.columns.low - v, trunk.columns.low - 1),
+                )
+            )
 
         # Generate the east branches
         init_r, v = trunk.rows.low, h_east[trunk.rows.low]
-        for r in range(trunk.rows.low + 1, trunk.rows.high+1):
+        for r in range(trunk.rows.low + 1, trunk.rows.high + 1):
             if h_east[r] != v:
                 if v != 0:
-                    self._east.append(Rectangle(
-                        Interval(init_r, r-1),
-                        Interval(trunk.columns.high+1, trunk.columns.high+v)))
+                    self._east.append(
+                        Rectangle(
+                            Interval(init_r, r - 1),
+                            Interval(trunk.columns.high + 1, trunk.columns.high + v),
+                        )
+                    )
                 init_r = r
                 v = h_east[r]
         if v != 0:  # Last rectangle
-            self._east.append(Rectangle(
-                Interval(init_r, trunk.rows.high),
-                Interval(trunk.columns.high+1, trunk.columns.high+v)))
+            self._east.append(
+                Rectangle(
+                    Interval(init_r, trunk.rows.high),
+                    Interval(trunk.columns.high + 1, trunk.columns.high + v),
+                )
+            )
 
     def valid(self) -> bool:
         """Reports whether it is a valid STROP"""
@@ -387,7 +433,7 @@ class StropInstance:
         """Returns the trunk of the tree"""
         return self._trunk
 
-    def rectangles(self, which: str = '') -> Iterator[Rectangle]:
+    def rectangles(self, which: str = "") -> Iterator[Rectangle]:
         """Returns the rectangles of the STROP instance depending on the
         value of which.
         '' -> all rectangles (default)
@@ -398,15 +444,20 @@ class StropInstance:
         e.g. 'NST'
         """
         assert self.valid(), "Invalid STROP"
-        assert all(x in {'N', 'S', 'W', 'E', 'T', 'B'} for x in which), \
+        assert all(x in {"N", "S", "W", "E", "T", "B"} for x in which), (
             "Unknown type of rectangles"
+        )
 
-        if not which or 'T' in which:
+        if not which or "T" in which:
             yield self.trunk()
 
-        for side, lst in [('N', self._north), ('S', self._south),
-                          ('E', self._east), ('W', self._west)]:
-            if not which or side in which or 'B' in which:
+        for side, lst in [
+            ("N", self._north),
+            ("S", self._south),
+            ("E", self._east),
+            ("W", self._west),
+        ]:
+            if not which or side in which or "B" in which:
                 for r in lst:
                     yield r
 
@@ -414,21 +465,62 @@ class StropInstance:
         """Returns a string representing the STROP.
         The string represents a grid in which 0 represents the trunk and
         1, 2, ... represent the branches."""
-        grid: list[list[str]] = [[' ']*self._poly.num_columns
-                                 for _ in range(self._poly.num_rows)]
+        grid: list[list[str]] = [
+            [" "] * self._poly.num_columns for _ in range(self._poly.num_rows)
+        ]
         idx = 0
         for r in self.rectangles():  # all rectangles
             StropInstance._str_rectangle(grid, r, idx)
             idx += 1
 
         # Create the string representing the matrix
-        return '\n'.join([''.join(row).rstrip() for row in grid])
+        return "\n".join(["".join(row).rstrip() for row in grid])
 
     @staticmethod
-    def _str_rectangle(grid: list[list[str]], rect: Rectangle,
-                       idx: int) -> None:
+    def _str_rectangle(grid: list[list[str]], rect: Rectangle, idx: int) -> None:
         """Defines the cells of the grid with the rectangle rect and
         index idx"""
-        for r in range(rect.rows.low, rect.rows.high+1):
-            for c in range(rect.columns.low, rect.columns.high+1):
+        for r in range(rect.rows.low, rect.rows.high + 1):
+            for c in range(rect.columns.low, rect.columns.high + 1):
                 grid[r][c] = f"{idx:x}"
+
+
+def str2BoolMatrix(s: str) -> BoolMatrix:
+    """It generates a Boolean matrix from a string. The string is
+    a sequence of floats in [0,1] representing the occupancy of each cell.
+    Negative numbers are used for row separation. No negative number must
+    be added after the last row.
+    The returned matrix contains True for cells > 0 and False for cells = 0.
+    The sequence 1.0 0.25 0 -1 0 1.0 0.8 represents a matrix with
+    two rows and three columns. The function will return (abbreviated)
+    [[TTF], [FTT]].
+    An exception is raised in case the string does not represent
+    a valid matrix."""
+
+    lst = s.split()  # Split as a list of strings
+    lst_float = [float(x) for x in lst]
+    assert all(x <= 1.0 for x in lst_float), "Wrong STROP matrix. Values greater than 1"
+    nelems = len(lst_float)
+    assert nelems > 0, "Empty Boolean Matrix"
+
+    # Cound number of negative numbers (nrows - 1)
+    nrows = 1 + sum(1 for x in lst_float if x < 0)
+    ncolumns = (nelems - nrows + 1) // nrows
+
+    assert nrows * (ncolumns + 1) - 1 == nelems, "Wrong format of STROP matrix"
+
+    # Create the Boolean matrix
+    m: BoolMatrix = list[BoolRow]()
+
+    init_row, end_row = 0, ncolumns
+    for i in range(nrows):
+        print(init_row, end_row)
+        slice = lst_float[init_row:end_row]
+        m.append([(True if x > 0 else False) for x in slice])
+        assert end_row == nelems or lst_float[end_row] < 0, (
+            "Wrong format for STROP matrix"
+        )
+        init_row += ncolumns + 1
+        end_row = init_row + ncolumns
+
+    return m

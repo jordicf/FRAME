@@ -3,8 +3,9 @@ Testing the stop module.
 A set of matrices are given, with their corresponding STROP instances.
 The test checks that all these solutions are generated.
 """
+
 import unittest
-from frame.geometry.strop import Strop
+from frame.geometry.strop import Strop, str2BoolMatrix
 
 
 matrix1 = """
@@ -97,6 +98,15 @@ matrix4 = """
 """
 #######################################################
 
+str_matrix1 = "1 0.9 -1 0 0.2 -1 0.5 0"
+str_matrix2 = "0 0 0.2 -1 1 0 0.3"
+str_matrix3 = "0 0.4 -1 0.6 1.1"
+str_matrix4 = "0 0.4 -1 0.6 1.0 -1"
+str_matrix5 = "1.0 0.3 0 -1 0 0.2 -1 1 0.5 0.6 0.5"
+
+bool_matrix1 = [[True, True], [False, True], [True, False]]
+bool_matrix2 = [[False, False, True], [True, False, True]]
+
 
 def check_matrix(matrix: str, sol: set[str] = set()) -> bool:
     """Check that the matrix generates the set of solutions."""
@@ -115,6 +125,13 @@ class TestSTROP(unittest.TestCase):
         self.assertTrue(check_matrix(matrix2))
         self.assertTrue(check_matrix(matrix3, {sol3_1, sol3_2, sol3_3, sol3_4}))
         self.assertTrue(check_matrix(matrix4))
+
+    def test_str2boolmatrix(self):
+        self.assertEqual(str2BoolMatrix(str_matrix1), bool_matrix1)
+        self.assertEqual(str2BoolMatrix(str_matrix2), bool_matrix2)
+        self.assertRaises(AssertionError, str2BoolMatrix, str_matrix3)
+        self.assertRaises(AssertionError, str2BoolMatrix, str_matrix4)
+        self.assertRaises(AssertionError, str2BoolMatrix, str_matrix5)
 
 
 if __name__ == "__main__":
