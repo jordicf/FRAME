@@ -12,6 +12,7 @@ from tools.floorset_parser.floor_set_manager.utils.keywords import KW_MODULES, K
 
 from frame.geometry.geometry import Point  # check if it is the same
 from frame.netlist.netlist_types import NamedHyperEdge
+from typing import Any
 
 
 EPSILON = 1e-3
@@ -21,9 +22,9 @@ class FloorSetInstance():
     """
     A class to represent a floorset instance.
     """
-    _fp_data: dict[np.ndarray]
+    _fp_data: dict[str,np.ndarray]
     "Floorplan raw data"
-    _d: float
+    _d: float | None
     "Density Percentage"
     _modules: dict
     "List of modules (blocks and terminals)"
@@ -34,7 +35,7 @@ class FloorSetInstance():
     _height: float
     "Die height"
 
-    def __init__(self, floorplan_data: dict[np.ndarray], density: float | None, factor: float | None, terminals_as_modules: bool) -> None:
+    def __init__(self, floorplan_data: dict[str,np.ndarray], density: float | None, factor: float | None, terminals_as_modules: bool) -> None:
         """
         :Args:
         :param dict[np.ndarray] floorplan_data: The raw floorplan data stored in a dictionary with keys: 
@@ -101,7 +102,7 @@ class FloorSetInstance():
         else:
             self._d = density
         if factor:
-            self._alpha = float(factor)
+            self._alpha:float|None = float(factor)
         else:
             self._alpha = factor
 
@@ -118,7 +119,7 @@ class FloorSetInstance():
         """
         for mod_id in range(self.num_modules):
             name = f"M{mod_id}"
-            data = dict()
+            data: dict[str,Any] = dict()
 
             vertices = self._fp_data['vertex_blocks'][mod_id]
             vertices = vertices[vertices[:, 0] != -1]
@@ -189,7 +190,7 @@ class FloorSetInstance():
         each connection storing them in `self._nets` list.
         """
         if self._d:
-            max_f = -1
+            max_f = -1.
             for mod_id in range(self.num_modules):
                 bl_w = weight_sum(self._fp_data['b2b_connectivity'],
                                   self._fp_data['p2b_connectivity'], mod_id)
@@ -248,6 +249,6 @@ class FloorSetInstance():
         return self._nets
 
     @property
-    def density_percentage(self) -> float:
+    def density_percentage(self) -> float | None:
         """Returns the density percentage set in this floorplan"""
         return self._d

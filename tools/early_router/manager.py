@@ -293,9 +293,9 @@ def run_solve(options: dict[str, Any]) -> dict[str, int | str]:
     netlist = Netlist(str(input_path))
     nets = netlist.edges
     ft = FeedThrough(netlist, **options)
-    #ft.add_nets(nets)
-    n = NamedHyperEdge(['M1', 'M3', 'M6'], 500)
-    ft.add_nets([n])
+    ft.add_nets(nets)
+    #n = NamedHyperEdge(['M1', 'M3', 'M6'], 500)
+    #ft.add_nets([n])
     start_time = time.perf_counter()
     ft.build()
     set_up_time = time.perf_counter()
