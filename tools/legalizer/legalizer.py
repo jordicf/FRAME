@@ -716,10 +716,10 @@ class Model:
         print("")
 
     def define_module(self, trunk_box: BoxType, is_terminal: bool = False) -> int:
-        x: list[ExpressionTree] = []
-        y: list[ExpressionTree] = []
-        w: list[ExpressionTree] = []
-        h: list[ExpressionTree] = []
+        x = list[ExpressionTree]()
+        y = list[ExpressionTree]()
+        w = list[ExpressionTree]()
+        h = list[ExpressionTree]()
         # pass is_terminal parameter correctly
         m = ModelModule(
             x,
@@ -881,20 +881,19 @@ class Model:
         max_ratio = self.max_ratio
         og_names = self.og_names
 
-        self.M: list[ModelModule] = []
-        self.x: list[list[ExpressionTree]] = []
-        self.y: list[list[ExpressionTree]] = []
-        self.w: list[list[ExpressionTree]] = []
-        self.h: list[list[ExpressionTree]] = []
+        self.M = list[ModelModule]()
+        self.x = list[list[ExpressionTree]]()
+        self.y = list[list[ExpressionTree]]()
+        self.w = list[list[ExpressionTree]]()
+        self.h = list[list[ExpressionTree]]()
         self.dw: float = die_width
         self.dh: float = die_height
         self.max_ratio: float = max_ratio
         self.og_names: list[str] = og_names
         self.og_area: list[float] = al
         self.hyper = hyper
-        self.inter_eqs: dict[tuple[int, int, int, int], Equation] = {}
-
-        self.enforces: list[tuple[ExpressionTree, float]] = []
+        self.inter_eqs = dict[tuple[int, int, int, int], Equation]() 
+        self.enforces = list[tuple[ExpressionTree, float]]()
 
         """Constructs the GEKKO object and initializes the model"""
         self.gekko = ModelWrapper(GEKKO(remote=False), self.wl_mult)
@@ -1526,14 +1525,15 @@ class Model:
 
 def netlist_to_utils(netlist: Netlist):
     ml: list[InputModule] = []
-    al: list[float] = []
-    xl: OptionalMatrix = {}
-    yl: OptionalMatrix = {}
-    wl: OptionalMatrix = {}
-    hl: OptionalMatrix = {}
-    mod_map: dict[str, int] = {}
+    ml = list[InputModule]()
+    al = list[float]()
+    xl = OptionalMatrix()
+    yl = OptionalMatrix()
+    wl = OptionalMatrix()
+    hl = OptionalMatrix()
+    mod_map = dict[str, int]()
     og_names = []
-    terminal_map: dict[str, tuple[float, float]] = {}  # store terminals' positions
+    terminal_map = dict[str, tuple[float, float]]()  # store terminals' positions
 
     # first deal with all modules, distinguish terminals and normal modules
     for module in netlist.modules:
@@ -1604,7 +1604,7 @@ def netlist_to_utils(netlist: Netlist):
         al.append(module.area())
 
     # create hypergraph, special handling terminals
-    hyper: HyperGraph = []
+    hyper = HyperGraph()
     for edge in netlist.edges:
         modules = []
         terminals = []
