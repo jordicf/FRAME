@@ -27,7 +27,7 @@ A STROP is an orthogonal polygon that can be decomposed into a set of disjoint r
 
 The following picture shows an orthogonal polygon that is not a STROP. Assuming that the blue rectangle is the trunk, two
 of the other rectangles (left and right) are branches of the trunk, since they fully share one of the edges
-with the trunk. However, the bottom rectangle is not a branch, since the common edge is not fully shared
+with the trunk. However, the rightmost rectangle is not a branch, since the common edge is not fully shared
 with the trunk.
 
 <img src="pict/trunk_branch.png" alt="Trunk and branches" style="height: 120px;"/>
@@ -63,15 +63,16 @@ $$\binom{k+3}{k}$$
 
 ### STROP decomposition
 
-The decomposition of a STROP into trunk/branch rectangles is not unique, as
-it can be shown in the figure.
+The decomposition of a STROP into trunk/branch rectangles is not unique.
+The figure shows an orthogonal polygon (left) with three valid decompositions
+(the blue rectangle is the trunk). 
 
 <img src="pict/strop-decomp.png" alt="STROP decomposition" style="width: 700px;"/>
 
 We say that a STROP decomposition is maximal if the trunk cannot be extended
 without exceeding the boundaries of the polygon. In the previous example, the
 first two decompositions are maximal. The third decomposition is not maximal
-as the trunk can still be extended to the east side.
+as the trunk can still be extended to the right (as shown in the first decomposition).
 
 ### Why STROPs?
 
