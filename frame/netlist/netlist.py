@@ -11,7 +11,7 @@ import math
 from itertools import combinations
 from typing import Optional, Iterator
 from frame.netlist.module import Module
-from frame.netlist.netlist_types import HyperEdge
+from frame.netlist.netlist_types import HyperEdge, NamedHyperEdge
 from frame.netlist.yaml_read_netlist import parse_yaml_netlist
 from frame.netlist.yaml_write_netlist import dump_yaml_modules, dump_yaml_edges
 from frame.geometry.geometry import Rectangle, parse_yaml_rectangle
@@ -33,7 +33,7 @@ class Netlist:
     """
 
     _modules: list[Module]  # List of modules
-    _edges: list[HyperEdge]  # List of edges, with references to modules
+    _edges: list[HyperEdge]  # List of hyperedges, with references to modules
     _name2module: dict[str, Module]  # Map from module names to modules
     _rectangles: Optional[list[Rectangle]]  # List of rectangles
 
@@ -46,11 +46,13 @@ class Netlist:
 
         self._modules, _named_edges = parse_yaml_netlist(stream)
         self._name2module = {b.name: b for b in self._modules}
+        self._create_hyperedges(_named_edges)
         self._create_rectangles()
 
-        # Edges
+    def _create_hyperedges(self, hyper_edges: list[NamedHyperEdge]) -> None:
+        """Defines the hyperedges of the netlist"""
         self._edges = list[HyperEdge]()
-        for e in _named_edges:
+        for e in hyper_edges:
             modules = list[Module]()
             for b in e.modules:
                 assert b in self._name2module, f"Unknown module {b} in edge"
@@ -67,6 +69,15 @@ class Netlist:
     def modules(self) -> list[Module]:
         """List of modules of the netlist"""
         return self._modules
+
+    def get_module(self, name: str) -> Module:
+        """
+        Returns the module with a certain name
+        :param name: name mof the module
+        :return: the module
+        """
+        assert name in self._name2module, f"Module {name} does not exist"
+        return self._name2module[name]
 
     @property
     def num_edges(self) -> int:
@@ -96,15 +107,6 @@ class Netlist:
             self._create_rectangles()
         assert self._rectangles is not None
         return self._rectangles
-
-    def get_module(self, name: str) -> Module:
-        """
-        Returns the module with a certain name
-        :param name: name mof the module
-        :return: the module
-        """
-        assert name in self._name2module, f"Module {name} does not exist"
-        return self._name2module[name]
 
     def create_squares(self) -> list[Module]:
         """
