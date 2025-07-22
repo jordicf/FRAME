@@ -21,13 +21,13 @@ def dump_yaml_modules(modules: list[Module]) -> dict[str, Any]:
     return {b.name: dump_yaml_module(b) for b in modules}
 
 
-def dump_yaml_edges(edges: list[HyperEdge]) -> list:
+def dump_yaml_edges(edges: list[HyperEdge]) -> list[list[str | float]]:
     """
     Generates a data structure for the edges that can be dumped in YAML
     :param edges: list of edges (see Netlist)
     :return: the data structure
     """
-    out_edges: list = []
+    out_edges = list[list[str | float]]()
     for e in edges:
         edge: list[str | float] = [b.name for b in e.modules]
         if e.weight != 1:
@@ -42,7 +42,7 @@ def dump_yaml_module(module: Module) -> dict:
     :param module: a module
     :return: the data structure
     """
-    info: dict[str, float | bool | list | dict] = {}
+    info = dict[str, float | bool | list | dict]()
 
     # Dump all the information
     if not module.is_hard:
@@ -85,7 +85,7 @@ def dump_yaml_rectangles(rectangles: list[Rectangle]) \
     :param rectangles: list of rectangles
     :return: the list of rectangles
     """
-    rects: list[list[float | str]] = []
+    rects = list[list[float | str]]()
     for r in rectangles:
         list_rect: list[float | str] = [
             r.center.x, r.center.y, r.shape.w, r.shape.h]

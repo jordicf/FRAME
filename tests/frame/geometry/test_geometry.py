@@ -4,12 +4,11 @@
 
 import unittest
 
-from frame.geometry.geometry import Point, Shape, Rectangle, BoundingBox, create_stog
+from frame.geometry.geometry import Point, Shape, Rectangle, BoundingBox, create_strop
 from frame.utils.keywords import KW_CENTER, KW_SHAPE
 
 
 class TestPoint(unittest.TestCase):
-
     def setUp(self) -> None:
         self.p = Point(1, 2)
         self.q = Point(-1.5, 0)
@@ -105,7 +104,6 @@ class TestPoint(unittest.TestCase):
 
 
 class TestRectangle(unittest.TestCase):
-
     def test_bad_rectangles(self):
         # Bad constructors
         self.assertRaises(AssertionError, Rectangle, unknown=Point(1, 1))
@@ -121,10 +119,14 @@ class TestRectangle(unittest.TestCase):
         self.assertEqual(r.bounding_box, BoundingBox(ll=Point(3, 2), ur=Point(7, 4)))
         r.shape = Shape(3, 1)
         self.assertEqual(r.area, 3)
-        self.assertEqual(r.bounding_box, BoundingBox(ll=Point(3.5, 2.5), ur=Point(6.5, 3.5)))
+        self.assertEqual(
+            r.bounding_box, BoundingBox(ll=Point(3.5, 2.5), ur=Point(6.5, 3.5))
+        )
         r.center = Point(30, 40)
         self.assertEqual(r.area, 3)
-        self.assertEqual(r.bounding_box, BoundingBox(ll=Point(28.5, 39.5), ur=Point(31.5, 40.5)))
+        self.assertEqual(
+            r.bounding_box, BoundingBox(ll=Point(28.5, 39.5), ur=Point(31.5, 40.5))
+        )
 
     def test_overlap_rectangles(self):
         Rectangle.set_epsilon(10e-12)
@@ -181,22 +183,22 @@ class TestRectangle(unittest.TestCase):
         r8 = Rectangle(center=Point(10.5, 9.5), shape=Shape(1, 1))
         r9 = Rectangle(center=Point(9, 8), shape=Shape(1, 2))
 
-        self.assertTrue(create_stog([r1]))
-        self.assertTrue(create_stog([r5]))
-        self.assertTrue(create_stog([r2, r1]))
-        self.assertFalse(create_stog([r2, r3]))
-        self.assertFalse(create_stog([r3, r4]))
-        self.assertTrue(create_stog([r4, r5]))
+        self.assertTrue(create_strop([r1]))
+        self.assertTrue(create_strop([r5]))
+        self.assertTrue(create_strop([r2, r1]))
+        self.assertFalse(create_strop([r2, r3]))
+        self.assertFalse(create_strop([r3, r4]))
+        self.assertTrue(create_strop([r4, r5]))
         polygon = [r7, r8, r9, r5, r6, r4]
-        self.assertTrue(create_stog(polygon))
+        self.assertTrue(create_strop(polygon))
         self.assertEqual(polygon[0], r5)
-        self.assertEqual(r5.location, Rectangle.StogLocation.TRUNK)
-        self.assertEqual(r6.location, Rectangle.StogLocation.NORTH)
-        self.assertEqual(r7.location, Rectangle.StogLocation.EAST)
-        self.assertEqual(r8.location, Rectangle.StogLocation.EAST)
-        self.assertEqual(r9.location, Rectangle.StogLocation.SOUTH)
-        self.assertEqual(r4.location, Rectangle.StogLocation.WEST)
+        self.assertEqual(r5.location, Rectangle.StropLocation.TRUNK)
+        self.assertEqual(r6.location, Rectangle.StropLocation.NORTH)
+        self.assertEqual(r7.location, Rectangle.StropLocation.EAST)
+        self.assertEqual(r8.location, Rectangle.StropLocation.EAST)
+        self.assertEqual(r9.location, Rectangle.StropLocation.SOUTH)
+        self.assertEqual(r4.location, Rectangle.StropLocation.WEST)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     unittest.main()

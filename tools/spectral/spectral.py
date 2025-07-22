@@ -18,7 +18,7 @@ from typing import Any
 from frame.die.die import Die
 from frame.geometry.geometry import Point, Shape
 from frame.netlist.netlist import Netlist
-from frame.utils.utils import Vector, Matrix, TextIO_String
+from frame.utils.utils import Vector, Matrix
 from tools.spectral.spectral_types import AdjEdge, AdjList
 from tools.spectral.spectral_algorithm import spectral_layout_die
 
@@ -33,7 +33,7 @@ class Spectral(Netlist):
     _centers: Matrix  # A 2xn matrix with the coordinates of the centers (negative if unknown)
     _fixed_modules: list[bool]  # A boolean vector to indicate the fixed modules
 
-    def __init__(self, stream: TextIO_String):
+    def __init__(self, stream: str):
         """
         Constructor
         :param stream: input stream from which the netlist is read

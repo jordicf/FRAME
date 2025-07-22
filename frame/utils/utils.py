@@ -7,10 +7,11 @@
 Some common utils to read/write files and handle identifiers and numbers
 """
 
+import pathlib
 from enum import Enum
 import numbers
 import re
-from typing import Any, TextIO, Optional
+from typing import Any, Optional
 import yaml
 import json
 
@@ -18,7 +19,7 @@ Vector = list[float]
 Matrix = list[Vector]
 Python_object = object
 # Python_object = dict[str, Any] | list[Any]
-TextIO_String = TextIO | str | Python_object
+TextIO_String = str | Python_object
 
 
 class StrFileType(Enum):
@@ -66,6 +67,27 @@ def string_is_number(s: str) -> bool:
         return False
 
 
+def almost_eq(v1: float, v2: float, epsilon: float = 10e-12) -> bool:
+    """Compares two float numbers for equality with a margin of tolerance
+    :param v1: one of the numbers
+    :param v2: the other number
+    :param epsilon: tolerance
+    :return: True if they are almost equal, and False otherwise"""
+    return abs(v1 - v2) < epsilon
+
+
+def single_line_string(s: str) -> bool:
+    """Checks whether the string has one line only.
+
+    Args:
+        s (str): input string
+
+    Returns:
+        bool: True if it has only one line, False otherwise
+    """
+    return s.count("\n") == 0
+
+
 def string_file_type(s: str) -> StrFileType:
     """It determines the type of contents of the string it can be a file name,
     a JSON string or a YAML string. If none of them is identified,
@@ -78,14 +100,14 @@ def string_file_type(s: str) -> StrFileType:
     """
 
     forbidden = ["\n", "{", "["]
-
     if all(s.count(c) == 0 for c in forbidden):
         return StrFileType.FILE  # One line without JSON/YAML characters
 
     try:
-        yaml.load(s, yaml.CLoader)
+        # yaml.safe_load(s, yaml.CLoader)
+        yaml.safe_load(s)
         return StrFileType.YAML
-    except:  # noqa: E722
+    except yaml.YAMLError as e:  # noqa: E722
         try:
             json.loads(s)
             return StrFileType.JSON
@@ -93,50 +115,44 @@ def string_file_type(s: str) -> StrFileType:
             return StrFileType.UNKNOWN
 
 
-def read_json_yaml(stream: TextIO_String) -> Python_object:
+def read_json_yaml_file(filename: str) -> Python_object:
     """
-    Reads JSON or YAML contents from a file or a string. The input can also be
-    a JSON/YAML tree. It raises a syntax error in case the string cannot be
-    identified with a JSON or YAML file/string.
-    :param stream: the input. It can be either a file handler, a file name
-                   or a JSON/YAML contents (in text or tree)
-    :return: the JSON/YAML tree
+    Reads a JSON or YAML file. It raises an exception in case an error is
+    produced incorrect. The type of the file is determined by the suffix of the
+    filename (.yaml or .yml for YAML and .json for JSON).
+    :param filename: the input file.
+    :return: the Python object
     """
-    if isinstance(stream, (list, dict)):
-        # Nothing to do
-        return stream
+    # Check the type of file by suffix
+    fname = pathlib.Path(filename)
+    str_fname = str(fname)
+    suffix = fname.suffix
 
-    if isinstance(stream, str):
-        txt = stream
-        ftype = string_file_type(stream)
-        assert ftype != StrFileType.UNKNOWN, "Unknown JSON/YAML contents"
+    if suffix == ". json":
+        with open(str_fname, "r") as f:
+            return json.load(f)
 
-        if ftype == StrFileType.FILE:  # It's a file name
-            with open(stream) as f:
-                txt = f.read()
-                print(txt)
-                ftype = string_file_type(txt)
-            print("end with")
+    if suffix in [".yaml", ".yml"]:
+        with open(str_fname, "r") as f:
+            return yaml.safe_load(f)
 
-    else:  # It's a TextIO
-        assert isinstance(stream, TextIO)
-        txt = stream.read()
-        ftype = string_file_type(txt)
+    raise NameError(f"Unknown suffix for file {str_fname}")
 
-    assert ftype != StrFileType.FILE
-    assert ftype != StrFileType.UNKNOWN, "Unknown JSON/YAML contents"
 
-    # Now we have JSON or YAML text
-
-    if ftype == StrFileType.JSON:
-        return json.loads(txt)
-
-    return yaml.safe_load(txt)
+def read_json_yaml_text(text: str, is_json: bool = False) -> Python_object:
+    """
+    Reads a JSON or YAML text. It raises an exception in case an error is
+    produced incorrect.
+    :param text: the input text
+    :param is_json: indicates whether the text is in JSON (True) or YAML (False)
+    :return: the Python object
+    """
+    return json.loads(text) if is_json else yaml.safe_load(text)
 
 
 def write_json_yaml(
     data: Any, is_json: bool = True, filename: Optional[str] = None
-) -> None | str:
+) -> Optional[str]:
     """
     Writes the data into a JSON or YAML file. If no file name is given,
     a string with the yaml contents is returned
@@ -151,18 +167,8 @@ def write_json_yaml(
         return dump_func(data)
 
     with open(filename, "w") as stream:  # dump into a file
-        dump_func = json.dump if is_json else yaml.dump
         if is_json:
             json.dump(data, stream)
         else:
             yaml.dump(data, stream, default_flow_style=False, indent=4)
         return None
-
-
-def almost_eq(v1: float, v2: float, epsilon: float = 10e-12) -> bool:
-    """Compares two float numbers for equality with a margin of tolerance
-    :param v1: one of the numbers
-    :param v2: the other number
-    :param epsilon: tolerance
-    :return: True if they are almost equal, and False otherwise"""
-    return abs(v1 - v2) < epsilon

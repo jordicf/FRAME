@@ -1,0 +1,28 @@
+Modules: {
+    B1: {
+      area: 6,
+      center: [2,3]
+    },
+    B2: {
+      area: 3,
+      center: [3,3],
+    },
+    B3: {
+      area: 5,
+      center: [1,1]
+    },
+    B4: {
+      area: 2,
+      rectangles: [[3,0.5,2,1]],
+    },
+    B5: {
+      rectangles: [[3,0.5,2,1]],
+      hard: true
+    }
+}
+
+Nets: [
+    [B1, B2, 5],
+    [B2, B3, B4, 10],
+    [B4, B1, B2]
+]

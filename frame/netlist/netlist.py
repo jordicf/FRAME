@@ -9,21 +9,22 @@ Module to represent netlists
 
 import math
 from itertools import combinations
-from typing import Optional
+from typing import Optional, Iterator
 from frame.netlist.module import Module
 from frame.netlist.netlist_types import HyperEdge
 from frame.netlist.yaml_read_netlist import parse_yaml_netlist
 from frame.netlist.yaml_write_netlist import dump_yaml_modules, dump_yaml_edges
 from frame.geometry.geometry import Rectangle, parse_yaml_rectangle
 from frame.utils.keywords import KW_MODULES, KW_NETS
-from frame.utils.utils import TextIO_String, write_json_yaml, Python_object
+from frame.utils.utils import write_json_yaml, Python_object
 
 # Data structure to represent the rectangles associated to a module.
 # For each module, a list of rectangles is defined.
 # Each rectangle is a list of four values: [x, y, w, h].
 # Optionally, a fifth value (string representing the regions) can be added,
 # e.g., [3, 5, 2, 8.5, "dsp"]
-Module2Rectangles = dict[str, list[list[float | str]]]
+RectangleRepr = list[float | str]
+Module2Rectangles = dict[str, list[RectangleRepr]]
 
 
 class Netlist:
@@ -34,12 +35,13 @@ class Netlist:
     _modules: list[Module]  # List of modules
     _edges: list[HyperEdge]  # List of edges, with references to modules
     _name2module: dict[str, Module]  # Map from module names to modules
-    _rectangles: list[Rectangle] | None  # List of rectangles
+    _rectangles: Optional[list[Rectangle]]  # List of rectangles
 
-    def __init__(self, stream: TextIO_String):
+    def __init__(self, stream: str):
         """
-        Constructor of a netlist from a file or from a string of text
-        :param stream: name of the YAML file (str) or handle to the file
+        Constructor of a netlist from a file or from a string of text (YAML).
+        The file can be iether in JSON or YAML.
+        :param stream: name of the file or the YAML string
         """
 
         self._modules, _named_edges = parse_yaml_netlist(stream)
@@ -47,13 +49,13 @@ class Netlist:
         self._create_rectangles()
 
         # Edges
-        self._edges = []
+        self._edges = list[HyperEdge]()
         for e in _named_edges:
-            modules: list[Module] = []
+            modules = list[Module]()
             for b in e.modules:
-                assert b in self._name2module, f'Unknown module {b} in edge'
+                assert b in self._name2module, f"Unknown module {b} in edge"
                 modules.append(self._name2module[b])
-            assert e.weight > 0, f'Incorrect edge weight {e.weight}'
+            assert e.weight > 0, f"Incorrect edge weight {e.weight}"
             self._edges.append(HyperEdge(modules, e.weight))
 
     @property
@@ -101,7 +103,7 @@ class Netlist:
         :param name: name mof the module
         :return: the module
         """
-        assert name in self._name2module, f'Module {name} does not exist'
+        assert name in self._name2module, f"Module {name} does not exist"
         return self._name2module[name]
 
     def create_squares(self) -> list[Module]:
@@ -110,7 +112,7 @@ class Netlist:
         that has no rectangles
         :return: The list of modules for which a square has been created.
         """
-        modules = []
+        modules = list[Module]()
         for m in self.modules:
             if m.num_rectangles == 0:
                 m.create_square()
@@ -118,31 +120,39 @@ class Netlist:
                 modules.append(m)
         return modules
 
-    def create_stogs(self) -> None:
+    def create_strops(self) -> None:
         """
-        Creates the Single-Trunk Orthogons (STOGs) for each module
-        (if they can be identified as STOGs). The location of the rectangles
-        of each module a labelled according to their role. If no STOG
+        Creates the Single-Trunk Orthogonal Polygons (STROPs) for each module
+        (if they can be identified as STROPs). The location of the rectangles
+        of each module a labelled according to their role. If no STROP
         can be identified, the rectangles are labelled as NO_POLYGON
         """
         for m in self.modules:
-            m.create_stog()
+            m.create_strop()
 
     def all_soft_modules_have_stogs(self) -> bool:
-        """Indicates whether all soft modules have Single-Trunk Orthogons"""
-        return all(m.is_hard or m.has_stog for m in self.modules)
+        """Indicates whether all soft modules have STROPs"""
+        return all(m.is_hard or m.has_strop for m in self.modules)
 
-    def assign_rectangles(self, m2r: Module2Rectangles) -> None:
+    def assign_rectangles_module(self, module: str, rects: Iterator[Rectangle]) -> None:
         """
-        Defines the rectangles of the modules of the netlist
+        Defines the rectangles of a module of the netlist
+        :param module: Name of the module
+        :param rects: set of rectangles
+        """
+        m = self.get_module(module)
+        m.clear_rectangles()
+        for r in rects:
+            m.add_rectangle(r)
+        self._clean_rectangles()
+
+    def assign_rectangles(self, mod_rect: dict[str, Iterator[Rectangle]]) -> None:
+        """
+        Defines the rectangles of a set modules of the netlist
         :param m2r: The rectangles associated to every module
         """
-        for module_name, list_rect in m2r.items():
-            m = self.get_module(module_name)
-            m.clear_rectangles()
-            for r in list_rect:
-                m.add_rectangle(parse_yaml_rectangle(r, m.is_fixed, m.is_hard))
-        self._clean_rectangles()
+        for module, rects in mod_rect.items():
+            self.assign_rectangles_module(module, rects)
 
     def fixed_rectangles(self) -> list[Rectangle]:
         """
@@ -151,8 +161,7 @@ class Netlist:
         """
         return [r for r in self.rectangles if r.fixed]
 
-    def write_yaml(self, filename: Optional[str] = None) \
-            -> Optional[str]:
+    def write_yaml(self, filename: Optional[str] = None) -> Optional[str]:
         """
         Writes the netlist into a YAML file.
         If no file name is given, a string with the yaml contents is returned
@@ -161,8 +170,7 @@ class Netlist:
         data = self._write_json_yaml_data()
         return write_json_yaml(data, False, filename)
 
-    def write_json(self, filename: Optional[str] = None) \
-            -> Optional[str]:
+    def write_json(self, filename: Optional[str] = None) -> Optional[str]:
         """
         Writes the netlist into a JSON file. If no file name is given,
         a string with the JSON contents is returned
@@ -177,7 +185,7 @@ class Netlist:
         """
         return {
             KW_MODULES: dump_yaml_modules(self.modules),
-            KW_NETS: dump_yaml_edges(self.edges)
+            KW_NETS: dump_yaml_edges(self.edges),
         }
 
     def _clean_rectangles(self) -> None:
@@ -196,12 +204,12 @@ class Netlist:
         # Check that all fixed nodes have either a center or a rectangle
         smallest_distance = math.inf
         for m in self.modules:
-            assert (m.is_terminal or
-                    m.is_soft or
-                    m.center is not None or
-                    m.num_rectangles > 0), \
-                f'Module {m.name} is hard and '\
-                f'has neither center nor rectangles'
+            assert (
+                m.is_terminal
+                or m.is_soft
+                or m.center is not None
+                or m.num_rectangles > 0
+            ), f"Module {m.name} is hard and has neither center nor rectangles"
             if m.is_hard and not m.is_terminal and m.num_rectangles == 0:
                 m.create_square()
             if m.num_rectangles > 0:
@@ -210,8 +218,7 @@ class Netlist:
 
         if not Rectangle.epsilon_defined():
             for r in self.rectangles:
-                smallest_distance = min(
-                    smallest_distance, r.shape.w, r.shape.h)
+                smallest_distance = min(smallest_distance, r.shape.w, r.shape.h)
             for m in self.modules:
                 a = m.area()
                 if a > 0:
@@ -222,15 +229,15 @@ class Netlist:
         for m in self.modules:
             if m.is_hard and not m.is_terminal:
                 for r1, r2 in combinations(m.rectangles, 2):
-                    assert not r1.overlap(r2), \
-                        f"Inconsistent hard module {m.name}: overlapping "\
-                        f"rectangles."
+                    assert not r1.overlap(r2), (
+                        f"Inconsistent hard module {m.name}: overlapping rectangles."
+                    )
 
         # Create stogs
         for m in self.modules:
             if m.num_rectangles > 0:
-                m.create_stog()
+                m.create_strop()
 
-        assert all(not m.flip or m.has_stog
-                   for m in self.modules), \
+        assert all(not m.flip or m.has_strop for m in self.modules), (
             "Not all flip modules have a STOG"
+        )

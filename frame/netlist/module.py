@@ -9,7 +9,7 @@ Modules of a netlist
 
 import math
 from typing import Optional
-from frame.geometry.geometry import Point, Shape, AspectRatio, Rectangle, create_stog
+from frame.geometry.geometry import Point, Shape, AspectRatio, Rectangle, create_strop
 from frame.utils.keywords import (
     KW_CENTER,
     KW_SHAPE,
@@ -70,7 +70,7 @@ class Module:
         self._flip = False
         self._area_regions = {}
         self._total_area = -1
-        self._rectangles = []
+        self._rectangles = list[Rectangle]()
         self._area_rectangles = -1
 
         assert valid_identifier(name), "Incorrect module name"
@@ -248,7 +248,7 @@ class Module:
 
     def clear_rectangles(self) -> None:
         """Removes all rectangles of a module"""
-        self._rectangles = []
+        self._rectangles = list[Rectangle]()
 
     def add_rectangle(self, r: Rectangle) -> None:
         """
@@ -335,7 +335,7 @@ class Module:
             )
             assert self.is_terminal or self.num_rectangles > 0, (
                 f"Inconsistent hard module {self.name}: must have at least "
-                f"one rectangle."
+                f"one rectangle or be a terminal."
             )
 
             # Calculate the area of hard modules
@@ -344,14 +344,14 @@ class Module:
             self._total_area = area
 
     @property
-    def has_stog(self) -> bool:
+    def has_strop(self) -> bool:
         """
-        Determines whether a module is a STOG
-        :return: True if it has an associate STOG, and False otherwise
+        Determines whether a module is a STROP
+        :return: True if it has an associate STROP, and False otherwise
         """
         return (
             self.num_rectangles > 0
-            and self.rectangles[0].location == Rectangle.StogLocation.TRUNK
+            and self.rectangles[0].location == Rectangle.StropLocation.TRUNK
         )
 
     def create_square(self) -> None:
@@ -367,21 +367,21 @@ class Module:
             f"Cannot calculate square for module {self.name}. Area is zero."
         )
         side = math.sqrt(area)
-        self._rectangles = []
+        self._rectangles = list[Rectangle]()
         self.add_rectangle(
             Rectangle(**{KW_CENTER: self.center, KW_SHAPE: Shape(side, side)})
         )
 
-    def create_stog(self) -> bool:
+    def create_strop(self) -> bool:
         """
         Defines the locations of the rectangles in a Single-Trunk Orthogon
-        (STOG). It returns true if the module can be represented as a STOG of
+        (STROP). It returns true if the module can be represented as a STROP of
         the rectangles. It also defines the locations of the rectangles in the
-        STOG. If no polygon is found, all rectangles have the NO_POLYGON
+        STROP. If no polygon is found, all rectangles have the NO_POLYGON
         location
-        :return: True if a STOG has been identified, and False otherwise
+        :return: True if a STROP has been identified, and False otherwise
         """
-        return create_stog(self.rectangles)
+        return create_strop(self.rectangles)
 
     def calculate_center_from_rectangles(self) -> Point:
         """

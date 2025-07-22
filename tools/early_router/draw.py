@@ -90,7 +90,7 @@ def draw_solution3D(
     scaling = calculate_scaling(die_shape, width, height, frame)
     # Create a 3D plot
     fig = plt.figure()
-    ax:Axes3D = fig.add_subplot(111, projection='3d')
+    ax: Axes3D = fig.add_subplot(111, projection="3d")
     # Assignment of a color to each block
     colors = distinctipy.get_colors(netlist.num_modules, rng=0)
     module2color = {b: colors[i] for i, b in enumerate(netlist.modules)}
@@ -221,9 +221,9 @@ def draw_solution3D(
                     ax.add_patch(p)
                     art3d.pathpatch_2d_to_3d(p, z=0, zdir="z")
     # Plot the route
-    wl = 0.
-    cros =0.
-    via = 0.
+    wl = 0.0
+    cros = 0.0
+    via = 0.0
     for i, edge_dict in enumerate(route):
         for (start, end), value in edge_dict.items():
             from_node = hanan_graph.get_node(start)
@@ -316,8 +316,8 @@ def draw_solution2D(
     # Create a Transparent layer for later merge
     transp = Image.new("RGBA", im.size, (0, 0, 0, 0))
     drawing = ImageDraw.Draw(transp, "RGBA")
-    
-    drawn_edges:list = []
+
+    drawn_edges: list = []
     line_width = 5
     for net_id, route in routes.items():
         for path in route:
@@ -419,22 +419,22 @@ def floorplan_plot(
                 edges = [(p_ll, p_lr), (p_lr, p_ur), (p_ur, p_ul), (p_ul, p_ll)]
                 loc = trunk.find_location(r)
                 p = (-1, -1)
-                if loc == Rectangle.StogLocation.NORTH:
+                if loc == Rectangle.StropLocation.NORTH:
                     a, b = edges.pop(0)
                     drawing.line(
                         [(a[0] + 2, a[1]), (b[0] - 2, b[1])], fill=COLOR_WHITE, width=4
                     )
-                elif loc == Rectangle.StogLocation.SOUTH:
+                elif loc == Rectangle.StropLocation.SOUTH:
                     a, b = edges.pop(2)
                     drawing.line(
                         [(a[0] - 2, a[1]), (b[0] + 2, b[1])], fill=COLOR_WHITE, width=4
                     )
-                elif loc == Rectangle.StogLocation.EAST:
+                elif loc == Rectangle.StropLocation.EAST:
                     a, b = edges.pop(1)
                     drawing.line(
                         [(a[0] + 2, a[1]), (b[0] - 2, b[1])], fill=COLOR_WHITE, width=4
                     )
-                elif loc == Rectangle.StogLocation.WEST:
+                elif loc == Rectangle.StropLocation.WEST:
                     a, b = edges.pop(3)
                     drawing.line(
                         [(a[0] - 2, a[1]), (b[0] + 2, b[1])], fill=COLOR_WHITE, width=4

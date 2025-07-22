@@ -13,17 +13,32 @@ from typing import Set, Deque, Any, Optional
 from dataclasses import dataclass
 
 from .yaml_parse_die import parse_yaml_die
-from frame.geometry.geometry import (Shape, Rectangle, Point, RectDescriptor,
-                                     split_rectangles, gather_boundaries)
+from frame.geometry.geometry import (
+    Shape,
+    Rectangle,
+    Point,
+    RectDescriptor,
+    split_rectangles,
+    gather_boundaries,
+)
 from frame.netlist.netlist import Netlist
-from frame.utils.keywords import (KW_WIDTH, KW_HEIGHT, KW_REGIONS, KW_CENTER,
-                                  KW_SHAPE, KW_REGION, KW_GROUND, KW_BLOCKAGE)
-from frame.utils.utils import TextIO_String, write_json_yaml
+from frame.utils.keywords import (
+    KW_WIDTH,
+    KW_HEIGHT,
+    KW_REGIONS,
+    KW_CENTER,
+    KW_SHAPE,
+    KW_REGION,
+    KW_GROUND,
+    KW_BLOCKAGE,
+)
+from frame.utils.utils import write_json_yaml
 
 
 @dataclass
 class GroundRegion:
     """Representation of a ground region in a cell matrix"""
+
     rmin: int  # min row
     rmax: int  # max row
     cmin: int  # min column
@@ -32,19 +47,21 @@ class GroundRegion:
     ratio: float  # aspect ratio
 
     def __str__(self) -> str:
-        return f'<rows=({self.rmin}-{self.rmax}), ' \
-               f'cols=({self.cmin}-{self.cmax}), ' \
-               f'area={self.area}, ratio={self.ratio}>'
+        return (
+            f"<rows=({self.rmin}-{self.rmax}), "
+            f"cols=({self.cmin}-{self.cmax}), "
+            f"area={self.area}, ratio={self.ratio}>"
+        )
 
     def __hash__(self) -> int:
-        return hash(37 * self.rmin + 13 * self.rmax +
-                    7 * self.cmin + 23 * self.cmax)
+        return hash(37 * self.rmin + 13 * self.rmax + 7 * self.cmin + 23 * self.cmax)
 
 
 class Die:
     """
     Class to represent the die (ground and tagged rectangles)
     """
+
     _netlist: Netlist | None  # Netlist associated to the die
     _die: Rectangle  # Bounding Box of the die
     _specialized_regions: list[Rectangle]  # List of non-ground regions
@@ -59,7 +76,7 @@ class Die:
     # Matrix of rectangles (True occupied, False available)
     _cells: list[list[bool]]
 
-    def __init__(self, stream: TextIO_String, netlist: Netlist | None = None):
+    def __init__(self, stream: str, netlist: Optional[Netlist] = None):
         """
         Constructor of a die from a file or from a string of text
         :param stream: name of the YAML file (str) or handle to the file
@@ -74,19 +91,22 @@ class Die:
             Rectangle.set_epsilon(self._epsilon)
 
         # Selected blockages from the other regions
-        self._specialized_regions, self._blockages = [], []
+        self._specialized_regions = list[Rectangle]()
+        self._blockages = list[Rectangle]()
         for r in regions:
-            self._blockages.append(r) \
-                if r.region == KW_BLOCKAGE \
-                else self._specialized_regions.append(r)
+            self._blockages.append(
+                r
+            ) if r.region == KW_BLOCKAGE else self._specialized_regions.append(r)
 
         # Obtained the fixed rectangles from the netlist
-        self._fixed = [] if netlist is None else netlist.fixed_rectangles()
+        self._fixed = netlist.fixed_rectangles() if netlist else list[Rectangle]()
 
-        self._x, self._y = gather_boundaries(self.specialized_regions +
-                                             self.blockages +
-                                             self.fixed_regions +
-                                             [self.bounding_box])
+        self._x, self._y = gather_boundaries(
+            self.specialized_regions
+            + self.blockages
+            + self.fixed_regions
+            + [self.bounding_box]
+        )
         self._calculate_cell_matrix()
         self._calculate_ground_rectangles()
         self._check_rectangles()
@@ -145,12 +165,14 @@ class Die:
         :param n: number of refinable rectangles that are required
         """
         assert n > 0
-        assert aspect_ratio > 1.415, \
-            "Aspect ratio cannot be smaller than sqrt(2) " \
-            "to guarantee convergence"
+        assert aspect_ratio > 1.415, (
+            "Aspect ratio cannot be smaller than sqrt(2) to guarantee convergence"
+        )
         rects = split_rectangles(
-            self.specialized_regions + self.ground_regions, aspect_ratio, n)
-        self._specialized_regions, self._ground_regions = [], []
+            self.specialized_regions + self.ground_regions, aspect_ratio, n
+        )
+        self._specialized_regions = list[Rectangle]()
+        self._ground_regions = list[Rectangle]()
         for r in rects:
             if r.region == KW_GROUND:
                 self._ground_regions.append(r)
@@ -165,25 +187,27 @@ class Die:
         :param ncols: number of columns of the grid
         """
         assert nrows > 0 and ncols > 0 and nrows + ncols > 1
-        assert (len(self.fixed_regions) == 0 and
-                len(self.specialized_regions) == 0 and
-                len(self.blockages) == 0), \
-            "Cannot create a gridded die: it has blockages, " \
+        assert (
+            len(self.fixed_regions) == 0
+            and len(self.specialized_regions) == 0
+            and len(self.blockages) == 0
+        ), (
+            "Cannot create a gridded die: it has blockages, "
             "fixed regions or specialized regions."
-        assert len(self.ground_regions) == 1, \
+        )
+        assert len(self.ground_regions) == 1, (
             "Cannot create a gridded die: it has more than one ground region."
+        )
         self._ground_regions = self._die.rectangle_grid(nrows, ncols)
 
-    def floorplanning_rectangles(self) -> tuple[list[Rectangle],
-                                                list[Rectangle]]:
+    def floorplanning_rectangles(self) -> tuple[list[Rectangle], list[Rectangle]]:
         """
         Returns the two lists of rectangles usable for module allocation.
         The first list contains the rectangles that a refinable during
         allocation. The second list contains the rectangles that correspond
         to fixed modules.
         """
-        return (self.specialized_regions + self.ground_regions,
-                self.fixed_regions)
+        return (self.specialized_regions + self.ground_regions, self.fixed_regions)
 
     def write_yaml(self, filename: Optional[str] = None) -> None | str:
         """
@@ -197,7 +221,7 @@ class Die:
             KW_HEIGHT: self.height,
         }
 
-        regions: list[RectDescriptor] = []
+        regions = list[RectDescriptor]()
         for r in self.blockages + self.specialized_regions:
             regions.append(r.vector_spec)
         if len(regions) > 0:
@@ -211,21 +235,20 @@ class Die:
         :param j: column of the cell
         :return: the center of the cell
         """
-        return Point((self._x[i] + self._x[i + 1]) / 2,
-                     (self._y[j] + self._y[j + 1]) / 2)
+        return Point(
+            (self._x[i] + self._x[i + 1]) / 2, (self._y[j] + self._y[j + 1]) / 2
+        )
 
     def _calculate_cell_matrix(self):
         """
         Calculates the matrix of cells. It indicates which cells are occupied
         by regions, blockages or fixed rectangles
         """
-        self._cells = [[False] * (len(self._x) - 1)
-                       for _ in range(len(self._y) - 1)]
+        self._cells = [[False] * (len(self._x) - 1) for _ in range(len(self._y) - 1)]
         for i in range(len(self._x) - 1):
             for j in range(len(self._y) - 1):
                 p = self._cell_center(i, j)
-                for r in (self.specialized_regions +
-                          self.blockages + self.fixed_regions):
+                for r in self.specialized_regions + self.blockages + self.fixed_regions:
                     if r.point_inside(p):
                         self._cells[j][i] = True
 
@@ -240,19 +263,17 @@ class Die:
         return r.point_inside(self._cell_center(i, j))
 
     def _calculate_ground_rectangles(self) -> None:
-        self._ground_regions = []
+        self._ground_regions = list[Rectangle]()
         all_rectangles: Set[GroundRegion] = self._find_all_ground_rectangles()
         while len(all_rectangles) > 0:
-            self._ground_regions.append(
-                self._find_best_rectangle(all_rectangles))
+            self._ground_regions.append(self._find_best_rectangle(all_rectangles))
 
     def _find_all_ground_rectangles(self) -> Set[GroundRegion]:
         """
         Calculates all possible ground rectangles
         :return: the set of ground rectangles
         """
-        all_regions: Set[GroundRegion] = set(
-        )  # Set of all rectangular regions
+        all_regions: Set[GroundRegion] = set()  # Set of all rectangular regions
         for r in range(len(self._cells)):
             height = self._y[r + 1] - self._y[r]
             for c in range(len(self._cells[r])):
@@ -267,8 +288,7 @@ class Die:
                     all_regions |= more_regions
         return all_regions
 
-    def _find_best_rectangle(self, ground_rectangles: Set[GroundRegion]) \
-            -> Rectangle:
+    def _find_best_rectangle(self, ground_rectangles: Set[GroundRegion]) -> Rectangle:
         """
         Calculates the largest non-occupied rectangular region of the die
         :param ground_rectangles: set of possible ground rectangles
@@ -295,18 +315,22 @@ class Die:
 
         # Remove the rectangles touching the occupied cells
         for reg in list(ground_rectangles):
-            if any(self._cells[row][col]
-                   for row in range(reg.rmin, reg.rmax + 1)
-                   for col in range(reg.cmin, reg.cmax + 1)):
+            if any(
+                self._cells[row][col]
+                for row in range(reg.rmin, reg.rmax + 1)
+                for col in range(reg.cmin, reg.cmax + 1)
+            ):
                 ground_rectangles.remove(reg)
 
         x_center = (self._x[best_reg.cmin] + self._x[best_reg.cmax + 1]) / 2
         y_center = (self._y[best_reg.rmin] + self._y[best_reg.rmax + 1]) / 2
         width = self._x[best_reg.cmax + 1] - self._x[best_reg.cmin]
         height = self._y[best_reg.rmax + 1] - self._y[best_reg.rmin]
-        kwargs = {KW_CENTER: Point(x_center, y_center),
-                  KW_SHAPE: Shape(width, height),
-                  KW_REGION: KW_GROUND}
+        kwargs = {
+            KW_CENTER: Point(x_center, y_center),
+            KW_SHAPE: Shape(width, height),
+            KW_REGION: KW_GROUND,
+        }
         return Rectangle(**kwargs)
 
     def _expand_rectangle(self, r: GroundRegion) -> Set[GroundRegion]:
@@ -323,8 +347,7 @@ class Die:
             r = pending.popleft()
             if r.rmax < len(self._cells) - 1:  # Add one row
                 row = r.rmax + 1
-                valid = not any(self._cells[row][j]
-                                for j in range(r.cmin, r.cmax + 1))
+                valid = not any(self._cells[row][j] for j in range(r.cmin, r.cmax + 1))
                 if valid:
                     height = self._y[r.rmax + 2] - self._y[r.rmin]
                     width = self._x[r.cmax + 1] - self._x[r.cmin]
@@ -333,15 +356,15 @@ class Die:
                     if ratio < 1.0:
                         ratio = 1 / ratio
                     new_r = GroundRegion(
-                        r.rmin, r.rmax + 1, r.cmin, r.cmax, area, ratio)
+                        r.rmin, r.rmax + 1, r.cmin, r.cmax, area, ratio
+                    )
                     if new_r not in g_regions:
                         g_regions.add(new_r)
                         pending.append(new_r)
 
             if r.cmax < len(self._cells[0]) - 1:  # Add one column
                 col = r.cmax + 1
-                valid = not any(self._cells[i][col]
-                                for i in range(r.rmin, r.rmax + 1))
+                valid = not any(self._cells[i][col] for i in range(r.rmin, r.rmax + 1))
                 if valid:
                     height = self._y[r.rmax + 1] - self._y[r.rmin]
                     width = self._x[r.cmax + 2] - self._x[r.cmin]
@@ -350,7 +373,8 @@ class Die:
                     if ratio < 1.0:
                         ratio = 1 / ratio
                     new_r = GroundRegion(
-                        r.rmin, r.rmax, r.cmin, r.cmax + 1, area, ratio)
+                        r.rmin, r.rmax, r.cmin, r.cmax + 1, area, ratio
+                    )
                     if new_r not in g_regions:
                         g_regions.add(new_r)
                         pending.append(new_r)
@@ -363,16 +387,23 @@ class Die:
         overlap and the sum of the areas is equal to the area of the die.
         An assertion is raised of something is wrong.
         """
-        all_rectangles = self.specialized_regions + \
-            self.ground_regions + self.blockages + self.fixed_regions
-        die = Rectangle(center=Point(self.width / 2, self.height / 2),
-                        shape=Shape(self.width, self.height))
+        all_rectangles = (
+            self.specialized_regions
+            + self.ground_regions
+            + self.blockages
+            + self.fixed_regions
+        )
+        die = Rectangle(
+            center=Point(self.width / 2, self.height / 2),
+            shape=Shape(self.width, self.height),
+        )
 
         # Check that all rectangles are inside
         for r in all_rectangles:
             bb = r.bounding_box
-            assert die.point_inside(bb.ll) and die.point_inside(bb.ur), \
+            assert die.point_inside(bb.ll) and die.point_inside(bb.ur), (
                 f"Some rectangle ({bb}) outside the die ({die.bounding_box})"
+            )
 
         # Check that no rectangles overlap
         pairs = list(combinations(all_rectangles, 2))
@@ -382,5 +413,6 @@ class Die:
         # Check that the total area of the rectangles is equal to
         # the area of the die
         area_rect = sum(r.area for r in all_rectangles)
-        assert abs(area_rect - die.area) < self._epsilon, \
+        assert abs(area_rect - die.area) < self._epsilon, (
             "Incorrect total area of rectangles"
+        )

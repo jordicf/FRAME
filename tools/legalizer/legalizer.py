@@ -1563,16 +1563,16 @@ def netlist_to_utils(netlist: Netlist):
         trunk_defined = False
         for rect in module.rectangles:
             r = (rect.center.x, rect.center.y, rect.shape.w, rect.shape.h)
-            if rect.location == Rectangle.StogLocation.TRUNK:
+            if rect.location == Rectangle.StropLocation.TRUNK:
                 b = (r, b[1], b[2], b[3], b[4])
                 trunk_defined = True
-            elif rect.location == Rectangle.StogLocation.NORTH:
+            elif rect.location == Rectangle.StropLocation.NORTH:
                 b[1].append(r)
-            elif rect.location == Rectangle.StogLocation.SOUTH:
+            elif rect.location == Rectangle.StropLocation.SOUTH:
                 b[2].append(r)
-            elif rect.location == Rectangle.StogLocation.EAST:
+            elif rect.location == Rectangle.StropLocation.EAST:
                 b[3].append(r)
-            elif rect.location == Rectangle.StogLocation.WEST:
+            elif rect.location == Rectangle.StropLocation.WEST:
                 b[4].append(r)
             elif not trunk_defined:
                 b = (r, b[1], b[2], b[3], b[4])

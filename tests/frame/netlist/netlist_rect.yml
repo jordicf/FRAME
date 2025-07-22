@@ -1,0 +1,43 @@
+Modules: {
+    A: {
+      area: 1,
+      rectangles: [[8.5, 7.5, 3, 5], [5.5, 9, 3, 2], [9, 4, 2, 2]]
+    },
+    B: {
+      area: 1,
+      rectangles: [[2, 8, 4, 4]]
+    },
+    C: {
+      rectangles: [[1.5, 3, 3, 6], [4, 1, 2, 2]],
+      fixed: true
+    },
+    D: {
+      area: 1,
+      rectangles: [[5.5, 5, 5, 5]],
+    },
+    E: {
+      rectangles: [[8,1,4,2]],
+      hard: true
+    },
+    X: {
+      center: [0, 4],
+      terminal: true
+    },
+    Y: {
+      center: [8, 10],
+      terminal: true
+    },
+    Z: {
+      center: [7, 0],
+      terminal: true
+    }
+}
+
+Nets: [
+    [A, B, 5],
+    [A, C, D, 10],
+    [A, D, E],
+    [X, C, 2],
+    [Y, A],
+    [Z, E]
+]
