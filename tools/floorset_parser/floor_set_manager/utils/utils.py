@@ -6,11 +6,11 @@ import tarfile
 import numpy as np
 import math
 from typing import List, Any
-from tools.floorset_parser.floor_set_manager.strop import Strop
+from frame.geometry.strop import Strop
 from frame.geometry.geometry import Point 
 
 
-Polygon = List[Point | np.ndarray]
+Polygon = List[Point] | List[np.ndarray]
 Rectangle = List[float]
 GBFACTOR = float(1 << 30)
 
@@ -65,7 +65,7 @@ def decide_download(url: str) -> bool:
         return True
 
 
-def download_dataset(root: str, url: str, file_name: str = None):
+def download_dataset(root: str, url: str, file_name: str | None = None):
     """
     Downloads and extracts a dataset from the specified URL.
 
@@ -157,13 +157,13 @@ def compute_perimeter(vertices: Polygon) -> float:
     Returns:
         float: The perimeter of the polygon.
     """
-    perimeter = 0
+    perimeter = 0.
 
     # Iterate over consecutive vertices to calculate edge lengths
     for i in range(len(vertices) - 1):
         p1 = vertices[i]
         p2 = vertices[i + 1]
-        if isinstance(p1, Point):
+        if isinstance(p1,Point):
             distance = math.sqrt((p2.x - p1.x) ** 2 + (p2.y - p1.y) ** 2)
         else:
             distance = math.sqrt((p2[0] - p1[0]) ** 2 + (p2[1] - p1[1]) ** 2)
@@ -184,7 +184,7 @@ def strop_decomposition(vertices: Polygon) -> list[Rectangle]:
         rectangles: List of rectangles represented as [x,y,w,h], the center
             (x,y), the width w, and the height h.
     """
-    rectangles = []
+    rectangles:list[Rectangle] = []
     # Extract unique x and y coordinates and sort them
     x_coords = sorted(set(p.x if isinstance(p, Point) else p[0] for p in vertices))
     y_coords = sorted(set(p.y if isinstance(p, Point) else p[1] for p in vertices), reverse=True)
@@ -212,6 +212,8 @@ def strop_decomposition(vertices: Polygon) -> list[Rectangle]:
     s = Strop(m)
     assert s.is_strop, f"Polygon is not a STROP {vertices}"
     sol = next(s.instances(), None)
+    if not sol:
+        return rectangles
     for r in sol.rectangles():
         x_min, x_max = x_coords[r.columns.low], x_coords[r.columns.high + 1]
         y_max, y_min = y_coords[r.rows.low], y_coords[r.rows.high + 1]
@@ -270,9 +272,9 @@ def compute_centroid(partition: List[Rectangle]) -> Point:
     """
     assert len(partition) > 0, "The partition should be not empty."
     n = len(partition)
-    cx = 0
-    cy = 0
-    total_area = 0
+    cx = 0.
+    cy = 0.
+    total_area = 0.
     for i in range(n):
         x, y, w, h = partition[i]
         cx += w*h*x

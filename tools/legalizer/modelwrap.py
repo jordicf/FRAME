@@ -12,14 +12,14 @@ from tools.legalizer.expr_tree import Equation, ExpressionTree, NodeType, Cmp, s
 class ModelWrapper:
     def __init__(self, gekko: GEKKO, wl_mult: float = 1):
         self.gekko: GEKKO = gekko
-        self.constraints: dict[str, list[Equation]] = dict()
-        self.macro_constraints: dict[str, list[Equation]] = dict()
+        self.constraints = dict[str, list[Equation]]()
+        self.macro_constraints = dict[str, list[Equation]]()
         self.objective: ExpressionTree = ExpressionTree(gekko, 0)
-        self.fixed_vars: list[tuple[ExpressionTree, float]] = []
-        self.variable_list: list[ExpressionTree] = []
-        self.variable_set: set[str] = set()
+        self.fixed_vars = list[tuple[ExpressionTree, float]]()
+        self.variable_list = list[ExpressionTree]()
+        self.variable_set = set[str]()
         self.dif_cost = 0.00001
-        self.coordinates: list[tuple[ExpressionTree, ExpressionTree, ExpressionTree, ExpressionTree]] = []
+        self.coordinates = list[tuple[ExpressionTree, ExpressionTree, ExpressionTree, ExpressionTree]]()
         self.wl_mult = wl_mult
         self.macros = []
         self.terminal_macros = set()

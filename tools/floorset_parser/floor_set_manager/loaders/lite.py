@@ -73,7 +73,7 @@ class FloorplanDatasetLite(Dataset):
             return len(self.all_files) * self.layouts_per_file
 
 
-    def __getitem__(self, idx:int)-> dict[torch.Tensor | Any]:
+    def __getitem__(self, idx:int)-> dict[str, Any]:
         """
         Retrieves a single data sample by index.
 
