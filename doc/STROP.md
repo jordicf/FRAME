@@ -61,6 +61,18 @@ the number of possible structures of a *k*-STROP is (subsets with repetitions):
 
 $$\binom{k+3}{k}$$
 
+### STROP decomposition
+
+The decomposition of a STROP into trunk/branch rectangles is not unique, as
+it can be shown in the figure.
+
+<img src="pict/strop-decomp.png" alt="STROP decomposition" style="width: 700px;"/>
+
+We say that a STROP decomposition is maximal if the trunk cannot be extended
+without exceeding the boundaries of the polygon. In the previous example, the
+first two decompositions are maximal. The third decomposition is not maximal
+as the trunk can still be extended to the east side.
+
 ### Why STROPs?
 
 Some of the `FRAME` stages are based on non-convex optimization models, which typically use gradient-descent algorithms
