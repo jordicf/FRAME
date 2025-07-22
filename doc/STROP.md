@@ -77,7 +77,7 @@ as the trunk can still be extended to the east side.
 
 Some of the `FRAME` stages are based on non-convex optimization models, which typically use gradient-descent algorithms
 for finding local minima. It is convenient that the constraints used to characterize the structure of a STROP
-can be modeled by differentiable functions. 
+can be modeled by differentiable functions.
 
 #### Example
 
@@ -103,4 +103,5 @@ assuming an ordering on the edge, e.g.,
 $$y_{B_1}-y_{B_2} \geq \frac{h_{B_2}+h_{B_1}}{2}$$
 
 **Note:** the fact that STROPs can be modeled with linear constraints does not mean that the complete model is linear.
-Unfortunately, some other constraints of the same model may not be linear.
+Unfortunately, some other constraints of the same model may not be linear. This is the case of the constraints
+that guarantee that rectangles do not overlap.
