@@ -13,7 +13,7 @@ also called Orthogonal Polygons.
 
 We are interested in *simple* polygons, i.e., polygons without holes. This is a simple polygon:
 
-<img src="pict/no-stog.png" alt="Rectilinear floorplan" style="height: 80px;"/>
+<img src="pict/no-strop.png" alt="Rectilinear floorplan" style="height: 80px;"/>
 
 An interesting property of orthogonal polygons is that they can be partitioned into a set of disjoint rectangles.
 We are interested in a particular subclass of orthogons that we call *Single-TRunk Orthogonal Polygons* (STROP).
