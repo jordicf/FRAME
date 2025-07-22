@@ -206,7 +206,7 @@ class Rectangle:
     class StropLocation(Enum):
         """Class to represent the location of a rectangle in a Single-Trunk
         Orthogon (STROP). The values NSEW represent the location with regard
-        to the trunk. If a rectangle is not in a STOG, the value NO_POLYGON
+        to the trunk. If a rectangle is not in a STROP, the value NO_POLYGON
         is assigned"""
 
         TRUNK = 1
@@ -846,12 +846,12 @@ def create_strop(rectangles: list[Rectangle]) -> bool:
     """
     Identifies the rectangles of a Single-Trunk Orthogon.
     At the end of the function, the location of each rectangle is defined
-    (in case the STOG has been identified).
+    (in case the STROP has been identified).
     In case more than one rectangle can be a trunk, the one with the largest
     area is selected. The selected trunk is put at the front of the list.
-    If no STOG can be identified, it returns False
+    If no STROPG can be identified, it returns False
     :param rectangles: list of rectangles of the polygon
-    :return: True if the STOG is identified, and False otherwise
+    :return: True if the STROP is identified, and False otherwise
     """
     assert len(rectangles) > 0
 

@@ -40,7 +40,7 @@ class Netlist:
     def __init__(self, stream: str):
         """
         Constructor of a netlist from a file or from a string of text (YAML).
-        The file can be iether in JSON or YAML.
+        The file can be either in JSON or YAML.
         :param stream: name of the file or the YAML string
         """
 
@@ -130,13 +130,18 @@ class Netlist:
         for m in self.modules:
             m.create_strop()
 
-    def all_soft_modules_have_stogs(self) -> bool:
+    def all_soft_modules_have_strops(self) -> bool:
         """Indicates whether all soft modules have STROPs"""
         return all(m.is_hard or m.has_strop for m in self.modules)
 
+    def get_rectangles_module(self, module: str) -> list[Rectangle]:
+        """Returns the list of rectangles of a module"""
+        return self.get_module(module).rectangles
+
     def assign_rectangles_module(self, module: str, rects: Iterator[Rectangle]) -> None:
         """
-        Defines the rectangles of a module of the netlist
+        Defines the rectangles of a module of the netlist.
+        The previous rectangles are removed.
         :param module: Name of the module
         :param rects: set of rectangles
         """
@@ -233,11 +238,11 @@ class Netlist:
                         f"Inconsistent hard module {m.name}: overlapping rectangles."
                     )
 
-        # Create stogs
+        # Create strops
         for m in self.modules:
             if m.num_rectangles > 0:
                 m.create_strop()
 
         assert all(not m.flip or m.has_strop for m in self.modules), (
-            "Not all flip modules have a STOG"
+            "Not all flip modules have a STROP"
         )

@@ -1,3 +1,8 @@
+# (c) Jordi Cortadella 2025
+# For the FRAME Project.
+# Licensed under the MIT License
+# (see https://github.com/jordicf/FRAME/blob/master/LICENSE.txt).
+
 """
 This module manipulates STROPs. Originally this acronym was for
 Single-Trunk Orthogonal Polygons but it can also be read as

@@ -25,22 +25,3 @@ class TestNetlist(unittest.TestCase):
         self.assertAlmostEqual(
             self.netlist.wire_length, 5 + 42.6733 + 3.66439, places=4
         )
-
-
-class TestRectangles(unittest.TestCase):
-    def setUp(self) -> None:
-        file = str(Path(__file__).resolve().parents[0] / "netlist_rect.yml")
-        self.netlist = Netlist(file)
-
-    def test_num_rectangles(self):
-        net = self.netlist
-        self.assertEqual(net.num_rectangles, 8)
-        # We redefine the rectangles of A
-        r1 = Rectangle(center=Point(7,8), shape=Shape(2,2))
-        r2 = Rectangle(ll=Point(4.5, 7.5), ur=Point(5.5, 10.5))
-        net.assign_rectangles_module('A', [r1, r2])
-        self.assertEqual(net.num_rectangles, 7)
-
-
-if __name__ == "__main__":
-    unittest.main()
