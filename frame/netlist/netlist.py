@@ -15,7 +15,7 @@ from frame.netlist.netlist_types import HyperEdge, NamedHyperEdge
 from frame.netlist.yaml_read_netlist import parse_yaml_netlist
 from frame.netlist.yaml_write_netlist import dump_yaml_modules, dump_yaml_edges
 from frame.geometry.geometry import Rectangle, parse_yaml_rectangle
-from frame.utils.keywords import KW_MODULES, KW_NETS
+from frame.utils.keywords import KW
 from frame.utils.utils import write_json_yaml, Python_object
 
 # Data structure to represent the rectangles associated to a module.
@@ -191,8 +191,8 @@ class Netlist:
         Generates the data structure to be dumped into a JSON or YAML file.
         """
         return {
-            KW_MODULES: dump_yaml_modules(self.modules),
-            KW_NETS: dump_yaml_edges(self.edges),
+            KW.MODULES: dump_yaml_modules(self.modules),
+            KW.NETS: dump_yaml_edges(self.edges),
         }
 
     def _clean_rectangles(self) -> None:
