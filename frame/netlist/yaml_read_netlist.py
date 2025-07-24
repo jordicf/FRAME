@@ -16,18 +16,7 @@ from frame.geometry.geometry import (
     Point,
     parse_yaml_rectangle,
 )
-from frame.utils.keywords import (
-    KW_RECTANGLES,
-    KW_CENTER,
-    KW_TERMINAL,
-    KW_FIXED,
-    KW_HARD,
-    KW_FLIP,
-    KW_MODULES,
-    KW_NETS,
-    KW_AREA,
-    KW_ASPECT_RATIO,
-)
+from frame.utils.keywords import KW
 from frame.utils.utils import (
     valid_identifier,
     is_number,
@@ -53,10 +42,10 @@ def parse_yaml_netlist(stream: str) -> tuple[list[Module], list[NamedHyperEdge]]
     modules = list[Module]()
     edges = list[NamedHyperEdge]()
     for key, value in tree.items():
-        assert key in [KW_MODULES, KW_NETS], f"Unknown key {key}"
-        if key == KW_MODULES:
+        assert key in [KW.MODULES, KW.NETS], f"Unknown key {key}"
+        if key == KW.MODULES:
             modules = parse_yaml_modules(value)
-        elif key == KW_NETS:
+        elif key == KW.NETS:
             edges = parse_yaml_edges(value)
         else:
             assert False  # Should never happen
@@ -92,21 +81,21 @@ def parse_yaml_module(name: str, info: dict) -> Module:
     params: dict[str, Any] = {}
     for key, value in info.items():
         assert isinstance(key, str)
-        if key in [KW_AREA, KW_TERMINAL, KW_FIXED, KW_HARD, KW_FLIP]:
+        if key in [KW.AREA, KW.TERMINAL, KW.FIXED, KW.HARD, KW.FLIP]:
             params[key] = value
-        elif key == KW_CENTER:
-            params[KW_CENTER] = parse_yaml_center(value, name)
-        elif key == KW_ASPECT_RATIO:
-            params[KW_ASPECT_RATIO] = parse_yaml_aspect_ratio(value, name)
-        elif key == KW_RECTANGLES:
+        elif key == KW.CENTER:
+            params[KW.CENTER] = parse_yaml_center(value, name)
+        elif key == KW.ASPECT_RATIO:
+            params[KW.ASPECT_RATIO] = parse_yaml_aspect_ratio(value, name)
+        elif key == KW.RECTANGLES:
             pass
         else:
             assert False, f"Unknown module attribute {key}"
 
     m = Module(name, **params)
 
-    if KW_RECTANGLES in info:
-        rectangles = parse_yaml_rectangles(info[KW_RECTANGLES], m.is_fixed, m.is_hard)
+    if KW.RECTANGLES in info:
+        rectangles = parse_yaml_rectangles(info[KW.RECTANGLES], m.is_fixed, m.is_hard)
         for r in rectangles:
             m.add_rectangle(r)
 

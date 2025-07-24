@@ -22,16 +22,7 @@ from frame.geometry.geometry import (
     gather_boundaries,
 )
 from frame.netlist.netlist import Netlist
-from frame.utils.keywords import (
-    KW_WIDTH,
-    KW_HEIGHT,
-    KW_REGIONS,
-    KW_CENTER,
-    KW_SHAPE,
-    KW_REGION,
-    KW_GROUND,
-    KW_BLOCKAGE,
-)
+from frame.utils.keywords import KW
 from frame.utils.utils import write_json_yaml
 
 
@@ -96,7 +87,7 @@ class Die:
         for r in regions:
             self._blockages.append(
                 r
-            ) if r.region == KW_BLOCKAGE else self._specialized_regions.append(r)
+            ) if r.region == KW.BLOCKAGE else self._specialized_regions.append(r)
 
         # Obtained the fixed rectangles from the netlist
         self._fixed = netlist.fixed_rectangles() if netlist else list[Rectangle]()
@@ -174,7 +165,7 @@ class Die:
         self._specialized_regions = list[Rectangle]()
         self._ground_regions = list[Rectangle]()
         for r in rects:
-            if r.region == KW_GROUND:
+            if r.region == KW.GROUND:
                 self._ground_regions.append(r)
             else:
                 self._specialized_regions.append(r)
@@ -217,15 +208,15 @@ class Die:
         :return: the YAML string in case filename is None
         """
         data: dict[str, Any] = {
-            KW_WIDTH: self.width,
-            KW_HEIGHT: self.height,
+            KW.WIDTH: self.width,
+            KW.HEIGHT: self.height,
         }
 
         regions = list[RectDescriptor]()
         for r in self.blockages + self.specialized_regions:
             regions.append(r.vector_spec)
         if len(regions) > 0:
-            data[KW_REGIONS] = regions
+            data[KW.REGIONS] = regions
         return write_json_yaml(data, False, filename)
 
     def _cell_center(self, i: int, j: int) -> Point:
@@ -327,9 +318,9 @@ class Die:
         width = self._x[best_reg.cmax + 1] - self._x[best_reg.cmin]
         height = self._y[best_reg.rmax + 1] - self._y[best_reg.rmin]
         kwargs = {
-            KW_CENTER: Point(x_center, y_center),
-            KW_SHAPE: Shape(width, height),
-            KW_REGION: KW_GROUND,
+            KW.CENTER: Point(x_center, y_center),
+            KW.SHAPE: Shape(width, height),
+            KW.REGION: KW.GROUND,
         }
         return Rectangle(**kwargs)
 

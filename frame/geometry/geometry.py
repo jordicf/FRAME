@@ -14,18 +14,7 @@ import math
 from typing import Any, Union, Sequence, Optional
 from dataclasses import dataclass, field
 
-from frame.utils.keywords import (
-    KW_FIXED,
-    KW_HARD,
-    KW_CENTER,
-    KW_SHAPE,
-    KW_LL,
-    KW_UR,
-    KW_REGION,
-    KW_NAME,
-    KW_GROUND,
-    KW_BLOCKAGE,
-)
+from frame.utils.keywords import KW
 from frame.utils.utils import valid_identifier, almost_eq
 
 RectDescriptor = tuple[float, float, float, float, str]  # (x,y,w,h, region)
@@ -243,60 +232,51 @@ class Rectangle:
         self._fixed = False  # Is the rectangle fixed?
         self._hard = False  # Is the rectangle hard?
         # Region of the layout to which the rectangle belongs to
-        self._region = KW_GROUND
+        self._region = KW.GROUND
         self._name = ""  # Name of the rectangle (optional)
 
         bbox = BoundingBox(Point.undefined(), Point.undefined())
         # Reading parameters and type checking
         for key, value in kwargs.items():
-            assert key in [
-                KW_CENTER,
-                KW_SHAPE,
-                KW_LL,
-                KW_UR,
-                KW_FIXED,
-                KW_HARD,
-                KW_REGION,
-                KW_NAME,
-            ], "Unknown rectangle attribute"
-            if key == KW_CENTER:
-                assert isinstance(value, Point), (
-                    "Incorrect point associated to the center of the rectangle"
-                )
-                self._center = value
-            elif key == KW_SHAPE:
-                assert isinstance(value, Shape), (
-                    "Incorrect shape associated to the rectangle"
-                )
-                assert value.w > 0, "Incorrect rectangle width"
-                assert value.h > 0, "Incorrect rectangle height"
-                self._shape = value
-            elif key == KW_LL:
-                assert isinstance(value, Point), "Incorrect rectangle LL corner"
-                bbox.ll = value
-            elif key == KW_UR:
-                assert isinstance(value, Point), "Incorrect rectangle UR corner"
-                bbox.ur = value
-            elif key == KW_FIXED:
-                assert isinstance(value, bool), (
-                    "Incorrect value for fixed (should be a boolean)"
-                )
-                self._fixed = value
-            elif key == KW_HARD:
-                assert isinstance(value, bool), (
-                    "Incorrect value for hard (should be a boolean)"
-                )
-                self._hard = value
-            elif key == KW_REGION:
-                assert valid_identifier(value) or value == KW_BLOCKAGE, (
-                    "Incorrect value for region (should be a valid string)"
-                )
-                self._region = value
-            elif key == KW_NAME:
-                assert isinstance(value, str), "Incorrect value for rectangle"
-                self._name = value
-            else:
-                assert False  # Should never happen
+            match key:
+                case KW.CENTER:
+                    assert isinstance(value, Point), (
+                        "Incorrect point associated to the center of the rectangle"
+                    )
+                    self._center = value
+                case KW.SHAPE:
+                    assert isinstance(value, Shape), (
+                        "Incorrect shape associated to the rectangle"
+                    )
+                    assert value.w > 0, "Incorrect rectangle width"
+                    assert value.h > 0, "Incorrect rectangle height"
+                    self._shape = value
+                case KW.LL:
+                    assert isinstance(value, Point), "Incorrect rectangle LL corner"
+                    bbox.ll = value
+                case KW.UR:
+                    assert isinstance(value, Point), "Incorrect rectangle UR corner"
+                    bbox.ur = value
+                case KW.FIXED:
+                    assert isinstance(value, bool), (
+                        "Incorrect value for fixed (should be a boolean)"
+                    )
+                    self._fixed = value
+                case KW.HARD:
+                    assert isinstance(value, bool), (
+                        "Incorrect value for hard (should be a boolean)"
+                    )
+                    self._hard = value
+                case KW.REGION:
+                    assert valid_identifier(value) or value == KW.BLOCKAGE, (
+                        "Incorrect value for region (should be a valid string)"
+                    )
+                    self._region = value
+                case KW.NAME:
+                    assert isinstance(value, str), "Incorrect value for rectangle"
+                    self._name = value
+                case _:
+                    raise NameError("Unknown rectangle attribute")
 
         # Sanity checks
         shape_defined = self._shape.w > 0 and self._shape.h > 0
@@ -421,11 +401,11 @@ class Rectangle:
         """
         return Rectangle(
             **{
-                KW_CENTER: self.center,
-                KW_SHAPE: self.shape,
-                KW_FIXED: self.fixed,
-                KW_HARD: self.hard,
-                KW_REGION: self.region,
+                KW.CENTER: self.center,
+                KW.SHAPE: self.shape,
+                KW.FIXED: self.fixed,
+                KW.HARD: self.hard,
+                KW.REGION: self.region,
             }
         )
 
@@ -711,11 +691,11 @@ class Rectangle:
         """
         :return: string representation of the rectangle
         """
-        s = f"({KW_CENTER}={self.center}, {KW_SHAPE}={self.shape}"
-        if self.region != KW_GROUND:
-            s += f", {KW_REGION}={self.region}"
+        s = f"({KW.CENTER}={self.center}, {KW.SHAPE}={self.shape}"
+        if self.region != KW.GROUND:
+            s += f", {KW.REGION}={self.region}"
         if self.fixed:
-            s += f", {KW_FIXED}"
+            s += f", {KW.FIXED}"
         s += ")"
         return s
 
@@ -755,13 +735,13 @@ def parse_yaml_rectangle(
         and isinstance(r[3], (int, float))
     )
     kwargs = {
-        KW_CENTER: Point(r[0], r[1]),
-        KW_SHAPE: Shape(r[2], r[3]),
-        KW_FIXED: fixed,
-        KW_HARD: hard,
+        KW.CENTER: Point(r[0], r[1]),
+        KW.SHAPE: Shape(r[2], r[3]),
+        KW.FIXED: fixed,
+        KW.HARD: hard,
     }
     if len(r) == 5:
-        kwargs[KW_REGION] = r[4]
+        kwargs[KW.REGION] = r[4]
     return Rectangle(**kwargs)
 
 

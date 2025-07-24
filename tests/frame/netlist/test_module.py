@@ -12,7 +12,7 @@ class TestModule(unittest.TestCase):
 
     def test_bad_module(self):
         # Bad constructors
-        self.assertRaises(AssertionError, Module, "my_module", unknown_keyword=3)
+        self.assertRaises(Exception, Module, "my_module", unknown_keyword=3)
         self.assertRaises(AssertionError, Module, "3_bad_name_4")
         self.assertRaises(AssertionError, Module, "good_name", area="no_number")
 

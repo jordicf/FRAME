@@ -23,7 +23,7 @@ from frame.geometry.geometry import (
     parse_yaml_rectangle,
     gather_boundaries,
 )
-from frame.utils.keywords import KW_CENTER, KW_SHAPE
+from frame.utils.keywords import KW
 from frame.utils.utils import (
     read_json_yaml_text,
     write_json_yaml,
@@ -381,8 +381,8 @@ class Allocation:
         width = xmax - xmin
         height = ymax - ymin
         kwargs = {
-            KW_CENTER: Point(xmin + width / 2, ymin + height / 2),
-            KW_SHAPE: Shape(width, height),
+            KW.CENTER: Point(xmin + width / 2, ymin + height / 2),
+            KW.SHAPE: Shape(width, height),
         }
         self._bounding_box = Rectangle(**kwargs)
 
