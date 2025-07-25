@@ -5,8 +5,11 @@
 """
 Keywords for JSON/YAML files and dictionary keys
 """
+
+
 class KW:
     """Class to store the keywords used in JSON/YAML files"""
+
     MODULES = "Modules"  # Modules of the netlist
     NETS = "Nets"  # Edges (hyperedges) of the netlist
     AREA = "area"  # Area (of a module, or rectangle)

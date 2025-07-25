@@ -70,7 +70,7 @@ class Die:
     def __init__(self, stream: str, netlist: Optional[Netlist] = None):
         """
         Constructor of a die from a file or from a string of text
-        :param stream: name of the YAML file (str) or handle to the file
+        :param stream: name of the JSON/YAML file (str) or text contents
         :param netlist: the netlist associated to the die
                         (necessary for fixed modules)
         """

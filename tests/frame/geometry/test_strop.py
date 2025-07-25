@@ -5,15 +5,58 @@ The test checks that all these solutions are generated.
 """
 
 import unittest
-from frame.geometry.strop import Strop, str2BoolMatrix
+import numpy as np
+from frame.geometry.strop import Strop, OccMatrix
 
 
-matrix1 = """
-001100
-011110
-111111
-001111
-001010"""
+def str2OccMatrix(s: str) -> OccMatrix:
+    """It generates an occupancy matrix from a string. The string constains
+    the number of rows of columns of the matrix followed by a sequence
+    of floats in [0,1] representing the occupancy of each cell.
+    An exception is raised in case the string does not represent
+    a valid matrix."""
+
+    err_msg = "Wrong format of STROP matrix"
+    lst = s.split()  # Split as a list of strings
+    assert len(lst) > 2, err_msg
+    nrows, ncolumns = int(lst[0]), int(lst[1])
+    lst_float = [float(x) for x in lst[2:]]
+    assert len(lst_float) == nrows * ncolumns, err_msg
+    assert all(0 <= x <= 1.0 for x in lst_float), err_msg
+
+    return np.reshape(np.array(lst_float), shape=(nrows, ncolumns))
+
+
+def check_matrix(matrix: str, sol: set[str] = set()) -> bool:
+    """Check that the matrix generates the set of solutions."""
+    s = Strop(str2OccMatrix(matrix))
+    for tree in s.instances():
+        str_tree = str(tree)
+        if str_tree not in sol:
+            return False
+        sol.remove(str_tree)
+    return len(sol) == 0
+
+
+class TestSTROP(unittest.TestCase):
+    def test_check_matrices_and_solutions(self):
+        self.assertTrue(check_matrix(bool_matrix1, {sol1_1, sol1_2}))
+        self.assertTrue(check_matrix(bool_matrix2))
+        self.assertTrue(check_matrix(bool_matrix3, {sol3_1, sol3_2, sol3_3, sol3_4}))
+        self.assertTrue(check_matrix(bool_matrix4))
+
+
+if __name__ == "__main__":
+    unittest.main()
+
+bool_matrix1 = """
+6 7
+0 0 0 0 0 0 0
+0 0 0 1 1 0 0 
+0 0 1 1 1 1 0
+0 1 1 1 1 1 1
+0 0 0 1 1 1 1
+0 0 0 1 0 1 0"""
 
 sol1_1 = """\
   22
@@ -31,27 +74,30 @@ sol1_2 = """\
 
 ##################################
 
-matrix2 = """
-00011011
-01111110
-01111110
-00011111
-11111111
-01111111
-01111100
-01111100
-01100100
-01100000"""
+bool_matrix2 = """
+10 8
+0 0 0 1 1 0 1 1
+0 1 1 1 1 1 1 0
+0 1 1 1 1 1 1 0
+0 0 0 1 1 1 1 1
+1 1 1 1 1 1 1 1
+0 1 1 1 1 1 1 1
+0 1 1 1 1 1 0 0
+0 1 1 1 1 1 0 0
+0 1 1 0 0 1 0 0
+0 1 1 0 0 0 0 0"""
 
 #########################################
-matrix3 = """
-0001000
-0011100
-0111110
-1111111
-0111110
-0011100
-0001000
+bool_matrix3 = """
+8 7
+0 0 0 1 0 0 0
+0 0 1 1 1 0 0
+0 1 1 0.3 1 1 0
+1 1 1 1 1 1 1
+0 1 1 1 1 1 0
+0 0 1 1 1 0 0
+0 0 0 1 0 0 0
+0 0 0 0 0 0 0
 """
 
 sol3_1 = """\
@@ -91,48 +137,10 @@ sol3_4 = """\
    2"""
 
 ######################################################
-matrix4 = """
-101
-011
-111
+bool_matrix4 = """
+3 3
+1 0 1
+0 1 1
+1 1 1
 """
 #######################################################
-
-str_matrix1 = "1 0.9 -1 0 0.2 -1 0.5 0"
-str_matrix2 = "0 0 0.2 -1 1 0 0.3"
-str_matrix3 = "0 0.4 -1 0.6 1.1"
-str_matrix4 = "0 0.4 -1 0.6 1.0 -1"
-str_matrix5 = "1.0 0.3 0 -1 0 0.2 -1 1 0.5 0.6 0.5"
-
-bool_matrix1 = [[True, True], [False, True], [True, False]]
-bool_matrix2 = [[False, False, True], [True, False, True]]
-
-
-def check_matrix(matrix: str, sol: set[str] = set()) -> bool:
-    """Check that the matrix generates the set of solutions."""
-    s = Strop(matrix)
-    for tree in s.instances():
-        str_tree = str(tree)
-        if str_tree not in sol:
-            return False
-        sol.remove(str_tree)
-    return len(sol) == 0
-
-
-class TestSTROP(unittest.TestCase):
-    def test_check_matrices_and_solutions(self):
-        self.assertTrue(check_matrix(matrix1, {sol1_1, sol1_2}))
-        self.assertTrue(check_matrix(matrix2))
-        self.assertTrue(check_matrix(matrix3, {sol3_1, sol3_2, sol3_3, sol3_4}))
-        self.assertTrue(check_matrix(matrix4))
-
-    def test_str2boolmatrix(self):
-        self.assertEqual(str2BoolMatrix(str_matrix1), bool_matrix1)
-        self.assertEqual(str2BoolMatrix(str_matrix2), bool_matrix2)
-        self.assertRaises(AssertionError, str2BoolMatrix, str_matrix3)
-        self.assertRaises(AssertionError, str2BoolMatrix, str_matrix4)
-        self.assertRaises(AssertionError, str2BoolMatrix, str_matrix5)
-
-
-if __name__ == "__main__":
-    unittest.main()
