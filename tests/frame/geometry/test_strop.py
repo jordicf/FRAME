@@ -5,8 +5,9 @@ The test checks that all these solutions are generated.
 """
 
 import unittest
+from icecream import ic  # For debugging purposes
 import numpy as np
-from frame.geometry.strop import Strop, OccMatrix
+from frame.geometry.strop import Polygon, OccMatrix
 
 
 def str2OccMatrix(s: str) -> OccMatrix:
@@ -23,13 +24,14 @@ def str2OccMatrix(s: str) -> OccMatrix:
     lst_float = [float(x) for x in lst[2:]]
     assert len(lst_float) == nrows * ncolumns, err_msg
     assert all(0 <= x <= 1.0 for x in lst_float), err_msg
-
-    return np.reshape(np.array(lst_float), shape=(nrows, ncolumns))
+    m = np.reshape(np.array(lst_float), shape=(nrows, ncolumns))
+    ic(m)
+    return m
 
 
 def check_matrix(matrix: str, sol: set[str] = set()) -> bool:
     """Check that the matrix generates the set of solutions."""
-    s = Strop(str2OccMatrix(matrix))
+    s = Polygon(str2OccMatrix(matrix))
     for tree in s.instances():
         str_tree = str(tree)
         if str_tree not in sol:
