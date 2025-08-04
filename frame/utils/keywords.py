@@ -27,7 +27,6 @@ class KW:
     RECTANGLES = "rectangles"  # For lists of rectangles
     REGION = "region"  # Region of a rectangle (e.g. LUT, BRAM, DSP)
     REGIONS = "regions"  # List of regions in the die
-    NAME = "name"  # Name of an object
 
     # Name of the top (default) region for the die
     # Regions are used to define different slices in the die (e.g. LUT, DSP, BRAM, etc).

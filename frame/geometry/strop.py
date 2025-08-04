@@ -273,8 +273,7 @@ class Polygon:
             else width[self._first_col : self._last_col + 1]
         )
 
-        self._strops = None  # List of STROPs (to be generated later)
-        
+        self._strops = None  # List of STROPs (to be generated upon demand)
 
     @property
     def num_rows(self) -> int:
@@ -289,7 +288,7 @@ class Polygon:
     @property
     def has_strops(self) -> bool:
         """Indicates whether the polygon has STROPs"""
-        return len(self.instances()) > 0
+        return len(self.instances) > 0
 
     @property
     def matrix(self) -> BoolMatrix:
@@ -330,8 +329,9 @@ class Polygon:
         )
         return self._occ[i, j]
 
+    @property
     def instances(self) -> list[StropInstance]:
-        """Generates a list of orthogonal trees (trunk+branches)"""
+        """Returns a list of STROPs (and generates them if not generated yet)"""
         if self._strops is None:
             self._strops = list()
             for trunk in self._get_potential_trunks():
@@ -365,42 +365,6 @@ class Polygon:
             )
         )
 
-    def _obtain_trunk_seed(self) -> tuple[int, int]:
-        """This is a heuristic to find the best trunk seed. It returns the cell
-        that has the best ratio occupancy/distance to the center."""
-        nz = np.nonzero(self._occ)
-        cell = (-1, -1)
-        best_ratio = -1.0
-        for i, j in zip(nz[0], nz[1]):
-            x, y = self.cell_coordinates(i, j)
-            dist = np.sqrt((x - self._xcenter) ** 2 + (y - self._ycenter) ** 2)
-            if dist == 0:
-                ratio = self._occ[i, j]  # Avoid division by zero
-            else:
-                ratio = self._occ[i, j] / dist
-            if ratio > best_ratio:
-                best_ratio = ratio
-                cell = (i, j)
-        return cell
-
-    def _calculate_center(self) -> None:
-        """Calculates the center of gravity of the polygon and the indices
-        of the cell that contains the center."""
-        nz = np.nonzero(self._occ)
-        sumx, sumy = 0, 0
-        for i, j in zip(nz[0], nz[1]):
-            w, h = self._width[j], self._height[i]
-            occ = self._occ[i, j] * w * h
-            sumx += occ * (self._xcoords[j] + w / 2)
-            sumy += occ * (self._ycoords[i] + h / 2)
-
-        n = len(nz[0])
-        if n > 0:
-            self._xcenter = sumx / n
-            self._ycenter = sumy / n
-        else:
-            self._xcenter, self._ycenter = 0, 0
-
     def _get_potential_trunks(self) -> set[GridRectangle]:
         """Returns a set of rectangles that could be potentially
         trunks of the polygon"""
@@ -425,6 +389,7 @@ class Polygon:
         # rect[i][j] represents the largest interval of columns in M
         # for a rectangle between rows i and j (i <= j)
         rect: list[list[Interval]] = [[EMPTY_INTERVAL] * nrows for _ in range(nrows)]
+
         # Fill-up diagonals with the longest interval of columns at row i
         for i in range(nrows):
             rect[i][i] = Polygon._row_interval(M[i])
@@ -471,6 +436,42 @@ class Polygon:
             return Interval(all_trues[0], all_trues[-1])
 
         return EMPTY_INTERVAL
+
+    def _obtain_trunk_seed(self) -> tuple[int, int]:
+        """This is a heuristic to find the best trunk seed. It returns the cell
+        that has the best ratio occupancy/distance to the center."""
+        nz = np.nonzero(self._occ)
+        cell = (-1, -1)
+        best_ratio = -1.0
+        for i, j in zip(nz[0], nz[1]):
+            x, y = self.cell_coordinates(i, j)
+            dist = np.sqrt((x - self._xcenter) ** 2 + (y - self._ycenter) ** 2)
+            if dist == 0:
+                ratio = self._occ[i, j]  # Avoid division by zero
+            else:
+                ratio = self._occ[i, j] / dist
+            if ratio > best_ratio:
+                best_ratio = ratio
+                cell = (i, j)
+        return cell
+
+    def _calculate_center(self) -> None:
+        """Calculates the center of gravity of the polygon and the indices
+        of the cell that contains the center."""
+        nz = np.nonzero(self._occ)
+        sumx, sumy = 0, 0
+        for i, j in zip(nz[0], nz[1]):
+            w, h = self._width[j], self._height[i]
+            occ = self._occ[i, j] * w * h
+            sumx += occ * (self._xcoords[j] + w / 2)
+            sumy += occ * (self._ycoords[i] + h / 2)
+
+        n = len(nz[0])
+        if n > 0:
+            self._xcenter = sumx / n
+            self._ycenter = sumy / n
+        else:
+            self._xcenter, self._ycenter = 0, 0
 
 
 class StropInstance:

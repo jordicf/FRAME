@@ -216,8 +216,8 @@ def strop_decomposition(vertices: PointSequence) -> list[Rectangle]:
                 m[i,j] = 1
 
     s = Polygon(m)
-    assert len(s.instances()) > 0, f"Polygon has no STROPs {vertices}"
-    sol = s.instances()[0]
+    assert len(s.instances) > 0, f"Polygon has no STROPs {vertices}"
+    sol = s.instances[0]
     # Extract rectangles from the STROP instance
     for r in sol.rectangles():
         x_min, x_max = x_coords[r.columns.low], x_coords[r.columns.high + 1]

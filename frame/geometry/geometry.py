@@ -216,7 +216,7 @@ class Rectangle:
     _hard: bool  # Is the rectangle hard?
     # Region of the layout to which the rectangle belongs to
     _region: str
-    _name: str
+    _id: int  # Unique identifier of the rectangle (-1 for no id)
     _location: StropLocation
 
     def __init__(self, **kwargs: Any):
@@ -233,7 +233,7 @@ class Rectangle:
         self._hard = False  # Is the rectangle hard?
         # Region of the layout to which the rectangle belongs to
         self._region = KW.GROUND
-        self._name = ""  # Name of the rectangle (optional)
+        self._id = -1  # id of the rectangle (optional, -1 if no id)
 
         bbox = BoundingBox(Point.undefined(), Point.undefined())
         # Reading parameters and type checking
@@ -272,9 +272,6 @@ class Rectangle:
                         "Incorrect value for region (should be a valid string)"
                     )
                     self._region = value
-                case KW.NAME:
-                    assert isinstance(value, str), "Incorrect value for rectangle"
-                    self._name = value
                 case _:
                     raise NameError("Unknown rectangle attribute")
 
@@ -393,6 +390,17 @@ class Rectangle:
     @location.setter
     def location(self, loc: StropLocation) -> None:
         self._location = loc
+        
+    @property
+    def id(self) -> int:
+        """Returns the unique identifier of the rectangle"""
+        return self._id
+    
+    @id.setter
+    def id(self, value: int) -> None:
+        """Sets the unique identifier of the rectangle (-1"""
+        assert isinstance(value, int) and value >= -1, "Invalid rectangle id"
+        self._id = value    
 
     def duplicate(self) -> "Rectangle":
         """

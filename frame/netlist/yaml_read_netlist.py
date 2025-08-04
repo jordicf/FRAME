@@ -78,7 +78,7 @@ def parse_yaml_module(name: str, info: dict) -> Module:
     )
     assert valid_identifier(name), f"Invalid name for module: {name}"
 
-    params: dict[str, Any] = {}
+    params = dict[str, Any]()
     for key, value in info.items():
         assert isinstance(key, str)
         if key in [KW.AREA, KW.TERMINAL, KW.FIXED, KW.HARD, KW.FLIP]:
@@ -120,7 +120,8 @@ def parse_yaml_center(center: list[float], name: str) -> Point:
 
 
 def parse_yaml_aspect_ratio(
-    aspect_ratio: float | list[float], name: str) -> AspectRatio:
+    aspect_ratio: float | list[float], name: str
+) -> AspectRatio:
     """
     Parses the aspect ratio of the module. If only one value is given, the aspect ratio is computed
     as the interval [value, 1/value] or [1/value, value] in such a way that the first component is smaller
