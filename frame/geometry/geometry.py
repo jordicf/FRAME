@@ -7,6 +7,7 @@
 Module to represent points, shapes and rectangles
 """
 
+from __future__ import annotations
 from collections import deque
 from enum import Enum
 import heapq
@@ -30,7 +31,7 @@ class Point:
 
     def __init__(
         self,
-        x: Union['Point', tuple[float, float], float, None] = None,
+        x: Union[Point, tuple[float, float], float, None] = None,
         y: Optional[float] = None,
     ):
         """
@@ -80,7 +81,7 @@ class Point:
         self._y = value
 
     @staticmethod
-    def undefined() -> "Point":
+    def undefined() -> Point:
         """Return an undefined point (-inf, -inf)"""
         return Point(-math.inf, -math.inf)
 
@@ -94,28 +95,28 @@ class Point:
         assert isinstance(other, Point)
         return self.x == other.x and self.y == other.y
 
-    def __neg__(self) -> "Point":
+    def __neg__(self) -> Point:
         """Return -self."""
         return Point(-self.x, -self.y)
 
-    def __add__(self, other: Union["Point", tuple[float, float], float]) -> "Point":
+    def __add__(self, other: Union[Point, tuple[float, float], float]) -> Point:
         """Return self + other."""
         other = Point(other)
         return Point(self.x + other.x, self.y + other.y)
 
     __radd__ = __add__
 
-    def __sub__(self, other: Union["Point", tuple[float, float], float]) -> "Point":
+    def __sub__(self, other: Union[Point, tuple[float, float], float]) -> Point:
         """Return self - other."""
         other = Point(other)
         return Point(self.x, self.y) + -other
 
-    def __rsub__(self, other: Union["Point", tuple[float, float], float]) -> "Point":
+    def __rsub__(self, other: Union[Point, tuple[float, float], float]) -> Point:
         """Return other - self."""
         other = Point(other)
         return other - self
 
-    def __mul__(self, other: Union["Point", tuple[float, float], float]) -> "Point":
+    def __mul__(self, other: Union[Point, tuple[float, float], float]) -> Point:
         """Return self*other using component-wise multiplication.
         other can either be a number or another point."""
         other = Point(other)
@@ -123,23 +124,23 @@ class Point:
 
     __rmul__ = __mul__
 
-    def __pow__(self, exponent: float) -> "Point":
+    def __pow__(self, exponent: float) -> Point:
         """Return self**exponent using component-wise exponentiation."""
         return Point(self.x**exponent, self.y**exponent)
 
-    def __truediv__(self, other: Union["Point", tuple[float, float], float]) -> "Point":
+    def __truediv__(self, other: Union[Point, tuple[float, float], float]) -> Point:
         """Return self / other using component-wise true division.
         other can either be a number or another point."""
         other = Point(other)
         return Point(self.x / other.x, self.y / other.y)
 
-    def __rtruediv__(self, other: Union["Point", tuple[float, float], float]):
+    def __rtruediv__(self, other: Union[Point, tuple[float, float], float]):
         """Return other / self using component-wise true division.
         other can either be a number or another point."""
         other = Point(other)
         return Point(other.x / self.x, other.y / self.y)
 
-    def __and__(self, other: "Point") -> float:
+    def __and__(self, other: Point) -> float:
         """Dot product between self and other."""
         return self.x * other.x + self.y * other.y
 
@@ -348,7 +349,7 @@ class Rectangle:
         return self._shape
 
     @shape.setter
-    def shape(self, shape) -> None:
+    def shape(self, shape: Shape) -> None:
         self._shape = shape
 
     @property
@@ -402,7 +403,7 @@ class Rectangle:
         assert isinstance(value, int) and value >= -1, "Invalid rectangle id"
         self._id = value    
 
-    def duplicate(self) -> "Rectangle":
+    def duplicate(self) -> Rectangle:
         """
         Creates a duplication of the rectangle
         :return: the rectangle
@@ -446,7 +447,7 @@ class Rectangle:
         bb = self.bounding_box
         return bb.ll.x <= p.x <= bb.ur.x and bb.ll.y <= p.y <= bb.ur.y
 
-    def is_inside(self, r: "Rectangle") -> bool:
+    def is_inside(self, r: Rectangle) -> bool:
         """
         Checks whether the rectangle is inside another rectangle
         :param r: the other rectangle
@@ -462,7 +463,7 @@ class Rectangle:
             and bb.ur.y <= bbr.ur.y
         )
 
-    def touches(self, r: "Rectangle") -> bool:
+    def touches(self, r: Rectangle) -> bool:
         """Checks whether the two rectangles touch each other according to
         some distance tolerance
         :param r: the other rectangle
@@ -477,7 +478,7 @@ class Rectangle:
             and bb_r.ll.y <= bb_self.ur.y + epsilon
         )
 
-    def overlap(self, r: "Rectangle") -> bool:
+    def overlap(self, r: Rectangle) -> bool:
         """
         Checks whether two rectangles overlap. They are considered not to
         overlap if they touch each other. If the overlapping area is smaller
@@ -487,7 +488,7 @@ class Rectangle:
         """
         return self.area_overlap(r) > Rectangle.area_epsilon()
 
-    def area_overlap(self, r: "Rectangle") -> float:
+    def area_overlap(self, r: Rectangle) -> float:
         """
         Returns the area overlap between the two rectangles
         :param r: the other rectangle
@@ -505,7 +506,7 @@ class Rectangle:
             return 0.0
         return (maxx - minx) * (maxy - miny)
 
-    def find_location(self, r: "Rectangle") -> StropLocation:
+    def find_location(self, r: Rectangle) -> StropLocation:
         """Defines the location of a rectangle with regard to the trunk (self)
         :param r: the rectangle that must be located
         :return: the location
@@ -548,7 +549,7 @@ class Rectangle:
             else Rectangle.StropLocation.NO_POLYGON
         )
 
-    def split_horizontal(self, x: float = -1) -> tuple["Rectangle", "Rectangle"]:
+    def split_horizontal(self, x: float = -1) -> tuple[Rectangle, Rectangle]:
         """
         Splits the rectangle horizontally cutting by x. If x is negative,
         the rectangle is split into two halves
@@ -568,7 +569,7 @@ class Rectangle:
         r2.center, r2.shape = c2, sh2
         return r1, r2
 
-    def split_vertical(self, y: float = -1) -> tuple["Rectangle", "Rectangle"]:
+    def split_vertical(self, y: float = -1) -> tuple[Rectangle, Rectangle]:
         """
         Splits the rectangle vertically cutting by y. If y is negative,
         the rectangle is split into two halves
@@ -588,7 +589,7 @@ class Rectangle:
         r2.center, r2.shape = c2, sh2
         return r1, r2
 
-    def split(self) -> tuple["Rectangle", "Rectangle"]:
+    def split(self) -> tuple[Rectangle, Rectangle]:
         """
         Splits the rectangle into two rectangles.
         The splitting reduces the largest dimension
@@ -630,7 +631,7 @@ class Rectangle:
             return False
         return min(y - bb.ll.y, bb.ur.y - y) > ratio * self.shape.w
 
-    def rectangle_grid(self, nrows: int, ncols: int) -> list["Rectangle"]:
+    def rectangle_grid(self, nrows: int, ncols: int) -> list[Rectangle]:
         """
         Generates a grid of nrows x ncols rectangles of the same size starting
         from the original rectangle.
@@ -653,7 +654,7 @@ class Rectangle:
                 grid.append(r)
         return grid
 
-    def __mul__(self, other: "Rectangle") -> Optional["Rectangle"]:
+    def __mul__(self, other: Rectangle) -> Optional[Rectangle]:
         """
         Calculates the intersection of two rectangles and returns another
         rectangle (or None if no intersection).
@@ -742,7 +743,7 @@ def parse_yaml_rectangle(
         and isinstance(r[2], (int, float))
         and isinstance(r[3], (int, float))
     )
-    kwargs = {
+    kwargs: dict[str, Any] = {
         KW.CENTER: Point(r[0], r[1]),
         KW.SHAPE: Shape(r[2], r[3]),
         KW.FIXED: fixed,
