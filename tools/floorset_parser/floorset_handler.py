@@ -50,12 +50,6 @@ def parse_options(prog: str | None = None, args: list[str] | None = None) -> dic
         default='./',
         help="Destination folder of the Die YAML output file."
     )
-    parser.add_argument(
-        "--fpef-ids",
-        type=str,
-        nargs="*",
-        help="List of floorplan IDs to parse. Provide space-separated values."
-    )
     group = parser.add_mutually_exclusive_group()
     group.add_argument(
         "-d",
@@ -89,8 +83,8 @@ def main(prog: str | None = None, args: list[str] | None = None) -> None:
     density: float|None = options['connection_density']
     factor: float|None = options['scale_factor']
     term2mod:bool = options['store_terminals']
-    fpef_ids:bool|None = options['fpef_ids']
 
+    ds: Any
     if datasettype == "PrimeTraining":
         ds = FloorplanDatasetPrime(inputdatapath)
         fn = floorplan_collate
@@ -131,8 +125,6 @@ def main(prog: str | None = None, args: list[str] | None = None) -> None:
 
         for i in range(len(area_targets)): # Extract each floorplan
             curr_id = batch_idx * len(area_targets) + i
-            if fpef_ids and (not curr_id in fpef_ids):
-                continue
 
             # Preprocess tensors to remove invalid data (-1)
             area_target = area_targets[i][area_targets[i] != -1].numpy()

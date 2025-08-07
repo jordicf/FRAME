@@ -10,7 +10,7 @@ from frame.geometry.strop import Strop
 from frame.geometry.geometry import Point 
 
 
-Polygon = List[Point] | List[np.ndarray]
+Polygon = List[Point]
 Rectangle = List[float]
 GBFACTOR = float(1 << 30)
 
@@ -163,10 +163,7 @@ def compute_perimeter(vertices: Polygon) -> float:
     for i in range(len(vertices) - 1):
         p1 = vertices[i]
         p2 = vertices[i + 1]
-        if isinstance(p1,Point):
-            distance = math.sqrt((p2.x - p1.x) ** 2 + (p2.y - p1.y) ** 2)
-        else:
-            distance = math.sqrt((p2[0] - p1[0]) ** 2 + (p2[1] - p1[1]) ** 2)
+        distance = math.sqrt((p2.x - p1.x) ** 2 + (p2.y - p1.y) ** 2)
         perimeter += distance
 
     return float(perimeter)
@@ -177,7 +174,7 @@ def strop_decomposition(vertices: Polygon) -> list[Rectangle]:
     Decomposes a polygon into Single-Trunk-Rectilinear-Orthogonal-Polygons.
 
     Args:
-        vertices: List of dataclass Point or numpy.ndarray [p1, p2, ...] 
+        vertices: List of dataclass Point [p1, p2, ...] 
             representing the polygon's vertices.
 
     Returns:
@@ -264,8 +261,7 @@ def compute_centroid(partition: List[Rectangle]) -> Point:
 
     Args:
         vertices: List of tuples [(x1,y1,w1,h1), ..., (xn, yn, wn, hn)]
-                representing the polygon's vertices. The polygon should be
-                closed (first vertex = last vertex).
+                representing the polygon's vertices.
 
     Returns:
         A tuple (Cx, Cy) representing the centroid of the polygon.
