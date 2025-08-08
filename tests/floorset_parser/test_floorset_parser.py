@@ -275,7 +275,7 @@ class TestFloorSetInstance(unittest.TestCase):
 
     def test_floorsetinstance_netlist(self, d:float|None=None, t:bool=False):
         fs = FloorSetInstance(self.data, d, t)
-        txt_yaml:str = fs.write_yaml_FPEF()
+        txt_yaml:str = str(fs.write_yaml_FPEF())
         self.assertIsNotNone(txt_yaml)
         Netlist(txt_yaml)
 

@@ -10,7 +10,7 @@ from frame.geometry.strop import Strop
 from frame.geometry.geometry import Point 
 
 
-Polygon = List[Point]
+PointSequence = List[Point]
 Rectangle = List[float]
 GBFACTOR = float(1 << 30)
 
@@ -146,7 +146,7 @@ def rescale(value:float, old_min:float=0, old_max=1, new_min=500, new_max=1500):
     return new_value
 
 
-def compute_perimeter(vertices: Polygon) -> float:
+def compute_perimeter(vertices: PointSequence) -> float:
     """
     Compute the perimeter of a polygon given its vertices.
 
@@ -169,7 +169,7 @@ def compute_perimeter(vertices: Polygon) -> float:
     return float(perimeter)
 
 
-def strop_decomposition(vertices: Polygon) -> list[Rectangle]:
+def strop_decomposition(vertices: PointSequence) -> list[Rectangle]:
     """
     Decomposes a polygon into Single-Trunk-Rectilinear-Orthogonal-Polygons.
 
@@ -207,10 +207,9 @@ def strop_decomposition(vertices: Polygon) -> list[Rectangle]:
         m += '\n'
 
     s = Strop(m)
-    assert s.is_strop, f"Polygon is not a STROP {vertices}"
-    sol = next(s.instances(), None)
-    if not sol:
+    if not s.is_strop:
         return rectangles
+    sol = next(s.instances())
     for r in sol.rectangles():
         x_min, x_max = x_coords[r.columns.low], x_coords[r.columns.high + 1]
         y_max, y_min = y_coords[r.rows.low], y_coords[r.rows.high + 1]
@@ -223,7 +222,7 @@ def strop_decomposition(vertices: Polygon) -> list[Rectangle]:
     return rectangles
 
 
-def is_point_inside_polygon(point: Point, vertices: Polygon) -> bool:
+def is_point_inside_polygon(point: Point, vertices: PointSequence) -> bool:
     """
     Determine if a point is inside a polygon using the even-odd rule algorithm.
 
