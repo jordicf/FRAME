@@ -1,9 +1,17 @@
 from PySide6.QtCore import QSize, Qt
-from PySide6.QtGui import QAction
 from PySide6.QtWidgets import QMainWindow,QToolBar,QPushButton,QStatusBar, QApplication, QTabWidget, QMessageBox
 from centralwidgets import FloorplanDesigner, CreateModule, Module, CreateRectangle, RectObj
 
 class MainWindow(QMainWindow):
+    """Main application window for the floorplanning tool.
+    
+    This windows contains tabs with three main tools:
+    - A floorlplan designer to interactively design the chip layout.
+    - A module creator for adding new modules to the floorplan.
+    - A rectangle creator for adding rectangles to existing modules.
+    
+    It includes a menu, a toolbar and a status bar."""
+
     _app: QApplication
     _tab_widget: QTabWidget
     _widget1: FloorplanDesigner
@@ -14,7 +22,6 @@ class MainWindow(QMainWindow):
         super().__init__()
         self._app  = app
         self.setWindowTitle("Floorplanning")
-        self.setFixedSize(QSize(840, 620))
 
         self._create_menu()
         self._create_toolbar()
@@ -61,60 +68,70 @@ class MainWindow(QMainWindow):
     def _create_toolbar(self) -> None:
         """Creates a toolbar located at the left side of the window."""
 
-        toolbar = QToolBar("My main toolbar")
+        toolbar = QToolBar("Toolbar")
         toolbar.setIconSize(QSize(16,16))
         toolbar.setMovable(False)
         toolbar.setOrientation(Qt.Orientation.Vertical)
         self.addToolBar(Qt.ToolBarArea.LeftToolBarArea, toolbar)
 
-        # Add the quit action to the toolbar
-        toolbar.addAction(self.quit_action)
-
-        action1 = QAction("Some Action", self)
-        action1.setStatusTip("Status message for some action")
-        action1.triggered.connect(self._toolbar_button_click)
-        toolbar.addAction(action1)
-
-        action2 = QAction("Some other action", self)
-        action2.setStatusTip("Status message for some other action")
-        action2.triggered.connect(self._toolbar_button_click)
-        action2.setCheckable(True)
-        toolbar.addAction(action2)
+        toolbar.addAction(self.quit_action) # Add the quit action to the toolbar
+        self.quit_action.setStatusTip("Exit the application")
 
         toolbar.addSeparator()
-        remove_button = QPushButton("Remove")
-        toolbar.addWidget(remove_button)
-        remove_button.clicked.connect(self._remove_selected_item)
 
-    def _toolbar_button_click(self) -> None:
-        """"""
-        self.statusBar().showMessage("Some message ...", 3000)
+        remove_button = QPushButton("Remove")
+        remove_button.setStatusTip("Remove the currently selected item")
+        remove_button.clicked.connect(self._remove_selected_item)
+        toolbar.addWidget(remove_button)
+
+        rotate_button = QPushButton("Rotate")
+        rotate_button.setStatusTip("Rotate the currently selected item")
+        rotate_button.clicked.connect(self._rotate_selected_item)
+        toolbar.addWidget(rotate_button)
 
     def _remove_selected_item(self) -> None:
-        
+        """Removes the currently selected items from the scene acter user confirmation.
+        Modules or rectangles depending on the active tab. In the Add Rectangle tab, you 
+        can only delete the new rectangles that are currntly being added."""
+
         question = QMessageBox.question(self, "Remove items",
                                     "Are you sure you want to remove the selected item?",
                                 QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No)
+        
         if question == QMessageBox.StandardButton.Yes:
-
             current_tab = self._tab_widget.tabText(self._tab_widget.currentIndex())
             if current_tab == "Design":
                 scene = self._widget1.graphical_view.scene()
                 for item in scene.selectedItems():
                     if isinstance(item, Module):
-                        for rect in item.branches:
-                            scene.removeItem(rect)
                         del self._widget1.modules[item.name]
                         # Find the item index in the combo box to delete it
                         index = self._widget3.module_combo_box.findText(item.name)
                         if index != -1:
                             self._widget3.module_combo_box.removeItem(index)
-                        scene.removeItem(item) 
+                        scene.removeItem(item)
+                    if isinstance(item, RectObj):
+                        selected_mod = self._widget1.selected_mod
+                        assert selected_mod is not None
+                        if item == selected_mod.trunk:
+                            pass
+                        else:
+                            selected_mod.branches.discard(item)
+                            scene.removeItem(item)
             elif current_tab == "Add Rectangle To A Module":
-                scene = self._widget3.graphical_view.scene()
+                scene = self._widget3.graphical_view.scene() # scene of the third tab
                 for item in scene.selectedItems():
+                    # Remove rectangles that were recently added in this tab
                     if isinstance(item, RectObj) and item in self._widget3.new_rects:
                         self._widget3.new_rects.remove(item)
                         scene.removeItem(item)
         
+    def _rotate_selected_item(self) -> None:
+        """Rotate the currently selected item by 90 degrees clockwise."""
+        selected_items = self._widget1.graphical_view.scene().selectedItems()
 
+        if len(selected_items) == 1:
+            item = selected_items[0]
+            if isinstance(item, Module) or isinstance(selected_items[0], RectObj):
+                item.setTransformOriginPoint(item.boundingRect().center())
+                item.setRotation((item.rotation() + 90) % 360)

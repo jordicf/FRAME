@@ -7,17 +7,20 @@ from PySide6.QtWidgets import (
 )
 from PySide6.QtCore import Qt, QRectF, QPointF
 
-
 class RectObj(QGraphicsRectItem):
-    """A class that provides a customized rectangle item that you can add to a QGraphicsScene.
-    Optionally includes handles for interactive resizing."""
+    """
+    A class that provides a customized rectangle item that you can add to a QGraphicsScene.
+    Optionally includes handles for interactive resizing.
+    """
 
-    handles: dict[str,Handle]
+    _handles: dict[str,Handle] # key: corner, value: Handle
+    _area: float
 
     def __init__(self, x: float, y: float, w: float, h: float):
         super().__init__(0, 0, w, h)
         self.setPos(x, y)
-        self.handles = dict[str,Handle]()
+        self._handles = dict[str,Handle]()
+        self._area = w * h
 
         self.setAcceptHoverEvents(True)
         self.setFlag(QGraphicsItem.GraphicsItemFlag.ItemIsMovable)
@@ -25,7 +28,8 @@ class RectObj(QGraphicsRectItem):
         self.setOpacity(0.4)
 
     def mousePressEvent(self, event: QGraphicsSceneMouseEvent) -> None:
-        """Sets the cursor to an open hand when the rectangle is pressed."""
+        """Sets the cursor to an open hand when the rectangle is pressed.
+        Clears selection of all other items and selects this rectangle exclusively."""
         self.focusItem()
         self.setCursor(Qt.CursorShape.OpenHandCursor)
 
@@ -53,7 +57,7 @@ class RectObj(QGraphicsRectItem):
         return rect
     
     def midpoint(self) -> QPointF:
-        """Returns de center point of the rectangle."""
+        """Returns de center point of the rectangle (in scene coordinates)."""
         point, rect = self.scenePos(), self.rect()
 
         x = point.x() + rect.width()/2
@@ -61,7 +65,8 @@ class RectObj(QGraphicsRectItem):
         return QPointF(x,y)
     
     def midpoint_to_topleft(self, mid: QPointF) -> QPointF:
-        """Given the center point of the rectangle, returns the top-left point of the rectangle."""
+        """Given the center point of the rectangle, returns its top-left corner in scene
+        coordinates."""
         rect = self.rect()
         x = mid.x() - rect.width()/2
         y = mid.y() - rect.height()/2
@@ -71,17 +76,17 @@ class RectObj(QGraphicsRectItem):
         """Creates 4 Handles for the rectangle and positions them acordingly."""
         for corner in ("top-left", "top-right", "bottom-right", "bottom-left"):
             handle = Handle(corner, self)
-            self.handles[corner] = handle
-        self.update_handle_position()
+            self._handles[corner] = handle
+        self.update_handles_position()
 
-    def update_handle_position(self) -> None:
+    def update_handles_position(self) -> None:
         """Positions the handles at the corners of the rectangle."""
         rect = self.rect()
         
-        self.handles["top-left"].setPos(rect.topLeft())
-        self.handles["top-right"].setPos(rect.topRight())
-        self.handles["bottom-right"].setPos(rect.bottomRight())
-        self.handles["bottom-left"].setPos(rect.bottomLeft())
+        self._handles["top-left"].setPos(rect.topLeft())
+        self._handles["top-right"].setPos(rect.topRight())
+        self._handles["bottom-right"].setPos(rect.bottomRight())
+        self._handles["bottom-left"].setPos(rect.bottomLeft())
 
     def resize_from_handle(self, corner: str, scene_pos: QPointF) -> None:
         """Resizes the rectangle based on the new position of the specified corner's handle."""
@@ -103,42 +108,35 @@ class RectObj(QGraphicsRectItem):
 
         self.prepareGeometryChange()
         self.setRect(new_rect)
-        self.update_handle_position()
+        self.update_handles_position()
 
-
-    def reset_local_origin(self):
+    def reset_local_origin_update_area(self) -> None:
         """Updates local coordinates so that (0,0) corresponds to the rectangle's top-left
-        corner."""
+        corner. It also updates the area of the rectangle."""
         old_rect = self.rect()
-        top_left_scene = self.mapToScene(old_rect.topLeft())
+        top_left_scene = self.mapToScene(old_rect.topLeft()) # top-left corner of the rect in scene coorfinates
 
         self.prepareGeometryChange()
         self.setPos(top_left_scene)
-        self.setRect(0, 0, old_rect.width(), old_rect.height())
+        w, h = old_rect.width(), old_rect.height()
+        self.setRect(0, 0, w, h)
+        self._area = w * h
+    
+    @property
+    def area(self) -> float:
+        """Returns the area of the rectangle."""
+        return self._area
 
-    def info(self) -> None:
-        print("rect topLeft", self.rect().topLeft())
-        print("top-left mapped to scene : ", self.mapToScene(self.rect().topLeft()))
-        print()
-        print("width", self.rect().width())
-        print("height", self.rect().height())
-        print()
-        print("pos", self.pos())
-        print("scenepos", self.scenePos())
-
-        print("-" * 10)
-        print()
-
-    def mouseDoubleClickEvent(self, event: QGraphicsSceneMouseEvent) -> None:
-        self.info()
-        return super().mouseDoubleClickEvent(event)
     
 HANDLE_SIZE = 10
 
 class Handle(QGraphicsRectItem):
-    """A class to create a handle used to resize a parent RectObj.
+    """
+    A class to create a handle used to resize a parent RectObj.
     This handle appears as a semi-transparent square positioned at the specified
-    corner of the parent item."""
+    corner of the parent item.
+    """
+    
     corner: str
 
     def __init__(self, corner: str, parent: RectObj):   
@@ -175,8 +173,8 @@ class Handle(QGraphicsRectItem):
         updates the local coordinates of the parent."""
         parent = self.parentItem()
         assert isinstance(parent, RectObj)
-        parent.reset_local_origin()
-        parent.update_handle_position()
+        parent.reset_local_origin_update_area()
+        parent.update_handles_position()
 
         return super().mouseReleaseEvent(event)
     
