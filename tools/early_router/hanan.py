@@ -313,14 +313,14 @@ class HananGraph3D:
                             )
                         # No need to add target -> source, because we will visit target and it will be included
         if netlist:
-            self._add_terminals(hanan_grid, netlist)
+            self._add_terminals(netlist)
 
     def __eq__(self, other) -> bool:
         if not isinstance(other, HananGraph3D):
             return NotImplemented
         return self._adj_list == other._adj_list
 
-    def _add_terminals(self, hanan_grid: HananGrid, netlist: Netlist):
+    def _add_terminals(self, netlist: Netlist):
         # Adding Terminals
         t = 0
         for m in netlist.modules:
@@ -336,7 +336,7 @@ class HananGraph3D:
                 self._nodes[terminal_id] = terminal
                 t += 1
                 # Get the module that terminal is closest to, and create an edge
-                cell = hanan_grid.get_closest_cell_to_point(m.center)
+                cell = self._hanan_grid.get_closest_cell_to_point(m.center)
                 if not cell:
                     continue
                 # Connect the terminal to all layers.
@@ -547,6 +547,8 @@ class HananGraph3D:
         )
 
     def apply_capacity_adjustments(self, cap_adjust: dict[EdgeId, float | int]) -> None:
+        """Given a dict of edges ids, updates its edges and its reversed to the given number.
+        If u->v 3 is given, the capacity for u->v and v->u is set to 3"""
         # Use this to add routing blockages
         for e_id in cap_adjust:
             e = self.get_edge(e_id[0], e_id[1])

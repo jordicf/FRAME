@@ -4,12 +4,12 @@
 
 import unittest
 from tools.early_router.build_model import FeedThrough
-from tools.early_router.hanan import HananGrid, HananGraph3D, HananCell, manhattan_dist
-from frame.geometry.geometry import Point
+from tools.early_router.hanan import HananGrid, HananGraph3D, HananCell, manhattan_dist, Layer, HananEdge3D, HananNode3D
+from frame.geometry.geometry import Point, Shape
 from frame.netlist.netlist import Netlist
 import yaml
 
-class TestFloorSetInstance(unittest.TestCase):
+class TestEarlyRouter(unittest.TestCase):
     def setUp(self):
         data = {
             'Modules':
@@ -47,16 +47,14 @@ class TestFloorSetInstance(unittest.TestCase):
             'Nets':
             [
                 ['M0', 'M1', 1024.],
-                ['T0', 'M1', 256.],
-                ['T1', 'M0', 256.]
+                ['T0', 'M0', 'M1', 256.],
+                ['T0', 'M1', 256.]
             ]
         }
         yaml_txt = yaml.dump(data, sort_keys=False)
         self.fp_with_blanks = Netlist(yaml_txt)
-        #ft = FeedThrough(self.fp_with_blanks)
         from tools.draw.draw import get_floorplan_plot
-        from frame.geometry.geometry import Shape
-        get_floorplan_plot(self.fp_with_blanks, Shape(10,18)).save("test.png")
+        get_floorplan_plot(self.fp_with_blanks, Shape(10,18)).save("./tests/early_router/test.png")
 
         self.hn_ref = HananGrid(
             [HananCell(_id=(1, 0), center=Point(x=4.5, y=3.5), width_capacity=5.0, height_capacity=7.0, modulename='M0'),
@@ -79,16 +77,38 @@ class TestFloorSetInstance(unittest.TestCase):
         self.assertEqual(cell, HananCell(_id=(0, 0), center=Point(x=1., y=3.5), width_capacity=2.0, height_capacity=7.0, modulename=''))
 
     def test_hanangraph3D(self):
-        hn = HananGrid(self.fp_with_blanks)
-        layers = []
-        options = {'asap7': False}
-        hg = HananGraph3D(hn, layers, netlist=self.fp_with_blanks, **options)
-        pass
+        layers = [Layer('H', pitch=76), Layer('V', pitch=76)]
+        options = {'asap7': True}
+        hg = HananGraph3D(self.hn_ref, layers, netlist=self.fp_with_blanks, **options)
+        e = HananEdge3D(
+            source=HananNode3D(
+                _id=(1, 0, 1), 
+                center=Point(x=4.5, y=3.5), 
+                modulename='M0'
+                ), 
+            target=HananNode3D(
+                _id=(1, 1, 1), 
+                center=Point(x=4.5, y=10.0), 
+                modulename='M0'
+                ),
+            length=6.5,
+            capacity=65, 
+            crossing=False, 
+            via=False
+            )
+        self.assertEqual(hg.adjacent_list[(1,0,1)][(1,1,1)], e)
 
     def test_manhattan_dist(self):
         self.assertAlmostEqual(manhattan_dist(Point(3, 4),Point(8, 5)), 6., delta=6)
         self.assertAlmostEqual(manhattan_dist(Point(6.3, 1.4),Point(1.3, 2.6)), 6.2, delta=6)
 
+    def test_solve(self):
+        options = {'asap7': True, 'add_blank':True, 'pitch_layers': (6,6)}
+        ft = FeedThrough(self.fp_with_blanks, **options)
+        ft.add_nets(self.fp_with_blanks.edges)
+        ft.build(verbose=False)
+        sucess, _ = ft.solve(f_wl=0.1, f_mc=0.2, f_vu=0.7, verbose=False)
+        self.assertTrue(sucess)
 
 if __name__ == "__main__":
     unittest.main()

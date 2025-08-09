@@ -152,10 +152,25 @@ class FeedThrough:
                     yield ((edge_id[0], edge_id[1], net_id), var, flags)
 
     def __init__(self, input_data: Netlist | HananGrid, **kwargs):
-        """Initialize the FeedThrough class with a Netlist or
-        a HananGrid. Extra arguments can be passed for a advanced settings
-        such as layers"""
+        """
+        Initialize the FeedThrough class with a Netlist or a HananGrid.
 
+        Extra arguments can be passed for advanced settings such as layers.
+
+        Parameters
+        ----------
+        input_data : Netlist | HananGrid
+        **kwargs :
+            - layers (list, optional)
+                Layers list. Defaults to two layers: horizontal with pitch 1 and
+                vertical with pitch 1.
+            - pitch_layers (tuple, optional)
+                Tuple with horizontal layer pitch and vertical layer pitch.
+            - asap7 (bool, optional)
+                Whether to use ASAP7 settings.
+            - add_blanks (bool, optional)
+                Whether to consider blank cells.
+        """
         self._nets: dict[int, NamedHyperEdge] = {}
         self._m: dict[str, int | str] = {}  # Metrics
         self.reweight = kwargs.get('reweight_nets_range', None)
@@ -169,6 +184,9 @@ class FeedThrough:
 
         if isinstance(input_data, Netlist):
             hanan_grid = HananGrid(input_data)
+            add_blanks = kwargs.get('add_blanks', False)
+            if add_blanks:
+                hanan_grid.add_blank_cells()
             self._graph = HananGraph3D(hanan_grid, lay, input_data,
                                        asap7=asap7)
             self._m['n_terminals'] = len(
@@ -335,7 +353,9 @@ class FeedThrough:
 
         return list(net_variables.values()), net_constraints, strict
 
-    def _add_multipin_net(self, net_id:int, net: NamedHyperEdge) -> dict[VarId, Variable]:
+    def _add_multipin_net(self, net_id:int, net: NamedHyperEdge) -> Tuple[list[Variable], list[LinearConstraint], list]:
+        all_constraints = list[LinearConstraint]()
+        all_variables = list[Variable]()
         net_nodes = self._graph.get_net_boundingbox(net, self.nets_bb[net_id])
         nodesids = set(n._id for n in net_nodes)
         net_edges = set(self._graph.get_edgesid_subset(net_nodes))
@@ -355,8 +375,9 @@ class FeedThrough:
         ]
         specific_variables: dict[str, dict[VarId, Variable]] = {}
         for i, subnet in enumerate(subnets):
-            specific_variables[f"s{i}"] = self._add_sub2pin_net(
-                net_id, subnet, f"s{i}", net_nodes, net_edges)[0]
+            specific_variables[f"s{i}"], lc = self._add_sub2pin_net(
+                net_id, subnet, f"s{i}", net_nodes, net_edges)
+            all_constraints.extend(lc)
 
         # STEP 3 & 4: Define the shared one-way variables and state constraints
         visited = set()
@@ -370,10 +391,11 @@ class FeedThrough:
                 if target in visited:
                     # Means shared_variables[(target, source, net_id)] is already created
                     for key in specific_variables:
-                        self._solver.add_linear_constraint(
+                        c = self._solver.add_linear_constraint(
                             specific_variables[key][(source, target, net_id)]
                             <= shared_variables[(target, source, net_id)]
                         )
+                        all_constraints.append(c)
                     continue
                 var: Variable = self._solver.add_variable(
                     lb=0,
@@ -397,13 +419,17 @@ class FeedThrough:
                     var,
                     crossing=avoidable_crossing,
                     via=e.via,
-                    source = (source, target) in source_edges
+                    source = (source, target) in source_edges or (target,source) in source_edges
                 )
                 for key in specific_variables:
-                    self._solver.add_linear_constraint(
+                    c = self._solver.add_linear_constraint(
                         specific_variables[key][(source, target, net_id)] <= var
                     )
-        return shared_variables
+                    all_constraints.append(c)
+        all_variables = list(shared_variables.values())
+        for vars in specific_variables.values():
+            all_variables += list(vars.values())
+        return all_variables, all_constraints, []
 
     def _add_sub2pin_net(self, net_id: int, subnet: NamedHyperEdge, subnet_id: str, nodes: list[HananNode3D],
                           edgeids: set[EdgeId]) -> Tuple[dict[VarId, Variable], list[LinearConstraint]]:
@@ -532,10 +558,16 @@ class FeedThrough:
                 for var_id, var, _ in self._variables
             ]
             hpwl = sum(wl)
+        if hpwl < 1.:
+            hpwl = 1.
+        if mc < 1.:
+            mc = 1.
+        if vu < 1.:
+            vu = 1.
         self.norms = (hpwl, mc, vu)
         return
 
-    def _find_opt_bb(self, unrouted_nets: list[NetId] | None = None, depth: int = 0, max_depth: int = 3) -> bool:
+    def _find_opt_bb(self, unrouted_nets: list[NetId] | None = None, depth: int = 0, max_depth: int = 3, verbose:bool=True) -> bool:
 
         if unrouted_nets is None:  # Solving call
             hpwl = self.norms[0]
@@ -554,8 +586,9 @@ class FeedThrough:
             ### Retrieve results
             unrouted = self._variables.get_unrouted(
                  self.pre_result, self._nets)
-            print(f"[Iteration {depth}] Unrouted: {len(unrouted)} nets out of {len(self._nets)} "
-                  f"with {self.pre_result.solve_time().total_seconds()} secs")
+            if verbose:    
+                print(f"[Iteration {depth}] Unrouted: {len(unrouted)} nets out of {len(self._nets)} "
+                      f"with {self.pre_result.solve_time().total_seconds()} secs")
             if len(unrouted) > 10:
                 return False
             
@@ -564,7 +597,7 @@ class FeedThrough:
                 self._m['unrouted_nets_ids'] = str(self._m.get('unrouted_nets_ids', '')) + f"{unrouted} - "
             else:
                 self._m['unrouted_nets_ids'] = str(self._m.get('unrouted_nets_ids', ''))
-            return self._find_opt_bb(unrouted, depth+1)
+            return self._find_opt_bb(unrouted, depth+1, verbose=verbose)
 
         elif len(unrouted_nets) == 0:  # Finish call
             # Change the last constraints of the model <= (sources and sinks) to ==.
@@ -575,14 +608,15 @@ class FeedThrough:
                     net_id
                 ]
                 # In _add_2pin_net, the constraints are in net_constraints[-2] and net_constraints[-4]
-                # In multiple pin net...
+                # In multiple pin net we already have the equality
                 self._solver.delete_linear_constraint(net_constraints[-2])
                 self._solver.delete_linear_constraint(net_constraints[-4])
                 for c in net_eq_constraints:
                     self._solver.add_linear_constraint(c)
             return True
         elif depth > max_depth:  # Finish call
-            print("Max recursion depth reached. Exiting.")
+            if verbose:
+                print("Max recursion depth reached. Exiting.")
             return False
         else:
             # Update BoundingBox and model call
@@ -599,7 +633,7 @@ class FeedThrough:
                     self._solver.delete_linear_constraint(c)
                 net = self._nets[net_id]
                 if len(net.modules) > 2:
-                    self.shared = self._add_multipin_net(net_id, net)
+                    self.model_components[net_id] = self._add_multipin_net(net_id, net)
                 else:
                     self.model_components[net_id] = self._add_2pin_net(net_id, net)
 
@@ -607,9 +641,9 @@ class FeedThrough:
             for c in model_constraints:
                 self._solver.delete_linear_constraint(c)
             self.model_components[-1] = self._add_capacity_constraints()
-            return self._find_opt_bb(None, depth)
+            return self._find_opt_bb(None, depth, verbose= verbose)
 
-    def build(self, optimize_bbox=True, max_depth= 3, infinite_cap = False, bounding_box=True) -> bool:
+    def build(self, optimize_bbox=True, max_depth= 3, infinite_cap = False, bounding_box=True, verbose:bool = True) -> bool:
 
         self._variables = self.VariableStore()
         self.nets_bb: defaultdict
@@ -622,7 +656,8 @@ class FeedThrough:
         if self.reweight:
             weigths = [net.weight for net in self._nets.values()]
             low, high = self.reweight
-            print(f"Rescaling net weights to be in the interval ({low}, {high})")
+            if verbose:
+                print(f"Rescaling net weights to be in the interval ({low}, {high})")
             old_min = min(weigths)
             old_max = max(weigths)
             for net in self._nets.values():
@@ -633,7 +668,7 @@ class FeedThrough:
         self.model_components: dict[NetId, Any] = {}
         for net_id, net in self._nets.items():
             if len(net.modules)>2:
-                self._add_multipin_net(net_id, net)
+                self.model_components[net_id] = self._add_multipin_net(net_id, net)
             else:
                 self.model_components[net_id] = self._add_2pin_net(net_id, net)
 
@@ -652,14 +687,14 @@ class FeedThrough:
 
         self._compute_norms()
         if bounding_box and optimize_bbox:
-            if not self._find_opt_bb(max_depth=max_depth):
+            if not self._find_opt_bb(max_depth=max_depth, verbose=verbose):
                 self.is_build = False
                 return False
             self._compute_norms()
             self.is_build = True
         return True
 
-    def solve(self, f_wl: float = 0.1, f_mc: float = 0.2, f_vu: float = 0.7) -> tuple[bool, dict[str, int | str]]:
+    def solve(self, f_wl: float = 0.1, f_mc: float = 0.2, f_vu: float = 0.7, verbose:bool = True) -> tuple[bool, dict[str, int | str]]:
         """
         :return is_solved (bool): Whether the solver found a solution or not
         :return metrics (dict[str,int|float]): Execution metrics and solution values
@@ -685,7 +720,7 @@ class FeedThrough:
             f_vu * sum(via_usage)/self.norms[2]
         )
         # Change params
-        params = SolveParameters(enable_output=True)
+        params = SolveParameters(enable_output=verbose)
         params.highs.int_options['user_cost_scale'] = int(math.log2(len(self._nets)))
         # params.highs.string_options['solver'] = "ipm"
         # params.highs.string_options['solver'] = "simplex" #(default)
@@ -701,7 +736,7 @@ class FeedThrough:
             params=params
         )
         self.execution_time = status.solve_time().total_seconds()
-        self.is_solved = self.has_solution(status)
+        self.is_solved = self.has_solution(status, verbose=verbose)
         self.result = status
         self._variables.update(status)
         self._metrics()
@@ -789,7 +824,7 @@ class FeedThrough:
                     f.write(f"{list(r.keys())[0][0]}-{list(r.keys())[0][1]}\n")
                 f.write("!\n")
 
-    def has_solution(self, status: SolveResult | None = None) -> bool:
+    def has_solution(self, status: SolveResult | None = None, verbose:bool=True) -> bool:
         if status is None:
             if hasattr(self, "is_solved"):
                 return self.is_solved
@@ -797,56 +832,66 @@ class FeedThrough:
                 return False
         msg = status.termination.detail
         if status.termination.reason == mathopt.TerminationReason.OPTIMAL:
-            print(
-                f"A probably optimal solution (up to numerical tolerances) has been found.\n{msg}"
-            )
+            if verbose:
+                print(
+                    f"A probably optimal solution (up to numerical tolerances) has been found.\n{msg}"
+                )
             return True
         elif status.termination.reason == mathopt.TerminationReason.FEASIBLE:
             # See SolveResultProto.limit_detail for detailed description of the kind of limit that was reached.
-            print(
-                f"The optimizer reached some kind of limit and a primal feasible solution is returned."
-            )
+            if verbose:
+                print(
+                    f"The optimizer reached some kind of limit and a primal feasible solution is returned."
+                )
             return True
         elif status.termination.reason == mathopt.TerminationReason.INFEASIBLE:
-            print(f"The primal problem has no feasible solutions.\n{msg}")
+            if verbose:
+                print(f"The primal problem has no feasible solutions.\n{msg}")
             return False
         elif status.termination.reason == mathopt.TerminationReason.UNBOUNDED:
-            print(
-                f"The primal problem is feasible and arbitrarily good solutions can be found along a primal ray.\n{msg}"
-            )
+            if verbose:
+                print(
+                    f"The primal problem is feasible and arbitrarily good solutions can be found along a primal ray.\n{msg}"
+                )
             return False
         elif (
             status.termination.reason
             == mathopt.TerminationReason.INFEASIBLE_OR_UNBOUNDED
         ):
             # status.solve_stats.to_proto().problem_status
-            print(f"The primal problem is either infeasible or unbounded.\n{msg}")
+            if verbose:
+                print(f"The primal problem is either infeasible or unbounded.\n{msg}")
             return False
         elif status.termination.reason == mathopt.TerminationReason.IMPRECISE:
-            print(
-                "The problem was solved to one of the criteria above (Optimal, Infeasible, Unbounded, or InfeasibleOrUnbounded), ",
-                "but one or more tolerances was not met. Users can still query primal/dual solutions/rays and solution stats, but they",
-                f" are responsible for dealing with the numerical imprecision.\n{msg}",
-            )
+            if verbose:
+                print(
+                    "The problem was solved to one of the criteria above (Optimal, Infeasible, Unbounded, or InfeasibleOrUnbounded), ",
+                    "but one or more tolerances was not met. Users can still query primal/dual solutions/rays and solution stats, but they",
+                    f" are responsible for dealing with the numerical imprecision.\n{msg}",
+                )
             return False
         elif status.termination.reason == mathopt.TerminationReason.NO_SOLUTION_FOUND:
             # See SolveResultProto.limit_detail for detailed description of the kind of limit that was reached.
-            print(
-                f"The optimizer reached some kind of limit and it did not find a primal feasible solution.\n{msg}"
-            )
+            if verbose:
+                print(
+                    f"The optimizer reached some kind of limit and it did not find a primal feasible solution.\n{msg}"
+                )
             return False
         elif status.termination.reason == mathopt.TerminationReason.NUMERICAL_ERROR:
-            print(
-                f"The algorithm stopped because it encountered unrecoverable numerical error. No solution information is present.\n{msg}"
-            )
+            if verbose:
+                print(
+                    f"The algorithm stopped because it encountered unrecoverable numerical error. No solution information is present.\n{msg}"
+                )
             return False
         elif status.termination.reason == mathopt.TerminationReason.OTHER_ERROR:
-            print(
-                f"The algorithm stopped because of an error not covered by one of the statuses defined above. No solution information is present.\n{msg}"
-            )
+            if verbose:
+                print(
+                    f"The algorithm stopped because of an error not covered by one of the statuses defined above. No solution information is present.\n{msg}"
+                )
             return False
         else:
-            print("Unknown status returned!")
+            if verbose:
+                print("Unknown status returned!")
             return False
 
     def get_route_path(self, identifiers: list[dict[EdgeId, float]]) -> list[dict[EdgeId, float]] | None:
