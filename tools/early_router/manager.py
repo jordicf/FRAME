@@ -358,8 +358,8 @@ def file_manager(options:dict[str, Any]):
         #Get the keys from the first dictionary to use as headers
         all_keys = {key for floorplan in floorplans for key in floorplan.keys()}
         #Write data to CSV
-        with open(csv_filename, "w", newline="") as file:
-            writer = csv.DictWriter(file, fieldnames=all_keys)
+        with open(csv_filename, "w", newline="") as f:
+            writer = csv.DictWriter(f, fieldnames=all_keys)
             writer.writeheader()  # Write column names
             writer.writerows(floorplans)  # Write each row from the list of dicts
 
