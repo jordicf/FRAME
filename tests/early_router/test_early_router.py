@@ -48,13 +48,13 @@ class TestEarlyRouter(unittest.TestCase):
             [
                 ['M0', 'M1', 1024.],
                 ['T0', 'M0', 'M1', 256.],
-                ['T0', 'M1', 256.]
+                ['T1', 'M0', 256.]
             ]
         }
         yaml_txt = yaml.dump(data, sort_keys=False)
         self.fp_with_blanks = Netlist(yaml_txt)
-        from tools.draw.draw import get_floorplan_plot
-        get_floorplan_plot(self.fp_with_blanks, Shape(10,18)).save("./tests/early_router/test.png")
+        #from tools.draw.draw import get_floorplan_plot
+        #get_floorplan_plot(self.fp_with_blanks, Shape(10,18)).save("./tests/early_router/test.png")
 
         self.hn_ref = HananGrid(
             [HananCell(_id=(1, 0), center=Point(x=4.5, y=3.5), width_capacity=5.0, height_capacity=7.0, modulename='M0'),
