@@ -109,7 +109,7 @@ def solution_to_netlist(netlist: Netlist, result: dict[str, list[SimpleBox]]):
         netlist_string += "\n  " + module.name + ": {\n    "
         if module.name in result:
             netlist_string += "rectangles: " + str(list(map(lambda x: [x[0], x[1], x[2], x[3]], result[module.name])))
-        elif len(module.rectangles) > 0:
+        elif module.num_rectangles > 0:
             netlist_string += "rectangles: " + str(list(map(lambda x: [x.center.x, x.center.y, x.shape.w, x.shape.h],
                                                             module.rectangles))) + ""
         else:

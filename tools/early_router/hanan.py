@@ -56,7 +56,7 @@ class HananGrid:
             # Create a dict with keys r'[i][j] and value a cell to an
             # identified rectangle
             for m in netlist_or_cells.modules:
-                if m.is_terminal:
+                if m.is_iopin:
                     # No cells involving terminals
                     # (created in the graph as nodes)
                     continue
@@ -254,17 +254,17 @@ class HananGraph3D:
                             cap = self.layers[layer_id].h_cap
                     if adj_cell and direction in self.layers[layer_id].direction:
                         source_id = (cell._id[0], cell._id[1], layer_id)
-                        target_id = (adj_cell._id[0],
-                                     adj_cell._id[1], layer_id)
+                        target_id = (adj_cell._id[0], adj_cell._id[1], layer_id)
                         if asap7 and cap:
                             # floor(4000/76) = 52 wires for 4 μm edge and 76nm pitch
                             p = self.layers[layer_id].pitch
                             if p:
-                                new_cap = int(cap*1000/p)
+                                new_cap = int(cap * 1000 / p)
                             else:
-                                new_cap = int(cap*1000)
-                            self._adj_list.setdefault(source_id, {})[target_id] = self.add_edge3D(
-                                source_id, target_id, new_cap)
+                                new_cap = int(cap * 1000)
+                            self._adj_list.setdefault(source_id, {})[target_id] = (
+                                self.add_edge3D(source_id, target_id, new_cap)
+                            )
                         else:
                             self._adj_list.setdefault(source_id, {})[target_id] = (
                                 self.add_edge3D(source_id, target_id, cap)
@@ -279,7 +279,7 @@ class HananGraph3D:
         for m in netlist.modules:
             if not m.center:
                 continue
-            if m.is_terminal:
+            if m.is_iopin:
                 # Check module, Terminals always have a defined center
                 # Terminals are always on the lowest layer
                 terminal_id = (t, -1, 0)
@@ -355,14 +355,18 @@ class HananGraph3D:
         nodes = self.get_nodes_by_modulename(module_name)
 
         return {
-            "in": [e 
-                   for n in nodes 
-                   for nei in self._adj_list[n._id] 
-                   if (e := self.get_edge(nei, n._id)) and e.crossing],
-            "out": [e 
-                    for n in nodes 
-                    for nei in self._adj_list[n._id] 
-                    if (e := self.get_edge(n._id, nei)) and e.crossing],
+            "in": [
+                e
+                for n in nodes
+                for nei in self._adj_list[n._id]
+                if (e := self.get_edge(nei, n._id)) and e.crossing
+            ],
+            "out": [
+                e
+                for n in nodes
+                for nei in self._adj_list[n._id]
+                if (e := self.get_edge(n._id, nei)) and e.crossing
+            ],
         }
 
     @property

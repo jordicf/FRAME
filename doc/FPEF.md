@@ -61,11 +61,10 @@ Here is the list of possible attributes:
           a regionalized area can also be specified with a mapping,
           e.g., `area: {logic: 30, BRAM: 50, DSP: 15}`.
 * `center`: a list of two numbers (x and y coordinates). Example: `center: [2.5, 8]`.
-* `min_shape`: it represents the minimum width and height of the module. It can be represented as one number
-  (applied to width and height), or a list of two numbers (min width and min height). If not specified, no
-  constraints are considered for the module. Examples: `min_shape: 3` or `min_shape: [3,4]`.
-* `fixed`: indicates whether the module must be in a fixed location. Example: `fixed: true`. If not specified,
-           the default value is `false`.
+* `aspect_ratio`: it represents an interval of values $[x,y]$, with $x\leq 1 \leq y$, acceptable for the ratio $width/height$. For example, the interval `[0.25,3]` represents the constraint $0.25 \leq w/h \leq 3$. This constraint makes sense for rectangular modules. For non-rectangular modules, it is ign ored (maybe a new interpretation will be given in the future).
+* `hard`: indicates whether the module must have a hard (unmutable) shape. Example: `hard: true`. The default value is `false` (soft module).
+* `fixed`: indicates whether the module must be in a fixed location. Example: `fixed: true`. The default value is `false`. A fixed module is assumed to be `hard`.
+* `flip`: indicates whether the module can be flipped horizontally or vertically. Example: `flip: true``. The default value is `false`. Only non-fixed hard modules can be flipped.
 * `rectangles`: a list of rectangles that determine the floorplan of the module. See below.
 
 Here is an example with some attributes:
@@ -73,12 +72,16 @@ Here is an example with some attributes:
   M1: {
     area: 80,
     center: [20, 15], # Center in (x,y)=(20,15)
-    min_shape: [5, 4] # min width: 5, min height: 4
+    aspect_ratio: [0.5, 3] # 0.5 <= w/h <= 3
   },
 
   M2: { # Module with one fixed rectangle
     rectangles: [60, 75, 10, 12], # Center at (60, 75), width: 10, height:12
     fixed: true
+  },
+
+  M3: { # L-shaped module with two rectangles
+    rectangles: [[25, 45, 30, 50], [50, 30, 20, 20]]
   }
 ~~~
 
@@ -123,6 +126,45 @@ interpreted as _preferred_ regions where a module would like to be located and t
 used to define the initial point of a mathematical model. At the end of a complete 
 floorplanning process, a legal configuration might be required. The constraints for legalization may 
 be different depending on the context.
+
+## I/O pins
+
+`FPEF` specifies I/O pins as modules with zero area. The attribute `io_pin` must be set to `true`.
+An I/O pin represents an array of pins with a certain *length*. You may interpret the I/O pin length as 
+$$\textrm{length} = \textrm{\#pins} \times \textrm{pin pitch}$$
+
+For I/O pins, the `area` attribute is not admissible. Instead, the `length` attribute is used. The location of the I/O pins is represented as zero-area rectangles in which one of the dimensions (width or height) is zero. A pin with width=height=0 (a point) can also be specified.
+
+Here is an example of modules specified I/O pins:
+
+~~~yaml
+Modules: {
+
+  # Some modules
+  ...
+  Addr: { # An I/o pin without any specific location
+    io_pin: true,
+    length: 30
+  },
+
+  Read_Data: { # A hard (movable) vertical array of pins with height=30
+    io_pin: true,
+    hard: true,
+    rectangles: [0, 250, 0, 30]
+  },
+
+  Write_Data: {
+    # An L-shaped I/O pin array with one vertical segment (height=80)
+    # and one horizontal segment (width=40)
+    io_pin: true,
+    fixed: true,
+    rectangles: [[0, 40, 0, 80], [20, 0, 40, 0]]
+  }
+  ...
+}
+~~~
+
+
 
 ## Nets
 

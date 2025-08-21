@@ -2,6 +2,7 @@
 # For the FRAME Project.
 # Licensed under the MIT License (see https://github.com/jordicf/FRAME/blob/master/LICENSE.txt).
 
+from typing import Optional
 from frame.geometry.geometry import Point, Shape, Rectangle
 from frame.utils.keywords import KW
 from frame.utils.utils import (
@@ -10,8 +11,12 @@ from frame.utils.utils import (
     valid_identifier,
     single_line_string,
     read_json_yaml_file,
-    read_json_yaml_text
+    read_json_yaml_text,
 )
+
+# Type for IO segments (candidates for location of pin arrays)
+# It is a dictionary with the name of the IO pin as key
+IOsegments = dict[str, list[Rectangle]]
 
 
 def string_die(die: str) -> Shape | None:
@@ -32,12 +37,15 @@ def string_die(die: str) -> Shape | None:
     return None
 
 
-def parse_yaml_die(stream: str) -> tuple[Rectangle, list[Rectangle]]:
+def parse_yaml_die(
+    stream: str,
+) -> tuple[Rectangle, list[Rectangle], Optional[IOsegments]]:
     """
     Parses a die from a file or from a string of text. The string of text
     can have the form <width>x<height> (e.g., 5.5x10) of be a YAML contents.
     :param stream: name of YAML file or string of text
-    :return: the bounding box of the die and the list of non-ground rectangles
+    :return: the bounding box of the die, the list of non-ground rectangles and
+             the set of IOsegments
     """
 
     # First check for a string of the form <width>x<height>, e.g., 5.5x10
@@ -47,7 +55,7 @@ def parse_yaml_die(stream: str) -> tuple[Rectangle, list[Rectangle]]:
             die = Rectangle(
                 **{KW.CENTER: Point(shape.w / 2, shape.h / 2), KW.SHAPE: shape}
             )
-            return die, list[Rectangle]()
+            return die, list[Rectangle](), None
 
     # Check whether the string is a filename (one line) or a YAML text
     if single_line_string(stream):
@@ -58,18 +66,19 @@ def parse_yaml_die(stream: str) -> tuple[Rectangle, list[Rectangle]]:
     assert isinstance(tree, dict), "The die is not a dictionary"
 
     for key in tree:
-        assert key in [KW.WIDTH, KW.HEIGHT, KW.REGIONS], (
-            f"Unknown keyword in die: {key}"
+        assert key in [KW.WIDTH, KW.HEIGHT, KW.REGIONS, KW.IO_SEGMENTS], (
+            f"Die: Unknown keyword {key}"
         )
 
     assert KW.WIDTH in tree and KW.HEIGHT in tree, (
-        "Wrong format of the die: Missing width or height"
+        "Die wrong format: Missing width or height"
     )
     shape = Shape(tree[KW.WIDTH], tree[KW.HEIGHT])
-    assert is_number(shape.w) and shape.w > 0, "Wrong specification of the die width"
-    assert is_number(shape.h) and shape.h > 0, "Wrong specification of the die height"
+    assert is_number(shape.w) and shape.w > 0, "Die: wrong specification of the width"
+    assert is_number(shape.h) and shape.h > 0, "Die: wrong specification of the height"
     die = Rectangle(**{KW.CENTER: Point(shape.w / 2, shape.h / 2), KW.SHAPE: shape})
 
+    # Get the specialized regions and blockages of the die
     regions = list[Rectangle]()
     if KW.REGIONS in tree:
         rlist = tree[KW.REGIONS]
@@ -80,18 +89,41 @@ def parse_yaml_die(stream: str) -> tuple[Rectangle, list[Rectangle]]:
             rlist = [rlist]  # List with only one rectangle
         for r in rlist:
             regions.append(parse_die_rectangle(r))
-    return die, regions
+
+    # Get the IO segments for the IO pins
+    io_segments: Optional[IOsegments] = None
+    if KW.IO_SEGMENTS in tree:
+        io_segments = IOsegments()
+        for name, segments in tree[KW.IO_SEGMENTS].items():
+            assert valid_identifier(name), f"Invalid identifier for IO segment: {name}"
+            assert isinstance(segments, list) and len(segments) > 0, (
+                f"Die: incorrect specification of IO segments for {name}"
+            )
+            if is_number(segments[0]):
+                segments = [segments]  # List with only one rectangle
+            assert name not in io_segments, f"Die: Duplicate IO pin: {name}"
+            io_segments[name] = list[Rectangle]()
+            for s in segments:
+                assert isinstance(s, list) and len(s) == 4, (
+                    f"Die: incorrect format of IO segment {name}: {s}"
+                )
+                io_segments[name].append(parse_pin_segment(name, s))
+
+    return die, regions, io_segments
 
 
-def parse_die_rectangle(r: list):
+def parse_die_rectangle(r: list) -> Rectangle:
     """
     Parses a rectangle
+    :param mod_name: name of the module to which the rectangle belongs
     :param r: a YAML description of the rectangle (a list with 5 values).
     :return: a Rectangle
     """
-    assert isinstance(r, list) and len(r) == 5, "Incorrect format of die rectangle"
+    assert isinstance(r, list) and len(r) == 5, (
+        f"Incorrect format of die rectangle {r}"
+    )
     for i in range(4):
-        assert is_number(r[i]) and r[i] >= 0, "Incorrect value for die rectangle"
+        assert is_number(r[i]) and r[i] >= 0, "Incorrect value of die rectangle {r}"
     assert isinstance(r[4], str) and (
         valid_identifier(r[4]) or r[4] == KW.GROUND or r[4] == KW.BLOCKAGE
     ), f"Invalid identifier for die region: {r[4]}"
@@ -102,3 +134,21 @@ def parse_die_rectangle(r: list):
         KW.REGION: r[4],
     }
     return Rectangle(**kwargs)
+
+
+def parse_pin_segment(name: str, r: list) -> Rectangle:
+    """
+    Parses a segmentle for an IO pin
+    :param name: name of the IO pin
+    :param r: a YAML description of the segment (a list with 4 values).
+    :return: a Rectangle
+    """
+    assert isinstance(r, list) and len(r) == 4, "Die: incorrect format of pin segment for {name}"
+    assert all(is_number(x) and x >= 0 for x in r), "Die: incorrect value of pin segment for {name}"
+    kwargs = {
+        KW.CENTER: Point(r[0], r[1]),
+        KW.SHAPE: Shape(r[2], r[3]),
+    }
+    rect = Rectangle(**kwargs)
+    assert rect.is_line, f"Die: IO segment for {name} is not a segment: {r}"
+    return rect

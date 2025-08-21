@@ -66,22 +66,22 @@ def parse_yaml_modules(modules: dict) -> list[Module]:
     return _modules
 
 
-def parse_yaml_module(name: str, info: dict) -> Module:
+def parse_yaml_module(name: str, info: dict[str, Any]) -> Module:
     """
     Parses the information of a module
     :param name: Name of the module
     :param info: Information of the module
     :return: a module
     """
-    assert isinstance(info, dict), (
-        f"The YAML node for module {name} is not a dictionary"
-    )
-    assert valid_identifier(name), f"Invalid name for module: {name}"
 
+    assert valid_identifier(name), f"Invalid name for module: {name}"
+    assert isinstance(info, dict), (
+        f"The information for module {name} is not a dictionary"
+    )
     params = dict[str, Any]()
     for key, value in info.items():
         assert isinstance(key, str)
-        if key in [KW.AREA, KW.TERMINAL, KW.FIXED, KW.HARD, KW.FLIP]:
+        if key in [KW.AREA, KW.LENGTH, KW.IO_PIN, KW.FIXED, KW.HARD, KW.FLIP]:
             params[key] = value
         elif key == KW.CENTER:
             params[KW.CENTER] = parse_yaml_center(value, name)
@@ -92,15 +92,19 @@ def parse_yaml_module(name: str, info: dict) -> Module:
         else:
             assert False, f"Unknown module attribute {key}"
 
-    m = Module(name, **params)
-
+    # We need to anticipate fixed and hard for the rectangles (not a nice code)
+    assert KW.FIXED not in params or isinstance(params[KW.FIXED], bool), (
+        f"Module {name}: incorrect value for fixed (should be a boolean)"
+    )
+    assert KW.HARD not in params or isinstance(params[KW.HARD], bool), (
+        f"Module {name}: incorrect value for hard (should be a boolean)"
+    )
+    fixed = KW.FIXED in params and params[KW.FIXED]
+    hard = fixed or (KW.HARD in params and params[KW.HARD])
     if KW.RECTANGLES in info:
-        rectangles = parse_yaml_rectangles(info[KW.RECTANGLES], m.is_fixed, m.is_hard)
-        for r in rectangles:
-            m.add_rectangle(r)
+        params[KW.RECTANGLES] = parse_yaml_rectangles(info[KW.RECTANGLES], fixed, hard)
 
-    m.setup()
-    return m
+    return Module(name, **params)
 
 
 def parse_yaml_center(center: list[float], name: str) -> Point:

@@ -20,13 +20,16 @@ class KW:
     LL = "ll"  # LL corner of a rectangle
     UR = "ur"  # UR corner of a rectangle
     ASPECT_RATIO = "aspect_ratio"  # Aspect ratio of a module/rectangle
-    TERMINAL = "terminal"  # Is the module a terminal?
+    LENGTH = "length"  # Length of a terminal (or pin)
+    IO_PIN = "io_pin"  # Is the module a terminal? (synonym of terminal)
     HARD = "hard"  # Hard module
     FIXED = "fixed"  # Is a module (or rectangle) fixed?
     FLIP = "flip"  # Can a non-rectangular hard module be flipped?
     RECTANGLES = "rectangles"  # For lists of rectangles
+    SLOTS = "slots"  # Slots to locate the pin arrays
     REGION = "region"  # Region of a rectangle (e.g. LUT, BRAM, DSP)
     REGIONS = "regions"  # List of regions in the die
+    IO_SEGMENTS = "io_segments"  # List of IO segments in the die
 
     # Name of the top (default) region for the die
     # Regions are used to define different slices in the die (e.g. LUT, DSP, BRAM, etc).

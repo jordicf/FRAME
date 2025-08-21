@@ -229,7 +229,7 @@ class Rectangle:
 
         # Attributes
         self._center = Point.undefined()  # Center of the rectangle
-        self._shape = Shape(0, 0)  # Shape: width and height
+        self._shape = Shape(-1, -1)  # Shape: width and height
         self._fixed = False  # Is the rectangle fixed?
         self._hard = False  # Is the rectangle hard?
         # Region of the layout to which the rectangle belongs to
@@ -249,8 +249,8 @@ class Rectangle:
                     assert isinstance(value, Shape), (
                         "Incorrect shape associated to the rectangle"
                     )
-                    assert value.w > 0, "Incorrect rectangle width"
-                    assert value.h > 0, "Incorrect rectangle height"
+                    assert value.w >= 0, "Incorrect rectangle width"
+                    assert value.h >= 0, "Incorrect rectangle height"
                     self._shape = value
                 case KW.LL:
                     assert isinstance(value, Point), "Incorrect rectangle LL corner"
@@ -277,7 +277,7 @@ class Rectangle:
                     raise NameError("Unknown rectangle attribute")
 
         # Sanity checks
-        shape_defined = self._shape.w > 0 and self._shape.h > 0
+        shape_defined = self._shape.w >= 0 and self._shape.h >= 0
         assert bbox.ll.defined == bbox.ur.defined, (
             "Both LL and UR corners must be defined"
         )
@@ -336,22 +336,36 @@ class Rectangle:
     # Getter and setter for center
     @property
     def center(self) -> Point:
+        """Returns the center of the rectangle"""
         assert self._center.defined
         return self._center
 
     @center.setter
     def center(self, p: Point) -> None:
+        """Sets the center of the rectangle"""
         self._center = p
 
     # Getter and setter for shape
     @property
     def shape(self) -> Shape:
+        """Returns the shape of the rectangle"""
         return self._shape
 
     @shape.setter
     def shape(self, shape: Shape) -> None:
+        """Sets the shape of the rectangle"""
         self._shape = shape
 
+    @property
+    def is_line(self) -> bool:
+        """Indicates whether the rectangle is a line (width or height is zero)"""
+        return self._shape.w == 0 or self._shape.h == 0
+    
+    @property
+    def is_point(self) -> bool:
+        """Indicates whether the rectangle is a point (width and height are zero)"""
+        return self._shape.w == 0 and self._shape.h == 0
+    
     @property
     def fixed(self) -> bool:
         return self._fixed
@@ -436,7 +450,16 @@ class Rectangle:
 
     @property
     def area(self) -> float:
+        """Returns the area of the rectangle"""
         return self._shape.w * self._shape.h
+    
+    @property
+    def length(self) -> float:
+        """Returns the length of the rectangle (it must be a line)"""
+        assert self.is_line, (
+            "Cannot compute length of a rectangle that is not a line"
+        )
+        return self._shape.w + self._shape.h
 
     def point_inside(self, p: Point) -> bool:
         """
