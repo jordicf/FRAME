@@ -52,8 +52,9 @@ def get_all_shortest_path_lengths(graph: AdjacencyMatrix) -> AdjacencyMatrix:
     return dist_mat
 
 
-def kamada_kawai_layout(die: Die, verbose: bool = False, visualize: str | None = None, max_iter: int = 150) \
-        -> tuple[Die, list[Image.Image]]:
+def kamada_kawai_layout(
+    die: Die, verbose: bool = False, visualize: str | None = None, max_iter: int = 150
+) -> tuple[Die, list[Image.Image]]:
     """
     Relocate the modules of the netlist using and adaptation of the algorithm proposed
     by Kamada & Kawai in "An algorithm for drawing general undirected graphs" (1989).
@@ -69,7 +70,9 @@ def kamada_kawai_layout(die: Die, verbose: bool = False, visualize: str | None =
     graph = netlist_to_matrix(die.netlist)
     dist_mat = get_all_shortest_path_lengths(graph)
 
-    graph_diameter = np.where(np.isinf(dist_mat), -np.inf, dist_mat).max()  # max value not infinity
+    graph_diameter = np.where(
+        np.isinf(dist_mat), -np.inf, dist_mat
+    ).max()  # max value not infinity
     desirable_edge_length = ((die.width + die.height) / 2) / graph_diameter  # heuristic
     spring_length = desirable_edge_length * dist_mat
     spring_strength = np.reciprocal(dist_mat**2)
@@ -80,19 +83,41 @@ def kamada_kawai_layout(die: Die, verbose: bool = False, visualize: str | None =
     modules = die.netlist.modules
     for i in range(die.netlist.num_modules):
         for j in range(i, die.netlist.num_modules):
-            if i != j and not (modules[i].is_terminal or modules[j].is_terminal) and not (modules[i].is_fixed and modules[j].is_fixed):
+            if (
+                i != j
+                and not (modules[i].is_iopin or modules[j].is_iopin)
+                and not (modules[i].is_fixed and modules[j].is_fixed)
+            ):
                 if spring_strength[i][j] != 0.0:
                     # Original Kamada-Kawai objective function
-                    g.Minimize(spring_strength[i][j] *
-                               ((m.x[i] - m.x[j])**2 + (m.y[i] - m.y[j])**2 + spring_length[i][j]**2
-                                - 2 * spring_length[i][j] * g.sqrt((m.x[i] - m.x[j])**2 + (m.y[i] - m.y[j])**2)))
+                    g.Minimize(
+                        spring_strength[i][j]
+                        * (
+                            (m.x[i] - m.x[j]) ** 2
+                            + (m.y[i] - m.y[j]) ** 2
+                            + spring_length[i][j] ** 2
+                            - 2
+                            * spring_length[i][j]
+                            * g.sqrt((m.x[i] - m.x[j]) ** 2 + (m.y[i] - m.y[j]) ** 2)
+                        )
+                    )
                 # Repel modules from each other, depending on their area
-                g.Maximize(0.01 *
-                           ((m.x[i] - m.x[j])**2 + (m.y[i] - m.y[j])**2) / (modules[i].area() * modules[j].area()))
+                g.Maximize(
+                    0.01
+                    * ((m.x[i] - m.x[j]) ** 2 + (m.y[i] - m.y[j]) ** 2)
+                    / (modules[i].area() * modules[j].area())
+                )
         # Repel modules from the die boundaries
         if not modules[i].is_fixed:
-            g.Minimize(0.5 *
-                   (1 / m.x[i]**2 + 1 / (m.x[i] - die.width)**2 + 1 / m.y[i]**2 + 1 / (m.y[i] - die.height)**2))
+            g.Minimize(
+                0.5
+                * (
+                    1 / m.x[i] ** 2
+                    + 1 / (m.x[i] - die.width) ** 2
+                    + 1 / m.y[i] ** 2
+                    + 1 / (m.y[i] - die.height) ** 2
+                )
+            )
 
     die, vis_imgs = solve_and_extract_solution(m, die, verbose, visualize, max_iter)
 

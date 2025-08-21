@@ -46,10 +46,14 @@ def scale(p: Point, s: Scaling) -> Point:
     :param s: the scaling tuple
     :return: the new point (with integer values)
     """
-    return Point(round(p.x * s.xscale) + s.frame, s.height + s.frame - round(p.y * s.yscale))
+    return Point(
+        round(p.x * s.xscale) + s.frame, s.height + s.frame - round(p.y * s.yscale)
+    )
 
 
-def calculate_scaling(original: Shape, width: int, height: int, frame: int = 20, default: int = 1000) -> Scaling:
+def calculate_scaling(
+    original: Shape, width: int, height: int, frame: int = 20, default: int = 1000
+) -> Scaling:
     """
     Calculates the scaling factor for a picture. If both width and height are zero,
     then the scaling preserves the aspect ratio and the max dimension is 1000.
@@ -63,7 +67,9 @@ def calculate_scaling(original: Shape, width: int, height: int, frame: int = 20,
     """
     if width != 0 and height != 0:
         # Scale independently without preserving aspect ratio
-        return Scaling(width / original.w, height / original.h, round(width), round(height), frame)
+        return Scaling(
+            width / original.w, height / original.h, round(width), round(height), frame
+        )
 
     if width == 0 and height == 0:
         # Let us assign the default value to the maximum size
@@ -95,9 +101,12 @@ def check_modules(modules: list[Module]) -> None:
     for m in modules:
         if m.num_rectangles > 0:
             continue
-        assert m.center is not None, f'module {m.name} is not drawable. It has neither center nor rectangles.'
-        assert m.area(
-        ) > 0 or m.is_terminal, f'module {m.name} is not drawable (no area specified).'
+        assert m.center is not None, (
+            f"module {m.name} is not drawable. It has neither center nor rectangles."
+        )
+        assert m.area() > 0 or m.is_iopin, (
+            f"module {m.name} is not drawable (no area specified)."
+        )
 
 
 def calculate_bbox(netlist: Netlist) -> Shape:
@@ -130,10 +139,10 @@ def gen_out_filename(name: str, suffix: str = "gif") -> str:
     :param suffix: suffix of the output file
     :return: the output filename
     """
-    i = name.rfind('.')
+    i = name.rfind(".")
     if i < 0:
-        return name + '.' + suffix
-    return name[:i + 1] + suffix
+        return name + "." + suffix
+    return name[: i + 1] + suffix
 
 
 def create_canvas(s: Scaling):
@@ -142,8 +151,9 @@ def create_canvas(s: Scaling):
 
     :param s: scaling of the layout
     """
-    im = Image.new('RGBA', (s.width + 2 * s.frame,
-                   s.height + 2 * s.frame), (0, 0, 0, 255))
+    im = Image.new(
+        "RGBA", (s.width + 2 * s.frame, s.height + 2 * s.frame), (0, 0, 0, 255)
+    )
     drawing = ImageDraw.Draw(im)
     return im, drawing
 
@@ -163,8 +173,12 @@ def calculate_centers(e: HyperEdge, alloc: Allocation | None) -> list[Point]:
             c = alloc.center(m.name)
         else:
             assert m.center is not None
-            c = m.center if m.num_rectangles == 0 else m.calculate_center_from_rectangles()
-        assert c is not None, f'Cannot calculate center for module {m.name}'
+            c = (
+                m.center
+                if m.num_rectangles == 0
+                else m.calculate_center_from_rectangles()
+            )
+        assert c is not None, f"Cannot calculate center for module {m.name}"
         sum_x += c.x
         sum_y += c.y
         list_points.append(c)
@@ -173,24 +187,37 @@ def calculate_centers(e: HyperEdge, alloc: Allocation | None) -> list[Point]:
     return list_points
 
 
-def draw_circle(im: Image.Image, m: Module, color, scaling: Scaling, fontsize: int = 0) -> None:
+def draw_circle(
+    im: Image.Image, m: Module, color, scaling: Scaling, fontsize: int = 0
+) -> None:
     """Draws a circle for block b. The area of the circle corresponds to the area of the b"""
     radius = math.sqrt(m.area() / math.pi)
     assert m.center is not None
-    bb = BoundingBox(ll=Point(m.center.x - radius, m.center.y - radius),
-                     ur=Point(m.center.x + radius, m.center.y + radius))
+    bb = BoundingBox(
+        ll=Point(m.center.x - radius, m.center.y - radius),
+        ur=Point(m.center.x + radius, m.center.y + radius),
+    )
     draw_geometry(im, bb, color, scaling, m.name, fontsize, True)
 
 
-def draw_rectangle(im: Image.Image, r: Rectangle, name: str, color, scaling: Scaling, fontsize: int = 0) -> None:
+def draw_rectangle(
+    im: Image.Image, r: Rectangle, name: str, color, scaling: Scaling, fontsize: int = 0
+) -> None:
     """Draws the rectangle r"""
     bb = r.bounding_box
     draw_geometry(im, bb, color, scaling, name, fontsize, False)
 
 
-def draw_geometry(im: Image.Image, bb: BoundingBox, color, scaling: Scaling,
-                  name: str, fontsize: int, circle: bool) -> None:
-    transp = Image.new('RGBA', im.size, (0, 0, 0, 0))
+def draw_geometry(
+    im: Image.Image,
+    bb: BoundingBox,
+    color,
+    scaling: Scaling,
+    name: str,
+    fontsize: int,
+    circle: bool,
+) -> None:
+    transp = Image.new("RGBA", im.size, (0, 0, 0, 0))
     drawing = ImageDraw.Draw(transp, "RGBA")
     ll = scale(bb.ll, scaling)
     ur = scale(bb.ur, scaling)
@@ -203,24 +230,43 @@ def draw_geometry(im: Image.Image, bb: BoundingBox, color, scaling: Scaling,
     if fontsize > 0:
         font = get_font(fontsize)
         ccolor = distinctipy.get_text_color(
-            (color[0] / 255, color[1] / 255, color[2] / 255), threshold=0.6)[0]
+            (color[0] / 255, color[1] / 255, color[2] / 255), threshold=0.6
+        )[0]
         ccolor = round(ccolor * 255)
         ccolor = (ccolor, ccolor, ccolor)
         left, top, right, bottom = drawing.multiline_textbbox(
-            xy=(0, 0), text=name, font=font)  # To center the text
+            xy=(0, 0), text=name, font=font
+        )  # To center the text
         txt_w, txt_h = right - left, bottom - top
-        txt_x, txt_y = round((ll.x + ur.x - txt_w) /
-                             2), round((ll.y + ur.y - txt_h) / 2)
-        drawing.text((txt_x, txt_y), name, fill=ccolor, font=font, align="center",
-                     anchor="ms", stroke_width=1, stroke_fill=ccolor)
+        txt_x, txt_y = (
+            round((ll.x + ur.x - txt_w) / 2),
+            round((ll.y + ur.y - txt_h) / 2),
+        )
+        drawing.text(
+            (txt_x, txt_y),
+            name,
+            fill=ccolor,
+            font=font,
+            align="center",
+            anchor="ms",
+            stroke_width=1,
+            stroke_fill=ccolor,
+        )
     im.paste(Image.alpha_composite(im, transp))
 
 
-def get_floorplan_plot(netlist: Netlist, die_shape: Shape, allocation: Allocation | None = None, width: int = 0,
-                       height: int = 0, frame: int = 20, fontsize: int = 20) -> Image.Image:
+def get_floorplan_plot(
+    netlist: Netlist,
+    die_shape: Shape,
+    allocation: Allocation | None = None,
+    width: int = 0,
+    height: int = 0,
+    frame: int = 20,
+    fontsize: int = 20,
+) -> Image.Image:
     """
     Generates the plot of the floorplan
-    
+
     :param netlist: the netlist with the modules and the hyperedges
     :param allocation: allocation of modules to rectangles
     :param die_shape: the shape of the die
@@ -235,8 +281,9 @@ def get_floorplan_plot(netlist: Netlist, die_shape: Shape, allocation: Allocatio
 
     # Assignment of a color to each block
     colors = distinctipy.get_colors(netlist.num_modules, rng=0)
-    colors = [(round(r * 255), round(g * 255), round(b * 255), 128)
-              for (r, g, b) in colors]
+    colors = [
+        (round(r * 255), round(g * 255), round(b * 255), 128) for (r, g, b) in colors
+    ]
     module2color = {b: colors[i] for i, b in enumerate(netlist.modules)}
 
     # Scaling factors
@@ -245,11 +292,17 @@ def get_floorplan_plot(netlist: Netlist, die_shape: Shape, allocation: Allocatio
     im, drawing = create_canvas(scaling)
 
     # Outer frame
-    drawing.rectangle((0, 0, scaling.width + 2 * frame,
-                      scaling.height + 2 * frame), outline=COLOR_GREY, width=4)
+    drawing.rectangle(
+        (0, 0, scaling.width + 2 * frame, scaling.height + 2 * frame),
+        outline=COLOR_GREY,
+        width=4,
+    )
     # Inner frame
-    drawing.rectangle((frame, frame, scaling.width + frame,
-                      scaling.height + frame), outline=COLOR_WHITE, width=2)
+    drawing.rectangle(
+        (frame, frame, scaling.width + frame, scaling.height + frame),
+        outline=COLOR_WHITE,
+        width=2,
+    )
 
     if allocation is not None:
         for rect_alloc in allocation.allocations:
@@ -260,8 +313,12 @@ def get_floorplan_plot(netlist: Netlist, die_shape: Shape, allocation: Allocatio
             color = (0, 0, 0, 128)
             for module, ratio in a.items():
                 mcolor = module2color[netlist.get_module(module)]
-                color = (color[0] + mcolor[0] * ratio, color[1] +
-                         mcolor[1] * ratio, color[2] + mcolor[2] * ratio, 128)
+                color = (
+                    color[0] + mcolor[0] * ratio,
+                    color[1] + mcolor[1] * ratio,
+                    color[2] + mcolor[2] * ratio,
+                    128,
+                )
             color = (round(color[0]), round(color[1]), round(color[2]), 128)
             drawing.rectangle((ll.x, ur.y, ur.x, ll.y), fill=color)
         # Draw the module names
@@ -269,11 +326,20 @@ def get_floorplan_plot(netlist: Netlist, die_shape: Shape, allocation: Allocatio
         for m in netlist.modules:
             center = scale(allocation.center(m.name), scaling)
             left, top, right, bottom = drawing.multiline_textbbox(
-                xy=(0, 0), text=m.name, font=font)  # To center the text
+                xy=(0, 0), text=m.name, font=font
+            )  # To center the text
             txt_w, txt_h = right - left, bottom - top
             txt_x, txt_y = center.x - txt_w / 2, center.y - txt_h / 2
-            drawing.text((txt_x, txt_y), m.name, fill=COLOR_WHITE, font=font, align="center",
-                         anchor="ms", stroke_width=1, stroke_fill=COLOR_WHITE)
+            drawing.text(
+                (txt_x, txt_y),
+                m.name,
+                fill=COLOR_WHITE,
+                font=font,
+                align="center",
+                anchor="ms",
+                stroke_width=1,
+                stroke_fill=COLOR_WHITE,
+            )
     else:
         # If no allocation, draw rectangles or circles of the modules
         for m in netlist.modules:
@@ -292,17 +358,23 @@ def get_floorplan_plot(netlist: Netlist, die_shape: Shape, allocation: Allocatio
         canvas_points = [scale(p, scaling) for p in list_points]
         center = canvas_points[0]
         for pin in canvas_points[1:]:
-            drawing.line([(center.x, center.y), (pin.x, pin.y)],
-                         fill=COLOR_WHITE, width=3)
+            drawing.line(
+                [(center.x, center.y), (pin.x, pin.y)], fill=COLOR_WHITE, width=3
+            )
         if len(canvas_points) > 3:  # Circle in the center
             rad = 8
-            drawing.ellipse([center.x - rad, center.y - rad, center.x + rad, center.y + rad],
-                            outline=COLOR_WHITE, width=3)
+            drawing.ellipse(
+                [center.x - rad, center.y - rad, center.x + rad, center.y + rad],
+                outline=COLOR_WHITE,
+                width=3,
+            )
 
     return im
 
 
-def parse_options(prog: str | None = None, args: list[str] | None = None) -> dict[str, Any]:
+def parse_options(
+    prog: str | None = None, args: list[str] | None = None
+) -> dict[str, Any]:
     """
     Parse the command-line arguments for the tool
     :param prog: tool name
@@ -310,21 +382,36 @@ def parse_options(prog: str | None = None, args: list[str] | None = None) -> dic
     :return: a dictionary with the arguments
     """
     parser = ArgumentParser(
-        prog=prog, description="A floorplan drawing tool.", usage='%(prog)s [options]')
+        prog=prog, description="A floorplan drawing tool.", usage="%(prog)s [options]"
+    )
     parser.add_argument("netlist", help="input file (netlist)")
-    parser.add_argument("-d", "--die", metavar="<WIDTH>x<HEIGHT> or FILENAME",
-                        help="size of the die (width x height) or name of the file")
-    parser.add_argument("--alloc", metavar="FILENAME",
-                        help="allocation file of modules to rectangles", )
+    parser.add_argument(
+        "-d",
+        "--die",
+        metavar="<WIDTH>x<HEIGHT> or FILENAME",
+        help="size of the die (width x height) or name of the file",
+    )
+    parser.add_argument(
+        "--alloc",
+        metavar="FILENAME",
+        help="allocation file of modules to rectangles",
+    )
     parser.add_argument("-o", "--outfile", help="output file (gif)")
-    parser.add_argument("--width", type=int, default=0,
-                        help="width of the picture (in pixels)")
-    parser.add_argument("--height", type=int, default=0,
-                        help="height of the picture (in pixels)")
-    parser.add_argument("--frame", type=int, default=40,
-                        help="frame around the die (in pixels). Default: 40")
-    parser.add_argument("--fontsize", type=int, default=20,
-                        help="text font size. Default: 20")
+    parser.add_argument(
+        "--width", type=int, default=0, help="width of the picture (in pixels)"
+    )
+    parser.add_argument(
+        "--height", type=int, default=0, help="height of the picture (in pixels)"
+    )
+    parser.add_argument(
+        "--frame",
+        type=int,
+        default=40,
+        help="frame around the die (in pixels). Default: 40",
+    )
+    parser.add_argument(
+        "--fontsize", type=int, default=20, help="text font size. Default: 20"
+    )
     return vars(parser.parse_args(args))
 
 
@@ -332,11 +419,11 @@ def main(prog: str | None = None, args: list[str] | None = None) -> None:
     """Main function."""
     options = parse_options(prog, args)
 
-    infile = options['netlist']
+    infile = options["netlist"]
     netlist = Netlist(infile)
 
     # Rectangle allocation
-    alloc_option = options['alloc']
+    alloc_option = options["alloc"]
     allocation: Allocation | None = None
     if alloc_option is not None:
         allocation = Allocation(alloc_option)
@@ -347,7 +434,7 @@ def main(prog: str | None = None, args: list[str] | None = None) -> None:
         bb = allocation.bounding_box.bounding_box
         alloc_die = Shape(bb.ur.x, bb.ur.y)
 
-    die_file = options['die']
+    die_file = options["die"]
     if die_file is not None:
         die = Die(die_file)
         die_shape = Shape(die.width, die.height)
@@ -358,11 +445,18 @@ def main(prog: str | None = None, args: list[str] | None = None) -> None:
 
     assert alloc_die.w <= die_shape.w and alloc_die.h <= die_shape.h
 
-    im = get_floorplan_plot(netlist, die_shape, allocation, options['width'], options['height'], options['frame'],
-                            options['fontsize'])
+    im = get_floorplan_plot(
+        netlist,
+        die_shape,
+        allocation,
+        options["width"],
+        options["height"],
+        options["frame"],
+        options["fontsize"],
+    )
 
     # Output file
-    outfile = options['outfile']
+    outfile = options["outfile"]
     if outfile is None:
         outfile = gen_out_filename(infile)
     im.save(outfile, quality=95)

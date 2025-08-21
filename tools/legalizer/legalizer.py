@@ -892,7 +892,7 @@ class Model:
         self.og_names: list[str] = og_names
         self.og_area: list[float] = al
         self.hyper = hyper
-        self.inter_eqs = dict[tuple[int, int, int, int], Equation]() 
+        self.inter_eqs = dict[tuple[int, int, int, int], Equation]()
         self.enforces = list[tuple[ExpressionTree, float]]()
 
         """Constructs the GEKKO object and initializes the model"""
@@ -1538,7 +1538,7 @@ def netlist_to_utils(netlist: Netlist):
     # first deal with all modules, distinguish terminals and normal modules
     for module in netlist.modules:
         # check if it is terminal: use is_terminal attribute
-        is_terminal = module.is_terminal
+        is_terminal = module.is_iopin
 
         if is_terminal:
             # deal with terminals - maybe center field or rectangles field

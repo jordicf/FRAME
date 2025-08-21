@@ -7,8 +7,7 @@ from tools.floorset_parser.floor_set_manager.utils.utils import compute_centroid
     strop_decomposition
 from frame.netlist.yaml_write_netlist import dump_yaml_namededges
 from frame.utils.utils import write_json_yaml
-from tools.floorset_parser.floor_set_manager.utils.keywords import KW_MODULES, KW_NETS, KW_AREA, KW_FIXED, \
-    KW_CENTER, KW_RECTANGLES, KW_TERMINAL, KW_HARD, KW_WIDTH, KW_HEIGHT
+from frame.utils.keywords import KW
 
 from frame.geometry.geometry import Point  # check if it is the same
 from frame.netlist.netlist_types import NamedHyperEdge
@@ -35,21 +34,19 @@ class FloorSetInstance():
     _height: float
     "Die height"
 
-    def __init__(self, floorplan_data: dict[str,np.ndarray], density: float | None, factor: float | None, terminals_as_modules: bool) -> None:
+    def __init__(self, floorplan_data: dict[str,np.ndarray], density: float | None, terminals_as_modules: bool) -> None:
         """
         :Args:
         :param dict[np.ndarray] floorplan_data: The raw floorplan data stored in a dictionary with keys: 
             ['area_blocks', 'b2b_connectivity', 'p2b_connectivity', 'pins_pos', 'placement_constraints',
             'vertex_blocks', 'b_tree', 'metrics']
-        :param float density: A density percentage of the floorplan between 0 and 1.
+        :param float density: A density percentage of the floorplan between 0 and 1. If None, no rescaling is made.
         :param bool terminals_as_modules: whether store terminals pins as modules with rectangle of size 10^-3.
         """
 
         keys = ['area_blocks', 'b2b_connectivity', 'p2b_connectivity',
                 'pins_pos', 'placement_constraints', 'vertex_blocks', 'b_tree', 'metrics']
 
-        assert (density and not factor) or (
-            not density and factor), "density and factor are mutually exclusive"
         assert isinstance(
             floorplan_data, dict), "Error floorplan data type. Has to be a dict."
         for k in floorplan_data.keys():
@@ -101,10 +98,7 @@ class FloorSetInstance():
             self._d = float(density)
         else:
             self._d = density
-        if factor:
-            self._alpha:float|None = float(factor)
-        else:
-            self._alpha = factor
+        self._alpha:float|None = None
 
         self._parse_modules(terminals_as_modules)
         self._parse_connections()
@@ -124,15 +118,15 @@ class FloorSetInstance():
             vertices = self._fp_data['vertex_blocks'][mod_id]
             vertices = vertices[vertices[:, 0] != -1]
             if len(vertices) > 1:  # Handling Prime FloorSet
-                data[KW_RECTANGLES] = strop_decomposition(vertices)
-                c = compute_centroid(data[KW_RECTANGLES])
+                data[KW.RECTANGLES] = strop_decomposition(vertices)
+                c = compute_centroid(data[KW.RECTANGLES])
             elif len(vertices) == 1:  # Handling Lite FloorSet
                 # In FloorSet a rectangle is stored as [w, h, x, y], where x,y
                 # is the low-left point. In FRAME rectangles are stored as [cx,cy,w,h],
                 # where c is the center.
                 cx = float((vertices[2] + vertices[0]) / 2)
                 cy = float((vertices[3] + vertices[1]) / 2)
-                data[KW_RECTANGLES] = [cx, cy, float(
+                data[KW.RECTANGLES] = [cx, cy, float(
                     vertices[0]), float(vertices[1])]
                 c = Point(cx, cy)
             else:
@@ -144,12 +138,12 @@ class FloorSetInstance():
             # Hard (and consequently fixed) cannot have area, center and must
             # have at least one rectangle
             if self._fp_data['placement_constraints'][mod_id][1]:
-                data[KW_FIXED] = True
+                data[KW.FIXED] = True
             elif self._fp_data['placement_constraints'][mod_id][0]:
-                data[KW_HARD] = True
+                data[KW.HARD] = True
             else:
-                data[KW_AREA] = float(self._fp_data['area_blocks'][mod_id])
-                data[KW_CENTER] = [c.x, c.y]
+                data[KW.AREA] = float(self._fp_data['area_blocks'][mod_id])
+                data[KW.CENTER] = [c.x, c.y]
 
             self._modules[name] = data
 
@@ -170,11 +164,11 @@ class FloorSetInstance():
                     y = float(pin_pos[1]) + EPSILON
                 elif float(pin_pos[1]) >= shape_y + EPSILON:
                     y = float(pin_pos[1]) - EPSILON
-                data[KW_RECTANGLES] = [x, y, w, h]
-                data[KW_FIXED] = True
+                data[KW.RECTANGLES] = [x, y, w, h]
+                data[KW.FIXED] = True
             else:
-                data[KW_CENTER] = [float(pin_pos[0]), float(pin_pos[1])]
-                data[KW_TERMINAL] = True
+                data[KW.CENTER] = [float(pin_pos[0]), float(pin_pos[1])]
+                data[KW.TERMINAL] = True
 
             self._modules[name] = data
 
@@ -194,8 +188,9 @@ class FloorSetInstance():
             for mod_id in range(self.num_modules):
                 bl_w = weight_sum(self._fp_data['b2b_connectivity'],
                                   self._fp_data['p2b_connectivity'], mod_id)
-                perimeter = compute_perimeter(
-                    self._fp_data['vertex_blocks'][mod_id])
+                vertices = self._fp_data['vertex_blocks'][mod_id]
+                vertices = vertices[vertices[:, 0] != -1]
+                perimeter = compute_perimeter(vertices)
                 f = bl_w/perimeter
                 if max_f < f:
                     max_f = f
@@ -220,16 +215,16 @@ class FloorSetInstance():
     def write_yaml_FPEF(self, filename: str | None = None) -> (str | None):
         """Writes the data into a YAML file. If no file name is given, a string with the yaml contents is returned"""
         data = {
-            KW_MODULES: self.modules,
-            KW_NETS: dump_yaml_namededges(self.nets)
+            KW.MODULES: self.modules,
+            KW.NETS: dump_yaml_namededges(self.nets)
         }
         return write_json_yaml(data, False, filename)
 
     def write_yaml_DIEF(self, filename: str | None = None) -> (str | None):
         """Writes the data into a YAML file. If no file name is given, a string with the yaml contents is returned"""
         data = {
-            KW_WIDTH: self._width,
-            KW_HEIGHT: self._height
+            KW.WIDTH: self._width,
+            KW.HEIGHT: self._height
         }
         return write_json_yaml(data, False, filename)
 

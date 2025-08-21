@@ -13,7 +13,7 @@ def getkey(i):
     return str(i)
 
 
-def yaml_diff(yamla, yamlb, path='', key=getkey):
+def yaml_diff(yamla, yamlb, path="", key=getkey):
     if isinstance(yamla, list) and isinstance(yamlb, list):
         for d in listdiff(yamla, yamlb, path=path, key=key):
             yield d
@@ -22,7 +22,7 @@ def yaml_diff(yamla, yamlb, path='', key=getkey):
             yield d
     else:
         if yamla != yamlb:
-            yield path, 'value_difference', yamla, '-->', yamlb
+            yield path, "value_difference", yamla, "-->", yamlb
 
 
 def listdiff(yamla, yamlb, path, key):
@@ -40,18 +40,19 @@ def listdiff(yamla, yamlb, path, key):
     keysb = set(yamlb.keys())
 
     for a in [k for k in keysb.difference(keysa)]:
-        yield path + '/' + str(a), 'added'
+        yield path + "/" + str(a), "added"
     for m in [k for k in keysa.difference(keysb)]:
-        yield path + '/' + str(m), 'missing'
+        yield path + "/" + str(m), "missing"
 
     common = [k for k in keysa.intersection(keysb) if k]
     for k in common:
-        if (isinstance(yamla[k], list) and isinstance(yamlb, list)) \
-                or (isinstance(yamla[k], dict) and isinstance(yamlb, dict)):
-            for d in yaml_diff(yamla[k], yamlb[k], path + '/' + k):
+        if (isinstance(yamla[k], list) and isinstance(yamlb, list)) or (
+            isinstance(yamla[k], dict) and isinstance(yamlb, dict)
+        ):
+            for d in yaml_diff(yamla[k], yamlb[k], path + "/" + k):
                 yield d
         else:
-            for d in yaml_diff(yamla[k], yamlb[k], path + '/' + k, key):
+            for d in yaml_diff(yamla[k], yamlb[k], path + "/" + k, key):
                 yield d
 
 
@@ -67,18 +68,19 @@ def dictdiff(yamla, yamlb, path, key):
     keysb = set(yamlb.keys())
 
     for a in [k for k in keysb.difference(keysa)]:
-        yield path + '/' + a, 'added'
+        yield path + "/" + a, "added"
     for m in [k for k in keysa.difference(keysb)]:
-        yield path + '/' + m, 'missing'
+        yield path + "/" + m, "missing"
 
     common = [k for k in keysa.intersection(keysb) if k]
     for k in common:
-        if (isinstance(yamla[k], list) and isinstance(yamlb[k], list)) \
-                or (isinstance(yamla[k], dict) and isinstance(yamlb[k], dict)):
-            for d in yaml_diff(yamla[k], yamlb[k], path + '/' + k, key):
+        if (isinstance(yamla[k], list) and isinstance(yamlb[k], list)) or (
+            isinstance(yamla[k], dict) and isinstance(yamlb[k], dict)
+        ):
+            for d in yaml_diff(yamla[k], yamlb[k], path + "/" + k, key):
                 yield d
         else:
-            for d in yaml_diff(yamla[k], yamlb[k], path + '/' + k, key):
+            for d in yaml_diff(yamla[k], yamlb[k], path + "/" + k, key):
                 yield d
 
 
@@ -105,18 +107,18 @@ class TestYaml(unittest.TestCase):
     def test_terminal(self):
         n = Netlist(netlist4)
         m = n.get_module("T2")
-        self.assertTrue(m.is_terminal and m.is_hard and not m.is_fixed and m.area() == 0)
+        print(f"{m.name} length is {m.pin_length}")
+        self.assertTrue(m.is_iopin and m.is_hard and not m.is_fixed and m.pin_length == 0)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     unittest.main()
 
 netlist1 = """
 Modules: {
   B1: {
     area: 18,
-    rectangles: [[3,3,6,3]],
-    fixed: false
+    rectangles: [[3,3,6,3]]
   },
   B2: {
     rectangles: [[4,2.5,4,5]],
@@ -140,8 +142,7 @@ Modules: {
   },
   B2: {
     area: 3,
-    center: [3,3],
-    fixed: false
+    center: [3,3]
   },
   B3: {
     area: 5,
@@ -149,7 +150,7 @@ Modules: {
   },
   B4: {
     rectangles: [[3,0.5,2,1]],
-    fixed: True
+    fixed: true
   }
 
 }
@@ -183,7 +184,9 @@ Modules: {
     aspect_ratio: 2
   },
   T2: {
-    terminal: true
+    io_pin: true,
+    hard: true,
+    rectangles: [3,3,0,0]
   }
 }   
 

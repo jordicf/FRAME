@@ -4,9 +4,9 @@
 # (see https://github.com/jordicf/FRAME/blob/master/LICENSE.txt).
 
 """
-This module manipulates STROPs. Originally this acronym was for
-Single-Trunk Orthogonal Polygons but it can also be read as
-Star Orthogonal Polygons.
+This module manipulates rectilinear polygons and STROPs.
+Originally this acronym was for Single-Trunk Orthogonal Polygons but it can
+also be read as Star Orthogonal Polygons.
 
 A STROP is an orthogonal polygon that can be represented by a set of
 connected disjoint rectangles. One of the rectangles is the trunk.
@@ -38,14 +38,33 @@ This grid may be the Hanan grid of a floorplan.
 The upper-left corner has row=0 and column=0.
 
 Each rectangle is represented as an interval of rows and columns in the grid.
+
+The class Polygon is initialized with an occupancy matrix. This matrix
+is assumed to represent the occupancy of a module in a Hanan grid.
+Each cell contains the occupancy of the module. For example, if three modules
+occupy the same Hanan cell, the occupancy for each one will be 1/3.
+
+Internally, Polygon contains a Boolean matrix that indicates all cells occupied
+by a module (occupancy > 0).
+
+Polygon also generates all possible maximal STROPs in the occupancy matrix.
+The same poliygon can be repersented by multiple STROPs, depending on the trunk.
+A STROP is said to be maximal if the trunk cannot be furter extended without
+violating the STROP structure.
 """
 
+from __future__ import annotations
 from dataclasses import dataclass
-from typing import Iterator
+from typing import Iterator, Final, Optional
+import numpy as np
+import numpy.typing as npt
 
-# Types to represent Boolean matrices
-BoolRow = list[bool]
-BoolMatrix = list[BoolRow]
+# Types to represent Boolean matrices and occupancy matrices =
+BoolRow = npt.NDArray[np.bool]  # A vector of Booleans
+BoolMatrix = npt.NDArray[np.bool]  # A matrix of Booleans
+# An occupancy matrix is a matrix of floats in [0,1]
+# representing the occupancy of a module in a Hanan grid.
+OccMatrix = npt.NDArray[np.float64]
 
 
 @dataclass
@@ -56,34 +75,106 @@ class Interval:
     low: int
     high: int
 
+    @property
     def empty(self) -> bool:
         """Returns whether the interval is empty"""
-        return self.low == -1
+        return self.low < 0 or self.high < 0
 
-    def intersection(self, other: "Interval") -> "Interval":
+    @property
+    def length(self) -> int:
+        """Returns the length of the interval"""
+        return 0 if self.empty else self.high - self.low + 1
+
+    def intersection(self, other: Interval) -> Interval:
         """Returns the intersection of two intervals. If the intersection
         is empty, it returns the empty interval"""
-        if self.empty() or other.empty():
+        if self.empty or other.empty:
             return EMPTY_INTERVAL
         i: Interval = Interval(max(self.low, other.low), min(self.high, other.high))
         return i if i.low <= i.high else EMPTY_INTERVAL
 
-    def length(self) -> int:
-        """Returns the length of the interval"""
-        if self.empty():
-            return 0
-        return self.high - self.low + 1
+
+EMPTY_INTERVAL: Final = Interval(-1, -1)
 
 
-EMPTY_INTERVAL = Interval(-1, -1)
+class GridRectangle:
+    """Represents a rectangle (interval of rows and interval of columns).
+    The rectangle may be embedded in a Polygon."""
 
+    _rows: Interval  # Interval of rows
+    _columns: Interval  # Interval of columns
+    _poly: Optional[Polygon]  # The polygon to which the rectangle belongs
+    _area: float  # Area of the rectangle
+    _avg_occ: float  # Average occupancy of the rectangle
 
-@dataclass
-class Rectangle:
-    """Represents a rectangle (interval of rows and interval of columns)"""
+    def __init__(self, rows: Interval, columns: Interval, p: Optional[Polygon]):
+        """Constructor of a rectangle.
+        The rectangle is defined by the intervals of rows and columns.
+        In case a polygon is specified, the area and average occupancy are calculated.
+        :param rows: interval of rows
+        :param columns: interval of columns
+        :param p: the polygon to which the rectangle belongs."""
 
-    rows: Interval
-    columns: Interval
+        self._poly = p
+        self._rows = rows
+        self._columns = columns
+
+        if p is None or self.empty:
+            self._area = 0.0
+            self._avg_occ = 0.0
+            return
+
+        # Calculate the area and average occupancy
+        self._area = sum(
+            p.cell_area(i, j)
+            for i in range(self.rows.low, self.rows.high + 1)
+            for j in range(self.columns.low, self.columns.high + 1)
+        )
+
+        total_occ = sum(
+            p.cell_occupancy(i, j) * p.cell_area(i, j)
+            for i in range(self.rows.low, self.rows.high + 1)
+            for j in range(self.columns.low, self.columns.high + 1)
+        )
+        self._avg_occ = total_occ / self.area
+
+    @property
+    def rows(self) -> Interval:
+        """Returns the interval of rows"""
+        return self._rows
+
+    @property
+    def columns(self) -> Interval:
+        """Returns the interval of columns"""
+        return self._columns
+
+    @property
+    def area(self) -> float:
+        """Returns the area of the rectangle"""
+        return self._area
+
+    @property
+    def avg_occupancy(self) -> float:
+        """Returns the average occupancy of the rectangle"""
+        return self._avg_occ
+
+    @property
+    def empty(self) -> bool:
+        """Checks whether the rectangle is empty"""
+        return self.rows.empty or self.columns.empty
+
+    @property
+    def num_cells(self) -> int:
+        """Returns the area (number of cells) of the rectangle"""
+        return self.rows.length * self.columns.length
+
+    def shift(self, row_off: int, col_off: int) -> None:
+        """Relocates the rectangle by adding the row and column offsets
+        to the row and column intervals."""
+        self._rows.low += row_off
+        self._rows.high += row_off
+        self._columns.low += col_off
+        self._columns.high += col_off
 
     def __hash__(self) -> int:
         """Hash function"""
@@ -91,133 +182,206 @@ class Rectangle:
             (self.rows.low, self.rows.high, self.columns.low, self.columns.high)
         )
 
-    def empty(self) -> bool:
-        """Checks whether the rectangle is empty"""
-        return self.rows.empty() or self.columns.empty()
+    def __eq__(self, other: object) -> bool:
+        """Equality operator"""
+        if not isinstance(other, GridRectangle):
+            return False
+        return (
+            self.rows.low == other.rows.low
+            and self.rows.high == other.rows.high
+            and self.columns.low == other.columns.low
+            and self.columns.high == other.columns.high
+        )
 
-    def area(self) -> int:
-        """Returns the area (number of cells) of the rectangle"""
-        return self.rows.length() * self.columns.length()
+    def __str__(self) -> str:
+        """String representation of the rectangle"""
+        return (
+            f"Rectangle: rows=[{self.rows.low},{self.rows.high}], "
+            f"cols=[{self.columns.low},{self.columns.high}]"
+        )
 
 
-class Strop:
-    """Class to represent orthogonal polygons"""
+class Polygon:
+    """Class to represent rectilinear polygons. The polygons are assumed to be
+    in a Hanan grid in which is cell may host different overlapping polygons.
+    The occupancy matrix is a matrix of floats in [0,1] representing the occupancy.
+    An internal Boolean matrix reprsents the presence of the polygon in the each cell (occupancy > 0).
+    The vectors _height and _width represent the heights and widths of the rows and columns, respectively.
+    For efficiency reasons, the grid may be trimmed by removing peripheral rows and columns
+    with zero occupancy. The trimming is done by the constructor.
+    The class also computes the center of gravity of the cell (taking into account the occupancy) and the closest cell
+    to the center of gravity. The center of gravity is used to find the best trunk seed for STROPs.
+    """
 
-    _m: BoolMatrix  # matrix to represent the grid of the STrOP
-    _nrows: int  # number of rows
-    _ncols: int  # number of columns
+    _occ: OccMatrix  # Occupancy matrix (values in [0,1])
+    _bm: BoolMatrix  # Boolean matrix associated to _occ (True if _occ > 0)
     _height: list[float]  # heights of the rows
     _width: list[float]  # widths of the columns
-    _instances: list["StropInstance"]
-    _valid: bool  # Is it a strop?
+    _first_row: int  # first_row after trimming zeros
+    _last_row: int  # last_row after trimming zeros
+    _first_col: int  # first column after trimming zeros
+    _last_col: int  # last column after trimming zeros
+    _xcoords: list[float]  # x coordinates of the LL corners of each cell
+    _ycoords: list[float]  # y coordinates of the LL corners of each cell
+    _center: tuple[float, float]  # center of gravity of the polygon
+    _center_cell: tuple[int, int]  # cell of the center of gravity
+    _strops: Optional[list[StropInstance]]  # the list of STROPs of the polygon
 
     def __init__(
-        self, str_matrix: str, height: list[float] = list(), width: list[float] = list()
+        self,
+        occ_matrix: OccMatrix,
+        height: Optional[list[float]] = None,
+        width: Optional[list[float]] = None,
     ):
-        """Constructor from a Boolean matrix represented as a string of 0's
-        and 1's. Each row is separated by a whitespace.
+        """Constructor from an occupancy matrix with values in [0,1].
         height ahd width represent the heights and the widths of the rows and
-        columns, respectively.
-        If the lists are empty, unit sizes are assumed"""
-        lst = str_matrix.split()  # Split as a list of strings
-        self._nrows = len(lst)
-        assert self._nrows > 0, "Creating an empty STrOP"
-        self._ncols = len(lst[0])
-        assert all(len(x) == self._ncols for x in lst), (
-            "Illegal STrOP: rows with different size"
+        columns, respectively. If the lists are empty, unit sizes are assumed"""
+
+        # Let us first trim the matrix and remove
+        # peripheral rows and columns with zeros
+
+        nz = np.nonzero(occ_matrix)
+        self._first_row, self._last_row = min(nz[0]), max(nz[0])
+        self._first_col, self._last_col = min(nz[1]), max(nz[1])
+        self._occ = np.array(
+            occ_matrix[
+                self._first_row : self._last_row + 1,
+                self._first_col : self._last_col + 1,
+            ],
+            dtype=np.float64,
         )
-        assert all(
-            lst[i][j] in {"0", "1"}
-            for i in range(self._nrows)
-            for j in range(self._ncols)
-        ), "Non-binary elements in Boolean matrix"
-        self._m = [
-            [lst[i][j] == "1" for j in range(self._ncols)] for i in range(self._nrows)
-        ]
+
+        self._bm = np.array(self._occ, dtype=bool)
+
         # Heights and widths
-        assert len(height) == 0 or len(height) == self._nrows, (
+        shape = occ_matrix.shape
+        assert height is None or len(height) == shape[0], (
             "Wrong number of rows in height"
         )
-        assert len(width) == 0 or len(width) == self._ncols, (
+        assert width is None or len(width) == shape[1], (
             "Wrong number of columns in width"
         )
-        self._height = height[:] if len(height) > 0 else [1] * self._nrows
-        self._width = width[:] if len(width) > 0 else [1] * self._ncols
+        self._height = (
+            [1] * self.num_rows
+            if height is None
+            else height[self._first_row : self._last_row + 1]
+        )
 
-        # Generate OrthoTrees
-        self._instances = list()
-        for trunk in self._get_potential_trunks():
-            ot = StropInstance(self, trunk)
-            if ot.valid():
-                self._instances.append(ot)
+        self._width = (
+            [1] * self.num_columns
+            if width is None
+            else width[self._first_col : self._last_col + 1]
+        )
+
+        self._strops = None  # List of STROPs (to be generated upon demand)
 
     @property
     def num_rows(self) -> int:
         """Returns the number of rows of the grid"""
-        return self._nrows
+        return len(self._bm)
 
     @property
     def num_columns(self) -> int:
         """Returns the number of columns of the grid"""
-        return self._ncols
+        return self._bm.shape[1]
 
     @property
-    def is_strop(self) -> bool:
-        """Indicates whether the polygon is a valid strop"""
-        return len(self._instances) > 0
+    def has_strops(self) -> bool:
+        """Indicates whether the polygon has STROPs"""
+        return len(self.instances) > 0
 
     @property
     def matrix(self) -> BoolMatrix:
         """Returns the boolean matrix of the grid"""
-        return self._m
+        return self._bm
 
     @property
     def get_width(self) -> list[float]:
         """Returns the list of widths of the grid"""
         return self._width
 
-    def instances(self) -> Iterator["StropInstance"]:
-        """Generates a list of orthogonal trees (trunk+branches)"""
-        for tree in self._instances:
-            yield tree
+    @property
+    def get_height(self) -> list[float]:
+        """Returns the list of heights of the grid"""
+        return self._height
 
-    def _get_potential_trunks(self) -> set[Rectangle]:
-        """Returns a set of rectangles that could be potentially
-        trunks of the polygon"""
-        Mt = [[self._m[j][i] for j in range(self._nrows)] for i in range(self._ncols)]
-        return {
-            t
-            for t in Strop._get_trunks_matrix(self._m).intersection(
-                {Rectangle(r.columns, r.rows) for r in Strop._get_trunks_matrix(Mt)}
-            )
-            if self._empty_corners(t)
-        }
+    def cell_coordinates(self, i: int, j: int) -> tuple[float, float]:
+        """Returns the x and y coordinates of the center of cell[i,j] in the grid."""
+        assert 0 <= i < self.num_rows and 0 <= j < self.num_columns, (
+            "Cell indices out of bounds"
+        )
+        return (
+            self._xcoords[j] + self._width[j] / 2,
+            self._ycoords[i] + self._height[i] / 2,
+        )
 
-    def _empty_corners(self, R: Rectangle) -> bool:
+    def cell_area(self, i: int, j: int) -> float:
+        """Returns the area of cell[i,j] in the grid."""
+        assert 0 <= i < self.num_rows and 0 <= j < self.num_columns, (
+            f"Cell indices out of bounds ({i}, {j})"
+        )
+        return self._width[j] * self._height[i]
+
+    def cell_occupancy(self, i: int, j: int) -> float:
+        """Returns the occupancy of cell[i,j] in the grid."""
+        assert 0 <= i < self.num_rows and 0 <= j < self.num_columns, (
+            "Cell indices out of bounds"
+        )
+        return self._occ[i, j]
+
+    @property
+    def instances(self) -> list[StropInstance]:
+        """Returns a list of STROPs (and generates them if not generated yet)"""
+        if self._strops is None:
+            self._strops = list()
+            for trunk in self._get_potential_trunks():
+                ot = StropInstance(self, trunk)
+                if ot.valid():
+                    self._strops.append(ot)
+        return self._strops
+
+    def _empty_corners(self, R: GridRectangle) -> bool:
         """It indicates if the NE, NW, SE, SW corners of the rectangle are
         empty in the matrix"""
 
         return not (
-            any(self._m[i][j] for i in range(R.rows.low) for j in range(R.columns.low))
-            or any(
-                self._m[i][j]
-                for i in range(R.rows.low)
-                for j in range(R.columns.high + 1, self._ncols)
+            any(
+                self._bm[i][j] for i in range(R._rows.low) for j in range(R.columns.low)
             )
             or any(
-                self._m[i][j]
-                for i in range(R.rows.high + 1, self._nrows)
+                self._bm[i][j]
+                for i in range(R._rows.low)
+                for j in range(R.columns.high + 1, self.num_columns)
+            )
+            or any(
+                self._bm[i][j]
+                for i in range(R._rows.high + 1, self.num_rows)
                 for j in range(R.columns.low)
             )
             or any(
-                self._m[i][j]
-                for i in range(R.rows.high + 1, self._nrows)
-                for j in range(R.columns.high + 1, self._ncols)
+                self._bm[i][j]
+                for i in range(R._rows.high + 1, self.num_rows)
+                for j in range(R.columns.high + 1, self.num_columns)
             )
         )
 
+    def _get_potential_trunks(self) -> set[GridRectangle]:
+        """Returns a set of rectangles that could be potentially
+        trunks of the polygon"""
+        Mt = np.transpose(self._bm)
+        return {
+            t
+            for t in Polygon._get_trunks_matrix(self._bm).intersection(
+                {
+                    GridRectangle(r.columns, r._rows, self)
+                    for r in Polygon._get_trunks_matrix(Mt)
+                }
+            )
+            if self._empty_corners(t)
+        }
+
     @staticmethod
-    def _get_trunks_matrix(M: BoolMatrix) -> set[Rectangle]:
+    def _get_trunks_matrix(M: BoolMatrix) -> set[GridRectangle]:
         """Returns a list of rectangles that could potentially be the trunk
         of the polygon"""
         nrows = len(M)
@@ -225,9 +389,10 @@ class Strop:
         # rect[i][j] represents the largest interval of columns in M
         # for a rectangle between rows i and j (i <= j)
         rect: list[list[Interval]] = [[EMPTY_INTERVAL] * nrows for _ in range(nrows)]
+
         # Fill-up diagonals with the longest interval of columns at row i
         for i in range(nrows):
-            rect[i][i] = Strop._row_interval(M[i])
+            rect[i][i] = Polygon._row_interval(M[i])
 
         # Now fill up the upper triangle
         for last_row in range(1, nrows):
@@ -250,7 +415,7 @@ class Strop:
 
         # Return the non-empty intervals
         return {
-            Rectangle(Interval(row, last_row), rect[row][last_row])
+            GridRectangle(Interval(row, last_row), rect[row][last_row], None)
             for row in range(nrows)
             for last_row in range(row, nrows)
             if rect[row][last_row] != EMPTY_INTERVAL
@@ -261,40 +426,80 @@ class Strop:
         """Finds the longest interval in the boolean row. If there is more
         than one connected interval, the empty interval is returned.
         A trunk cannot cover a row with more than one interval."""
-        # Find the first True
-        try:
-            first_true = R.index(True)
-        except ValueError:
+        all_trues = np.where(R)[0]  # Indices of the True positions
+        num_trues = len(all_trues)
+        if num_trues == 0:
             return EMPTY_INTERVAL  # No True: empty row
 
-        # Find the first False after the first True
-        try:
-            first_false = R.index(False, first_true + 1)
-        except ValueError:
-            return Interval(first_true, len(R) - 1)  # segment at the tail
+        # Check that all True's are contiguous
+        if all_trues[-1] - all_trues[0] + 1 == num_trues:
+            return Interval(all_trues[0], all_trues[-1])
 
-        # Find a new True. If it exists, bad row for a trunk
-        try:
-            R.index(True, first_false + 1)
-            return EMPTY_INTERVAL  # Found, not a good row
-        except ValueError:
-            return Interval(first_true, first_false - 1)  # Not found, good row
+        return EMPTY_INTERVAL
+
+    def _obtain_trunk_seed(self) -> tuple[int, int]:
+        """This is a heuristic to find the best trunk seed. It returns the cell
+        that has the best ratio occupancy/distance to the center."""
+        nz = np.nonzero(self._occ)
+        cell = (-1, -1)
+        best_ratio = -1.0
+        for i, j in zip(nz[0], nz[1]):
+            x, y = self.cell_coordinates(i, j)
+            dist = np.sqrt((x - self._xcenter) ** 2 + (y - self._ycenter) ** 2)
+            if dist == 0:
+                ratio = self._occ[i, j]  # Avoid division by zero
+            else:
+                ratio = self._occ[i, j] / dist
+            if ratio > best_ratio:
+                best_ratio = ratio
+                cell = (i, j)
+        return cell
+
+    def _calculate_center(self) -> None:
+        """Calculates the center of gravity of the polygon and the indices
+        of the cell that contains the center."""
+        nz = np.nonzero(self._occ)
+        sumx, sumy = 0, 0
+        for i, j in zip(nz[0], nz[1]):
+            w, h = self._width[j], self._height[i]
+            occ = self._occ[i, j] * w * h
+            sumx += occ * (self._xcoords[j] + w / 2)
+            sumy += occ * (self._ycoords[i] + h / 2)
+
+        n = len(nz[0])
+        if n > 0:
+            self._xcenter = sumx / n
+            self._ycenter = sumy / n
+        else:
+            self._xcenter, self._ycenter = 0, 0
 
 
 class StropInstance:
-    """Class to represent an instance of a STrOP"""
+    """Class to represent an instance of a STROP"""
 
-    _poly: Strop  # Representation of the orthogonal polygon
-    _trunk: Rectangle  # Trunk
-    _north: list[Rectangle]  # North branches
-    _south: list[Rectangle]  # South branches
-    _east: list[Rectangle]  # East branches
-    _west: list[Rectangle]  # West branches
+    _poly: Polygon  # Representation of the orthogonal polygon
+    _row_off: int  # Row offset in the Hanan grid
+    _col_off: int  # Column offset in the Hanan grid
+    _trunk: GridRectangle  # Trunk
+    _north: list[GridRectangle]  # North branches
+    _south: list[GridRectangle]  # South branches
+    _east: list[GridRectangle]  # East branches
+    _west: list[GridRectangle]  # West branches
     _num_cells: int  # number of cells of the OrthoTree
     _valid: bool  # Is the OrthoTree a Strop?
 
-    def __init__(self, p: Strop, trunk: Rectangle):
+    def __init__(
+        self, p: Polygon, trunk: GridRectangle, row_off: int = 0, col_off: int = 0
+    ):
+        """Constructor of a STROP instance. The original polygon is
+        represented in a matrix inside a Hana grid. row_off and col_off are
+        the offsets that must be applied to obtain the actual row and column
+        indices in the Hanan grid.
+        :param p: the original polygon
+        :param trunk: the trunk around which the STROP must be built
+        :param row_off: index of the first row of the Hanan grid"""
         self._poly = p
+        self._row_off, self._col_off = row_off, col_off
         self._trunk = trunk
         m = p.matrix
         self._num_cells = sum(
@@ -307,23 +512,23 @@ class StropInstance:
         h_west: list[int] = [0] * p.num_rows
 
         # In total we will accumulate the area of trunk and branches
-        total = trunk.area()
+        total = trunk.num_cells
 
         # North and South histograms
         for c in range(trunk.columns.low, trunk.columns.high + 1):
-            for r in range(trunk.rows.low - 1, -1, -1):
+            for r in range(trunk._rows.low - 1, -1, -1):
                 if not m[r][c]:
                     break
                 h_north[c] += 1
                 total += 1
-            for r in range(trunk.rows.high + 1, p.num_rows):
+            for r in range(trunk._rows.high + 1, p.num_rows):
                 if not m[r][c]:
                     break
                 h_south[c] += 1
                 total += 1
 
         # East and West histograms
-        for r in range(trunk.rows.low, trunk.rows.high + 1):
+        for r in range(trunk._rows.low, trunk._rows.high + 1):
             for c in range(trunk.columns.low - 1, -1, -1):
                 if not m[r][c]:
                     break
@@ -352,18 +557,20 @@ class StropInstance:
             if h_north[c] != v:
                 if v != 0:
                     self._north.append(
-                        Rectangle(
-                            Interval(trunk.rows.low - v, trunk.rows.low - 1),
+                        GridRectangle(
+                            Interval(trunk._rows.low - v, trunk._rows.low - 1),
                             Interval(init_c, c - 1),
+                            p,
                         )
                     )
                 init_c = c
                 v = h_north[c]
         if v != 0:  # Last rectangle
             self._north.append(
-                Rectangle(
-                    Interval(trunk.rows.low - v, trunk.rows.low - 1),
+                GridRectangle(
+                    Interval(trunk._rows.low - v, trunk._rows.low - 1),
                     Interval(init_c, trunk.columns.high),
+                    p,
                 )
             )
 
@@ -373,60 +580,66 @@ class StropInstance:
             if h_south[c] != v:
                 if v != 0:
                     self._south.append(
-                        Rectangle(
-                            Interval(trunk.rows.high + 1, trunk.rows.high + v),
+                        GridRectangle(
+                            Interval(trunk._rows.high + 1, trunk._rows.high + v),
                             Interval(init_c, c - 1),
+                            p,
                         )
                     )
                 init_c = c
                 v = h_south[c]
         if v != 0:  # Last rectangle
             self._south.append(
-                Rectangle(
-                    Interval(trunk.rows.high + 1, trunk.rows.high + v),
+                GridRectangle(
+                    Interval(trunk._rows.high + 1, trunk._rows.high + v),
                     Interval(init_c, trunk.columns.high),
+                    p,
                 )
             )
 
         # Generate the west branches
-        init_r, v = trunk.rows.low, h_west[trunk.rows.low]
-        for r in range(trunk.rows.low + 1, trunk.rows.high + 1):
+        init_r, v = trunk._rows.low, h_west[trunk._rows.low]
+        for r in range(trunk._rows.low + 1, trunk._rows.high + 1):
             if h_west[r] != v:
                 if v != 0:
                     self._west.append(
-                        Rectangle(
+                        GridRectangle(
                             Interval(init_r, r - 1),
                             Interval(trunk.columns.low - v, trunk.columns.low - 1),
+                            p,
                         )
                     )
                 init_r = r
                 v = h_west[r]
         if v != 0:  # Last rectangle
             self._west.append(
-                Rectangle(
-                    Interval(init_r, trunk.rows.high),
+                GridRectangle(
+                    Interval(init_r, trunk._rows.high),
                     Interval(trunk.columns.low - v, trunk.columns.low - 1),
+                    p,
                 )
             )
 
         # Generate the east branches
-        init_r, v = trunk.rows.low, h_east[trunk.rows.low]
-        for r in range(trunk.rows.low + 1, trunk.rows.high + 1):
+        init_r, v = trunk._rows.low, h_east[trunk._rows.low]
+        for r in range(trunk._rows.low + 1, trunk._rows.high + 1):
             if h_east[r] != v:
                 if v != 0:
                     self._east.append(
-                        Rectangle(
+                        GridRectangle(
                             Interval(init_r, r - 1),
                             Interval(trunk.columns.high + 1, trunk.columns.high + v),
+                            p,
                         )
                     )
                 init_r = r
                 v = h_east[r]
         if v != 0:  # Last rectangle
             self._east.append(
-                Rectangle(
-                    Interval(init_r, trunk.rows.high),
+                GridRectangle(
+                    Interval(init_r, trunk._rows.high),
                     Interval(trunk.columns.high + 1, trunk.columns.high + v),
+                    p,
                 )
             )
 
@@ -434,11 +647,11 @@ class StropInstance:
         """Reports whether it is a valid STROP"""
         return self._valid
 
-    def trunk(self) -> Rectangle:
+    def trunk(self) -> GridRectangle:
         """Returns the trunk of the tree"""
         return self._trunk
 
-    def rectangles(self, which: str = "") -> Iterator[Rectangle]:
+    def rectangles(self, which: str = "") -> Iterator[GridRectangle]:
         """Returns the rectangles of the STROP instance depending on the
         value of which.
         '' -> all rectangles (default)
@@ -466,6 +679,14 @@ class StropInstance:
                 for r in lst:
                     yield r
 
+    def shift(self) -> None:
+        """Relocates all rectangles by adding the row and column offsets
+        to the row and column intervals."""
+        self._trunk.shift(self._row_off, self._col_off)
+        for side in [self._north, self._south, self._east, self._west]:
+            for r in side:
+                r.shift(self._row_off, self._col_off)
+
     def __str__(self) -> str:
         """Returns a string representing the STROP.
         The string represents a grid in which 0 represents the trunk and
@@ -475,57 +696,23 @@ class StropInstance:
         ]
         idx = 0
         for r in self.rectangles():  # all rectangles
-            StropInstance._str_rectangle(grid, r, idx)
+            StropInstance._str_rectangle(grid, r, idx, self._row_off, self._col_off)
             idx += 1
 
         # Create the string representing the matrix
         return "\n".join(["".join(row).rstrip() for row in grid])
 
     @staticmethod
-    def _str_rectangle(grid: list[list[str]], rect: Rectangle, idx: int) -> None:
+    def _str_rectangle(
+        grid: list[list[str]],
+        rect: GridRectangle,
+        idx: int,
+        row_off: int = 0,
+        col_off: int = 0,
+    ) -> None:
         """Defines the cells of the grid with the rectangle rect and
-        index idx"""
-        for r in range(rect.rows.low, rect.rows.high + 1):
+        index idx. The coordinates of the rectangles are shifter by
+        the row and column offsets"""
+        for r in range(rect._rows.low, rect._rows.high + 1):
             for c in range(rect.columns.low, rect.columns.high + 1):
-                grid[r][c] = f"{idx:x}"
-
-
-def str2BoolMatrix(s: str) -> BoolMatrix:
-    """It generates a Boolean matrix from a string. The string is
-    a sequence of floats in [0,1] representing the occupancy of each cell.
-    Negative numbers are used for row separation. No negative number must
-    be added after the last row.
-    The returned matrix contains True for cells > 0 and False for cells = 0.
-    The sequence 1.0 0.25 0 -1 0 1.0 0.8 represents a matrix with
-    two rows and three columns. The function will return (abbreviated)
-    [[TTF], [FTT]].
-    An exception is raised in case the string does not represent
-    a valid matrix."""
-
-    lst = s.split()  # Split as a list of strings
-    lst_float = [float(x) for x in lst]
-    assert all(x <= 1.0 for x in lst_float), "Wrong STROP matrix. Values greater than 1"
-    nelems = len(lst_float)
-    assert nelems > 0, "Empty Boolean Matrix"
-
-    # Cound number of negative numbers (nrows - 1)
-    nrows = 1 + sum(1 for x in lst_float if x < 0)
-    ncolumns = (nelems - nrows + 1) // nrows
-
-    assert nrows * (ncolumns + 1) - 1 == nelems, "Wrong format of STROP matrix"
-
-    # Create the Boolean matrix
-    m: BoolMatrix = list[BoolRow]()
-
-    init_row, end_row = 0, ncolumns
-    for i in range(nrows):
-        print(init_row, end_row)
-        slice = lst_float[init_row:end_row]
-        m.append([(True if x > 0 else False) for x in slice])
-        assert end_row == nelems or lst_float[end_row] < 0, (
-            "Wrong format for STROP matrix"
-        )
-        init_row += ncolumns + 1
-        end_row = init_row + ncolumns
-
-    return m
+                grid[r - row_off][c - col_off] = f"{idx:x}"

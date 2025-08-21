@@ -4,12 +4,13 @@
 # (see https://github.com/jordicf/FRAME/blob/master/LICENSE.txt).
 
 """
-Tool for spectral floorplan. The algorithm implemented in this tool is based on 
+Tool for spectral floorplan. The algorithm implemented in this tool is based on
 the one for Spectral Drawing proposed by Yehuda Koren in his paper
 'Drawing Graphs by Eigenvectors: Theory and Practice'.
 The algorithm has been modified to incorporate the mass of each node.
 The mass is interpreted as the multiplicity of the node.
 """
+
 import argparse
 from itertools import combinations
 import math
@@ -30,7 +31,9 @@ class Spectral(Netlist):
 
     _adj: AdjList  # Adjacency list
     _mass: Vector  # Mass (size) of each node in _G
-    _centers: Matrix  # A 2xn matrix with the coordinates of the centers (negative if unknown)
+    _centers: (
+        Matrix  # A 2xn matrix with the coordinates of the centers (negative if unknown)
+    )
     _fixed_modules: list[bool]  # A boolean vector to indicate the fixed modules
 
     def __init__(self, stream: str):
@@ -111,11 +114,25 @@ class Spectral(Netlist):
                     self._centers[0][i], self._centers[1][i] = -1.0, -1.0
 
         for i in range(nfloorplans):
-            coord, wl, niter = spectral_layout_die(self._adj, self._mass, [shape.w, shape.h],
-                                                   self._centers, self._fixed_modules)
+            coord, wl, niter = spectral_layout_die(
+                self._adj,
+                self._mass,
+                [shape.w, shape.h],
+                self._centers,
+                self._fixed_modules,
+            )
             if verbose:
-                print("{:3d}:".format(i), "  WL =", "{:7.3f}".format(wl),
-                      ", iterations(x,y) = (", niter[0], ",", niter[1], ")", sep='')
+                print(
+                    "{:3d}:".format(i),
+                    "  WL =",
+                    "{:7.3f}".format(wl),
+                    ", iterations(x,y) = (",
+                    niter[0],
+                    ",",
+                    niter[1],
+                    ")",
+                    sep="",
+                )
             if wl < best_wl:
                 best_coord = coord
                 best_wl = wl
@@ -123,7 +140,9 @@ class Spectral(Netlist):
         assert best_coord is not None
 
         for i, m in enumerate(self.modules):
-            m.center = Point(best_coord[0][i] + shape.w / 2, best_coord[1][i] + shape.h / 2)
+            m.center = Point(
+                best_coord[0][i] + shape.w / 2, best_coord[1][i] + shape.h / 2
+            )
 
         # Reallocate the rectangles of hard modules and remove the center of hard and fixed modules
         # Still, the center is kept in case of terminals
@@ -132,29 +151,44 @@ class Spectral(Netlist):
                 if not m.is_fixed:  # it is a hard module (movable)
                     m.recenter_rectangles()
                 # Remove the center of the hard block
-                if not m.is_terminal: # Need to keep the center for the terminals
+                if not m.is_iopin:  # Need to keep the center for the terminals
                     m.center = None
 
         return 0
 
 
-def parse_options(prog: str | None = None, args: list[str] | None = None) -> dict[str, Any]:
+def parse_options(
+    prog: str | None = None, args: list[str] | None = None
+) -> dict[str, Any]:
     """
     Parse the command-line arguments for the tool
     :param prog: tool name
     :param args: command-line arguments
     :return: a dictionary with the arguments
     """
-    parser = argparse.ArgumentParser(prog=prog, usage='%(prog)s [options]',
-                                     description="Compute the initial location for each module of the netlist using a "
-                                                 "combination of spectral and force-directed methods.")
+    parser = argparse.ArgumentParser(
+        prog=prog,
+        usage="%(prog)s [options]",
+        description="Compute the initial location for each module of the netlist using a "
+        "combination of spectral and force-directed methods.",
+    )
     parser.add_argument("netlist", help="input file (netlist)")
-    parser.add_argument("-v", "--verbose", action='store_true')
-    parser.add_argument("-d", "--die", metavar="<WIDTH>x<HEIGHT> or FILENAME",
-                        help="size of the die (width x height) or name of the file")
-    parser.add_argument("-i", "--init", action='store_true', help="use initial coordinates")
-    parser.add_argument("--bestof", type=int, default=5,
-                        help="number of floorplans generated to select the best. Default: 5")
+    parser.add_argument("-v", "--verbose", action="store_true")
+    parser.add_argument(
+        "-d",
+        "--die",
+        metavar="<WIDTH>x<HEIGHT> or FILENAME",
+        help="size of the die (width x height) or name of the file",
+    )
+    parser.add_argument(
+        "-i", "--init", action="store_true", help="use initial coordinates"
+    )
+    parser.add_argument(
+        "--bestof",
+        type=int,
+        default=5,
+        help="number of floorplans generated to select the best. Default: 5",
+    )
     parser.add_argument("-o", "--outfile", required=True, help="output file (netlist)")
     return vars(parser.parse_args(args))
 
@@ -164,22 +198,24 @@ def main(prog: str | None = None, args: list[str] | None = None) -> int:
     options = parse_options(prog, args)
 
     # Die
-    die_file = options['die']
+    die_file = options["die"]
     if die_file is not None:
         d = Die(die_file)
         die = Shape(d.width, d.height)
     else:
         die = Shape(1, 1)
 
-    infile = options['netlist']
+    infile = options["netlist"]
     netlist = Spectral(infile)
-    nfloorplans = options['bestof']
-    initial_center = options['init']
+    nfloorplans = options["bestof"]
+    initial_center = options["init"]
     if initial_center:
         nfloorplans = 0
-    assert initial_center or nfloorplans > 0, "The number of floorplans must be a positive integer"
-    status = netlist.spectral_layout(die, nfloorplans, options['verbose'])
-    netlist.write_yaml(options['outfile'])
+    assert initial_center or nfloorplans > 0, (
+        "The number of floorplans must be a positive integer"
+    )
+    status = netlist.spectral_layout(die, nfloorplans, options["verbose"])
+    netlist.write_yaml(options["outfile"])
     return status
 
 

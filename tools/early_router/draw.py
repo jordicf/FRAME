@@ -23,7 +23,7 @@ import math
 import mpl_toolkits.mplot3d.art3d as art3d
 import mpl_toolkits.mplot3d.axes3d as Axes3D
 from PIL import Image, ImageDraw, ImageFont
-from typing import Tuple
+from typing import Tuple, Any, Union
 from frame.geometry.geometry import Shape, Rectangle
 from tools.early_router.build_model import FeedThrough
 import numpy as np
@@ -111,7 +111,7 @@ def draw_solution3D(
         scaling,
         total_im_h,
     )
-    p = MplRectangle(
+    p: Any = MplRectangle(
         (x, y),
         width,
         height,
@@ -133,7 +133,7 @@ def draw_solution3D(
             c = scale(m.center, scaling)
             cx = c.x * scaling.xscale
             cy = (total_im_h - c.y) * scaling.yscale
-            if m.is_terminal:
+            if m.is_iopin:
                 p = Circle(
                     (cx, cy),
                     4 * total_im_h / len(module2color),
@@ -300,7 +300,7 @@ def draw_solution2D(
     netlist: Netlist,
     routes: dict[NetId, list[dict[EdgeId, float]]],
     hanan_graph: HananGraph3D,
-    color_pallete: dict[int, tuple[float, float, float, float]],
+    color_pallete: dict[int, tuple[int, int, int, int]],
     width=0,
     height=0,
     frame=50,
@@ -490,7 +490,7 @@ def draw_congestion_legend(
 
     # Add text labels
     try:
-        font = ImageFont.truetype("arial.ttf", fontsize)
+        font: Union[ImageFont.FreeTypeFont, ImageFont.ImageFont] = ImageFont.truetype("arial.ttf", fontsize)
     except IOError:
         font = ImageFont.load_default()
 

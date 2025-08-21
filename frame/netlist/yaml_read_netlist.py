@@ -16,18 +16,7 @@ from frame.geometry.geometry import (
     Point,
     parse_yaml_rectangle,
 )
-from frame.utils.keywords import (
-    KW_RECTANGLES,
-    KW_CENTER,
-    KW_TERMINAL,
-    KW_FIXED,
-    KW_HARD,
-    KW_FLIP,
-    KW_MODULES,
-    KW_NETS,
-    KW_AREA,
-    KW_ASPECT_RATIO,
-)
+from frame.utils.keywords import KW
 from frame.utils.utils import (
     valid_identifier,
     is_number,
@@ -53,10 +42,10 @@ def parse_yaml_netlist(stream: str) -> tuple[list[Module], list[NamedHyperEdge]]
     modules = list[Module]()
     edges = list[NamedHyperEdge]()
     for key, value in tree.items():
-        assert key in [KW_MODULES, KW_NETS], f"Unknown key {key}"
-        if key == KW_MODULES:
+        assert key in [KW.MODULES, KW.NETS], f"Unknown key {key}"
+        if key == KW.MODULES:
             modules = parse_yaml_modules(value)
-        elif key == KW_NETS:
+        elif key == KW.NETS:
             edges = parse_yaml_edges(value)
         else:
             assert False  # Should never happen
@@ -77,41 +66,45 @@ def parse_yaml_modules(modules: dict) -> list[Module]:
     return _modules
 
 
-def parse_yaml_module(name: str, info: dict) -> Module:
+def parse_yaml_module(name: str, info: dict[str, Any]) -> Module:
     """
     Parses the information of a module
     :param name: Name of the module
     :param info: Information of the module
     :return: a module
     """
-    assert isinstance(info, dict), (
-        f"The YAML node for module {name} is not a dictionary"
-    )
-    assert valid_identifier(name), f"Invalid name for module: {name}"
 
-    params: dict[str, Any] = {}
+    assert valid_identifier(name), f"Invalid name for module: {name}"
+    assert isinstance(info, dict), (
+        f"The information for module {name} is not a dictionary"
+    )
+    params = dict[str, Any]()
     for key, value in info.items():
         assert isinstance(key, str)
-        if key in [KW_AREA, KW_TERMINAL, KW_FIXED, KW_HARD, KW_FLIP]:
+        if key in [KW.AREA, KW.LENGTH, KW.IO_PIN, KW.FIXED, KW.HARD, KW.FLIP]:
             params[key] = value
-        elif key == KW_CENTER:
-            params[KW_CENTER] = parse_yaml_center(value, name)
-        elif key == KW_ASPECT_RATIO:
-            params[KW_ASPECT_RATIO] = parse_yaml_aspect_ratio(value, name)
-        elif key == KW_RECTANGLES:
+        elif key == KW.CENTER:
+            params[KW.CENTER] = parse_yaml_center(value, name)
+        elif key == KW.ASPECT_RATIO:
+            params[KW.ASPECT_RATIO] = parse_yaml_aspect_ratio(value, name)
+        elif key == KW.RECTANGLES:
             pass
         else:
             assert False, f"Unknown module attribute {key}"
 
-    m = Module(name, **params)
+    # We need to anticipate fixed and hard for the rectangles (not a nice code)
+    assert KW.FIXED not in params or isinstance(params[KW.FIXED], bool), (
+        f"Module {name}: incorrect value for fixed (should be a boolean)"
+    )
+    assert KW.HARD not in params or isinstance(params[KW.HARD], bool), (
+        f"Module {name}: incorrect value for hard (should be a boolean)"
+    )
+    fixed = KW.FIXED in params and params[KW.FIXED]
+    hard = fixed or (KW.HARD in params and params[KW.HARD])
+    if KW.RECTANGLES in info:
+        params[KW.RECTANGLES] = parse_yaml_rectangles(info[KW.RECTANGLES], fixed, hard)
 
-    if KW_RECTANGLES in info:
-        rectangles = parse_yaml_rectangles(info[KW_RECTANGLES], m.is_fixed, m.is_hard)
-        for r in rectangles:
-            m.add_rectangle(r)
-
-    m.setup()
-    return m
+    return Module(name, **params)
 
 
 def parse_yaml_center(center: list[float], name: str) -> Point:
@@ -131,7 +124,8 @@ def parse_yaml_center(center: list[float], name: str) -> Point:
 
 
 def parse_yaml_aspect_ratio(
-    aspect_ratio: float | list[float], name: str) -> AspectRatio:
+    aspect_ratio: float | list[float], name: str
+) -> AspectRatio:
     """
     Parses the aspect ratio of the module. If only one value is given, the aspect ratio is computed
     as the interval [value, 1/value] or [1/value, value] in such a way that the first component is smaller

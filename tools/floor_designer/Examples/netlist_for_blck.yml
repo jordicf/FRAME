@@ -1,0 +1,59 @@
+Modules:
+    A:
+        area: 1.0
+        center:
+        - 2.5
+        - 2.25
+        rectangles:
+        -   - 2.5
+            - 2.25
+            - 5.0
+            - 4.5
+    B:
+        fixed: true
+        rectangles:
+        -   - 2.0
+            - 8.5
+            - 4.0
+            - 3.0
+    C:
+        area: 1.0
+        center:
+        - 5.384090909090909
+        - 5.7897727272727275
+        rectangles:
+        -   - 6.9875
+            - 6.025
+            - 5.975
+            - 4.0
+        -   - 2.1125
+            - 5.3125
+            - 3.775
+            - 2.575
+    X:
+        center:
+        - 0.0
+        - 4.0
+        terminal: true
+    Y:
+        center:
+        - 8.0
+        - 10.0
+        terminal: true
+    Z:
+        center:
+        - 7.0
+        - 0.0
+        terminal: true
+Nets:
+-   - A
+    - B
+    - 5.0
+-   - A
+    - B
+    - C
+-   - X
+    - C
+    - 2.0
+-   - Y
+    - A

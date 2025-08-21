@@ -42,11 +42,6 @@ class HananGrid:
                 y_coords.add(r.bounding_box.ll.y)
                 y_coords.add(r.bounding_box.ur.y)
 
-            self._shape = Shape(
-                w=float(max(x_coords) - min(x_coords)),
-                h=float(max(y_coords) - min(y_coords)),
-            )
-
             xcoords2pos = {x: i for i, x in enumerate(sorted(list(x_coords)))}
             xpos2coords = {i: x for i, x in enumerate(sorted(list(x_coords)))}
             ycoords2pos = {y: i for i, y in enumerate(sorted(list(y_coords)))}
@@ -56,7 +51,7 @@ class HananGrid:
             # Create a dict with keys r'[i][j] and value a cell to an
             # identified rectangle
             for m in netlist_or_cells.modules:
-                if m.is_terminal:
+                if m.is_iopin:
                     # No cells involving terminals
                     # (created in the graph as nodes)
                     continue
@@ -83,8 +78,50 @@ class HananGrid:
                             )
                             self._cells[(i, j)] = cell
         else:
-            self._shape = Shape(0, 0)
             self._cells = {cell._id: cell for cell in netlist_or_cells}
+        self._shape = self._calculate_shape()
+
+    def add_blank_cells(self):
+            for i in range(int(max([c._id[0] for c in self.cells]))):
+                for j in range(int(max([c._id[1] for c in self.cells]))):
+                    if (i, j) in self._cells:
+                        continue
+                    # For X: search cells with same j
+                    same_row_cells = [c for c in self.cells if c._id[1] == j]
+                    if len(same_row_cells) > 0:
+                        y = same_row_cells[0].center.y
+                        h = same_row_cells[0].height_capacity
+                    else:
+                        y = 0.
+                        h = 0.
+
+                    # For Y: search for cells with same i 
+                    same_col_cells = [c for c in self.cells if c._id[0] == i]
+                    if len(same_col_cells) > 0:
+                        x = same_col_cells[0].center.x
+                        w = same_col_cells[0].width_capacity
+                    else:
+                        x = 0.
+                        w = 0.
+                        
+                    cell = HananCell(
+                        _id=(i, j),
+                        center=Point((x, y)),
+                        width_capacity=w,
+                        height_capacity=h,
+                        modulename='',
+                    )
+                    self._cells[(i, j)] = cell
+
+    def _calculate_shape(self) -> Shape:
+        """Computes the cells (bounding box)"""
+        if len(self.cells)==0:
+            return Shape(0, 0)
+        lefts = [c.center.x - c.width_capacity/2 for c in self.cells]
+        rights = [c.center.x + c.width_capacity/2 for c in self.cells]
+        bottoms = [c.center.y - c.height_capacity/2 for c in self.cells]
+        tops = [c.center.y + c.height_capacity/2 for c in self.cells]
+        return Shape(max(rights) - min(lefts), max(tops) - min(bottoms))
 
     @property
     def cells(self) -> list[HananCell]:
@@ -135,6 +172,11 @@ class HananGrid:
                 return_cell = cell
                 curr_min = dist
         return return_cell
+    
+    def __eq__(self, other):
+        if not isinstance(other, HananGrid):
+            return NotImplemented
+        return (self._cells == other._cells) and (self.shape == other.shape)
 
 
 class Layer:
@@ -254,32 +296,37 @@ class HananGraph3D:
                             cap = self.layers[layer_id].h_cap
                     if adj_cell and direction in self.layers[layer_id].direction:
                         source_id = (cell._id[0], cell._id[1], layer_id)
-                        target_id = (adj_cell._id[0],
-                                     adj_cell._id[1], layer_id)
+                        target_id = (adj_cell._id[0], adj_cell._id[1], layer_id)
                         if asap7 and cap:
                             # floor(4000/76) = 52 wires for 4 μm edge and 76nm pitch
                             p = self.layers[layer_id].pitch
                             if p:
-                                new_cap = int(cap*1000/p)
+                                new_cap = int(cap * 1000 / p)
                             else:
-                                new_cap = int(cap*1000)
-                            self._adj_list.setdefault(source_id, {})[target_id] = self.add_edge3D(
-                                source_id, target_id, new_cap)
+                                new_cap = int(cap * 1000)
+                            self._adj_list.setdefault(source_id, {})[target_id] = (
+                                self.add_edge3D(source_id, target_id, new_cap)
+                            )
                         else:
                             self._adj_list.setdefault(source_id, {})[target_id] = (
                                 self.add_edge3D(source_id, target_id, cap)
                             )
                         # No need to add target -> source, because we will visit target and it will be included
         if netlist:
-            self._add_terminals(hanan_grid, netlist)
+            self._add_terminals(netlist)
 
-    def _add_terminals(self, hanan_grid: HananGrid, netlist: Netlist):
+    def __eq__(self, other) -> bool:
+        if not isinstance(other, HananGraph3D):
+            return NotImplemented
+        return self._adj_list == other._adj_list
+
+    def _add_terminals(self, netlist: Netlist):
         # Adding Terminals
         t = 0
         for m in netlist.modules:
             if not m.center:
                 continue
-            if m.is_terminal:
+            if m.is_iopin:
                 # Check module, Terminals always have a defined center
                 # Terminals are always on the lowest layer
                 terminal_id = (t, -1, 0)
@@ -289,14 +336,10 @@ class HananGraph3D:
                 self._nodes[terminal_id] = terminal
                 t += 1
                 # Get the module that terminal is closest to, and create an edge
-                cell = hanan_grid.get_closest_cell_to_point(m.center)
+                cell = self._hanan_grid.get_closest_cell_to_point(m.center)
                 if not cell:
                     continue
                 # Connect the terminal to all layers.
-                # TODO For now just on the lowest level 0
-                # node_id = (cell._id[0], cell._id[1], 0)
-                # self._adj_list.setdefault(terminal_id, {})[node_id] = self.add_edge3D(terminal_id, node_id)
-                # self._adj_list.setdefault(node_id, {})[terminal_id] = self.add_edge3D(node_id, terminal_id)
                 for layer_id in self._layers:
                     node_id = (cell._id[0], cell._id[1], layer_id)
                     self._adj_list.setdefault(terminal_id, {})[node_id] = (
@@ -355,14 +398,18 @@ class HananGraph3D:
         nodes = self.get_nodes_by_modulename(module_name)
 
         return {
-            "in": [e 
-                   for n in nodes 
-                   for nei in self._adj_list[n._id] 
-                   if (e := self.get_edge(nei, n._id)) and e.crossing],
-            "out": [e 
-                    for n in nodes 
-                    for nei in self._adj_list[n._id] 
-                    if (e := self.get_edge(n._id, nei)) and e.crossing],
+            "in": [
+                e
+                for n in nodes
+                for nei in self._adj_list[n._id]
+                if (e := self.get_edge(nei, n._id)) and e.crossing
+            ],
+            "out": [
+                e
+                for n in nodes
+                for nei in self._adj_list[n._id]
+                if (e := self.get_edge(n._id, nei)) and e.crossing
+            ],
         }
 
     @property
@@ -504,6 +551,9 @@ class HananGraph3D:
         )
 
     def apply_capacity_adjustments(self, cap_adjust: dict[EdgeId, float | int]) -> None:
+        """Given a dict of edges ids, updates its edges and its reversed to the given number.
+        If u->v 3 is given, the capacity for u->v and v->u is set to 3"""
+        # Use this to add routing blockages
         for e_id in cap_adjust:
             e = self.get_edge(e_id[0], e_id[1])
             r_e = self.get_edge(e_id[1], e_id[0])

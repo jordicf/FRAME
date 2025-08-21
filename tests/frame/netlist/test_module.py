@@ -12,7 +12,7 @@ class TestModule(unittest.TestCase):
 
     def test_bad_module(self):
         # Bad constructors
-        self.assertRaises(AssertionError, Module, "my_module", unknown_keyword=3)
+        self.assertRaises(Exception, Module, "my_module", unknown_keyword=3)
         self.assertRaises(AssertionError, Module, "3_bad_name_4")
         self.assertRaises(AssertionError, Module, "good_name", area="no_number")
 
@@ -48,7 +48,8 @@ class TestModule(unittest.TestCase):
         self.assertEqual(b.area('bram'), 20)
 
     def test_soft_hard_fixed(self):
-        b = Module("my_module", hard=True)
+        r = Rectangle(center=Point(4, 5), shape=Shape(4, 6))
+        b = Module("my_module", rectangles = [r], hard=True)
 
         self.assertFalse(b.is_soft)
         self.assertTrue(b.is_hard)
@@ -70,10 +71,8 @@ class TestModule(unittest.TestCase):
         for rectangle in b.rectangles:
             self.assertFalse(rectangle.fixed)
 
-        b = Module("my_module", fixed=True)
-        self.assertTrue(b.is_hard)
-
-        b = Module("my_module", fixed=True)
+        b = Module("my_module", rectangles=[r], fixed=True)
+        self.assertTrue(b.is_fixed)
         self.assertTrue(b.is_hard)
 
 
