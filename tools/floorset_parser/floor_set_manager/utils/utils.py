@@ -269,8 +269,7 @@ def compute_centroid(partition: List[Rectangle]) -> Point:
 
     Args:
         vertices: List of tuples [(x1,y1,w1,h1), ..., (xn, yn, wn, hn)]
-                representing the polygon's vertices. The polygon should be
-                closed (first vertex = last vertex).
+                representing the polygon's vertices.
 
     Returns:
         A tuple (Cx, Cy) representing the centroid of the polygon.

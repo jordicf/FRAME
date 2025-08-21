@@ -1,0 +1,8 @@
+# Width and height of the die (mandatory attributes)
+width: 10
+height: 10
+# Non-ground rectangles: [x, y, width, height, region]
+regions: [
+    [8, 2, 4, 4, '#'],
+    [7, 9, 6, 2, '#']
+]

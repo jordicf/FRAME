@@ -17,7 +17,8 @@ dependencies = [
     "Pillow",
     "python-sat",
     "ortools",
-    "torch"
+    "torch",
+    "PySide6"
 ]
 
 [project.optional-dependencies]
