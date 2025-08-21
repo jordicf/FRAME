@@ -263,7 +263,7 @@ def is_point_inside_polygon(point: Point, vertices: PointSequence) -> bool:
     return inside
 
 
-def compute_centroid(partition: List[Rectangle]) -> Point:
+def compute_centroid(partition: list[Rectangle]) -> Point:
     """
     Compute the centroid of a simple polygon.
 
