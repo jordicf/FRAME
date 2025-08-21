@@ -10,7 +10,6 @@ from frame.netlist.netlist import Netlist
 
 
 class TestDie(unittest.TestCase):
-
     def test_read_dies(self):
         d = Die("5.5x2")
         self.assertEqual(d.width, 5.5)
@@ -51,12 +50,12 @@ class TestDie(unittest.TestCase):
         d = Die(die7, n)
         self.assertEqual(len(d.specialized_regions), 2)
         self.assertEqual(len(d.blockages), 1)
-        self.assertEqual(len(d.fixed_regions), 2)
+        self.assertEqual(len(d.fixed_regions), 3)
         self.assertEqual(len(d.ground_regions), 13)
         d.split_refinable_regions(3, 23)
         self.assertEqual(len(d.specialized_regions), 3)
         self.assertEqual(len(d.blockages), 1)
-        self.assertEqual(len(d.fixed_regions), 2)
+        self.assertEqual(len(d.fixed_regions), 3)
         self.assertEqual(len(d.ground_regions), 20)
 
         d = Die(die1)
@@ -70,8 +69,12 @@ class TestDie(unittest.TestCase):
         self.assertEqual(len(d.fixed_regions), 0)
         self.assertEqual(len(d.ground_regions), 8)
 
+    def test_die_io_segments(self):
+        n = Netlist(netlist_die8)
+        d = Die(die8, n)
 
-if __name__ == '__main__':
+
+if __name__ == "__main__":
     unittest.main()
 
 die1 = """
@@ -126,6 +129,55 @@ Modules : {
   },
   M3: {
     area: 10
+  },
+  
+  P1: {
+    io_pin: true,
+    length: 64
+  },
+  
+  P2: {
+    io_pin: true,
+    fixed: true,
+    rectangles: [5, 8, 10, 0],
+  }
+}
+Nets: []
+"""
+
+die8 = """
+width: 10
+height: 9
+io_segments: {
+  P1: [[10, 5, 0, 2], 
+       [6, 9, 3, 0]],
+  P2: [0, 8, 10, 0]
+}
+"""
+
+netlist_die8 = """
+Modules : {
+  M1: {
+    fixed: true,
+    rectangles: [[2,7,2,2]]
+  },
+  M2: {
+    fixed: true,
+    rectangles: [[8,5.5,2,1]]
+  },
+  M3: {
+    area: 10
+  },
+  
+  P1: {
+    io_pin: true,
+    length: 100
+  },
+  
+  P2: {
+    io_pin: true,
+    fixed: true,
+    rectangles: [[5, 8, 10, 0]],
   }
 }
 Nets: []

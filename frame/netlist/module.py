@@ -8,7 +8,7 @@ Modules of a netlist
 """
 
 import math
-from typing import Optional
+from typing import Optional, Any
 from frame.geometry.geometry import Point, Shape, AspectRatio, Rectangle, create_strop
 from frame.utils.keywords import KW
 from frame.utils.utils import valid_identifier, is_number
@@ -21,8 +21,8 @@ class Module:
 
     _name: str  # Name of the module
     _center: Optional[Point]  # Center of the module (if defined)
-    _aspect_ratio: AspectRatio | None  # interval of the aspect ratio
-    _terminal: bool  # It is a terminal
+    _aspect_ratio: Optional[AspectRatio]  # interval of the aspect ratio
+    _iopin: bool  # It is an IO pin?
     _hard: bool  # Must be a hard module (but movable if not fixed)
     _fixed: bool  # Must be fixed in the layout
     _flip: bool  # May be flipped (only for hard modules, not fixed)
@@ -31,38 +31,50 @@ class Module:
     # If no region specified, the default is assigned (Ground).
     _area_regions: dict[str, float]  # Area for each type of region
     # This is an attribute to store the whole area of the module.
-    # If not calculated, it has a negative value
+    # If not calculated, it has a negative value.
     _total_area: float
     # A module can be implemented with different rectangles.
     # Here is the list of rectangles
     _rectangles: list[Rectangle]  # Rectangles of the module (if defined)
     # Total area of the rectangles (negative if not calculated).
     _area_rectangles: float
+    _pin_length: float  # Length of the IO pin (negative if not defined)
 
-    # Allocation of regions. This dictionary receives the name of a rectangle
-    # (from the die) as key and stores the ratio of occupation of the
-    # rectangle by the module (a value in [0,1]).
-
-    def __init__(self, name: str, **kwargs):
+    def __init__(self, name: str, **kwargs: dict[str, Any]):
         """
         Constructor
         :param kwargs: name (str), center (Point), aspect_ratio (AspectRatio),
                        area (float or dict),
-        hard (boolean), fixed (boolean), terminal (boolean)
+        hard (boolean), fixed (boolean), IO pin (boolean)
         """
         self._name = name
         self._center = None
         self._aspect_ratio = None
-        self._terminal = False
+        self._iopin = False
         self._hard = False
         self._fixed = False
         self._flip = False
         self._area_regions = {}
-        self._total_area = -1
+        self._total_area = -1.0
         self._rectangles = list[Rectangle]()
-        self._area_rectangles = -1
+        self._area_rectangles = -1.0
+        self._pin_length = -1.0
 
+        self._read_parameters(name, kwargs)
+        self._check_consistency(kwargs)
+
+    def _read_parameters(self, name: str, kwargs: dict[str, Any]) -> None:
+        """Parsers the information of a module"""
+
+        # Check the name
         assert valid_identifier(name), "Incorrect module name"
+
+        # Check that all boolean attributes, if present, are true (no false values allowed)
+        for key, value in kwargs.items():
+            if key in [KW.FIXED, KW.HARD, KW.FLIP, KW.IO_PIN]:
+                assert isinstance(value, bool) and value, (
+                    f"Module {name}: {key} must be true"
+                )
 
         # Reading parameters and type checking
         for key, value in kwargs.items():
@@ -73,59 +85,113 @@ class Module:
                     )
                     self._center = value
                 case KW.ASPECT_RATIO:
-                    assert isinstance(value, AspectRatio), (
-                        f"Module {name}: incorrect aspect ratio"
-                    )
-                    assert 0 <= value.min_wh <= 1.0, (
-                        f"Module {name}: incorrect aspect ratio"
-                    )
-                    assert value.max_wh >= 1.0, f"Module {name}: incorrect aspect ratio"
+                    assert (
+                        isinstance(value, AspectRatio)
+                        and 0 <= value.min_wh <= 1.0
+                        and value.max_wh >= 1.0
+                    ), f"Module {name}: incorrect aspect ratio"
                     self._aspect_ratio = value
                 case KW.AREA:
                     self._area_regions = self._read_region_area(value)
-                case KW.FIXED:
-                    assert isinstance(value, bool), (
-                        f"Module {name}: incorrect value for fixed (should be a boolean)"
+                case KW.LENGTH:
+                    assert isinstance(value, (int, float)) and value >= 0, (
+                        f"Module {name}: incorrect value for length (should be a non-negative number)"
                     )
-                    self._fixed = value
-                    self._hard = value
+                    self._pin_length = float(value)
+                case KW.FIXED:
+                    self._fixed = self._hard = value
                 case KW.HARD:
                     assert KW.FIXED not in kwargs, (
                         f"Module {name}: {KW.FIXED} and {KW.HARD} are mutually exclusive"
                     )
-                    assert isinstance(value, bool), (
-                        f"Module {name}: incorrect value for hard (should be a boolean)"
-                    )
                     self._hard = value
                 case KW.FLIP:
-                    assert isinstance(value, bool), (
-                        f"Module {name}: incorrect value for flip (should be a boolean)"
-                    )
                     self._flip = value
-                case KW.TERMINAL:
+                case KW.IO_PIN:
                     assert KW.AREA not in kwargs, (
-                        f"Module {name}: terminal cannot have area"
+                        f"Module {name}: IO pin must have length"
                     )
                     assert KW.ASPECT_RATIO not in kwargs, (
-                        f"Module {name}: terminal cannot have aspect ratio"
+                        f"Module {name}: IO pin cannot have aspect ratio"
                     )
                     assert KW.FLIP not in kwargs, (
-                        f"Module {name}: terminal cannot have flip attribute"
+                        f"Module {name}: IO pin cannot have flip attribute"
                     )
-                    assert isinstance(value, bool), (
-                        f"Module {name}: incorrect value for terminal (should be a boolean)"
-                    )
-                    self._terminal = value
-                    self._hard = True
+                    self._iopin = value
+                case KW.RECTANGLES:
+                    for r in value:
+                        assert isinstance(r, Rectangle), (
+                            f"Module {name}: incorrect rectangle {r}"
+                        )
+                        self.add_rectangle(r)
                 case _:
                     raise Exception(f"Module {name}: unknown module attribute")
 
-        assert not self.is_hard or self.aspect_ratio is None, (
-            f"Module {name}: aspect ratio incompatible with hard or fixed module"
+    def _check_consistency(self, kwargs: dict[str, Any]) -> None:
+        """Checks the consistency of the module"""
+
+        modtype = "IO pin" if self.is_iopin else "module"
+
+        # Check for a lot of inconsistencies
+
+        # Blocks should have either center or rectangles, but not both
+        assert self.num_rectangles == 0 or self.center is None, (
+            f"Inconsistent {modtype} {self.name}. It cannot have both center and rectangles."
         )
 
-        assert not self.is_terminal or not self.is_fixed or self.center is not None, (
-            f"Module {name}: a fixed terminal must have coordinates (center)."
+        # calculate center from rectangles
+        if self.num_rectangles > 0:
+            self.calculate_center_from_rectangles()
+
+        # Check that hard blocks do not have area/length, aspect ratio and center
+        # They should only have rectangles
+        if self.is_hard:
+            for key in kwargs:
+                if key in [KW.AREA, KW.LENGTH, KW.CENTER, KW.ASPECT_RATIO]:
+                    raise Exception(
+                        f"Inconsistent hard {modtype} {self.name}. It cannot define {key}."
+                    )
+            assert KW.RECTANGLES in kwargs, (
+                f"Inconsistent hard {modtype} {self.name}. It must have at least one rectangle."
+            )
+
+        if not self.is_iopin:
+            # If it is not an IO pin, it cannot have length
+            assert self._pin_length < 0, (
+                f"Inconsistent module {self.name}. It cannot define length."
+            )
+
+        if self.is_fixed:
+            # Fixed ==> Cannot be flipped
+            assert not self.flip, (
+                f"Inconsistent fixed module {self.name}. It cannot be flipped."
+            )
+
+        if self.flip:
+            # Only non-fixed hard modules can be flipped
+            assert self.is_hard and not self.is_fixed, (
+                f"Inconsistent flipped module {self.name}. It must be a hard and non-fixed module."
+            )
+
+        if self.is_hard:
+            # Calculate the area of hard modules or length of IO pins
+            if self.is_iopin:
+                for r in self.rectangles:
+                    assert r.is_line, (
+                        f"IO pin {self.name} must be a line, but rectangle {r} is not."
+                    )
+                self._pin_length = sum(r.length for r in self.rectangles)
+            else:
+                area = sum(r.area for r in self.rectangles)
+                self._area_regions = {KW.GROUND: area}
+                self._total_area = area
+
+        # Soft modules must define area or length
+        area_length_defined = (
+            self.pin_length >= 0 if self.is_iopin else len(self.area_regions) > 0
+        )
+        assert self.is_hard or area_length_defined, (
+            f"No area/length defined for soft {modtype} {self.name}."
         )
 
     def __hash__(self) -> int:
@@ -143,6 +209,7 @@ class Module:
     # Getter and setter for center
     @property
     def center(self) -> Optional[Point]:
+        """Returns the center of the module"""
         return self._center
 
     @center.setter
@@ -159,12 +226,12 @@ class Module:
         self._aspect_ratio = ar
 
     @property
-    def is_terminal(self) -> bool:
-        return self._terminal
+    def is_iopin(self) -> bool:
+        return self._iopin
 
-    @is_terminal.setter
-    def is_terminal(self, value: bool) -> None:
-        self._terminal = value
+    @is_iopin.setter
+    def is_iopin(self, value: bool) -> None:
+        self._iopin = value
 
     @property
     def is_hard(self) -> bool:
@@ -194,9 +261,10 @@ class Module:
         return self._flip
 
     # Getters for area
-    def area(self, region: str | None = None) -> float:
+    def area(self, region: Optional[str] = None) -> float:
         """Returns the area of a module associated to a region.
         If no region is specified, the total area is returned."""
+        assert not self.is_iopin, f"Module {self.name} is an IO pin, so it has no area"
         if region is None:
             if self._total_area < 0:
                 self._total_area = sum(self._area_regions.values())
@@ -209,6 +277,14 @@ class Module:
     def area_regions(self) -> dict[str, float]:
         """Returns the dictionary of regions and associated areas."""
         return self._area_regions
+
+    @property
+    def pin_length(self) -> float:
+        """Returns the length of the IO pin (if it is an IO pin)"""
+        assert self.is_iopin, (
+            f"Module {self.name} is not an IO pin, so it has no length"
+        )
+        return self._pin_length
 
     @property
     def num_rectangles(self) -> int:
@@ -273,57 +349,6 @@ class Module:
             dict_area[region] = float(a)
         return dict_area
 
-    def setup(self) -> None:
-        """
-        Checking the consistency of the module. No area must have been defined
-        for hard/fixed modules. For soft blocks, the area must have been
-        defined. The rectangles for hard modules must not overlap.
-        The first rectangle of hard blocks must be the trunk
-        """
-
-        assert not (self.is_fixed and not self.is_hard), (
-            f"Inconsistent fixed module {self.name}. It should be also hard."
-        )
-
-        assert not (self.flip and self.is_fixed), (
-            f"Fixed module {self.name} cannot be flipped."
-        )
-        assert not (self.flip and not self.is_hard), (
-            f"Soft module {self.name} cannot be flipped."
-        )
-
-        area_defined = len(self.area_regions) > 0
-        assert self.is_hard or area_defined, (
-            f"No area defined for a soft module {self.name}."
-        )
-
-        # terminal implies hard
-        assert not self.is_terminal or self.is_hard, (
-            f"Terminal module {self.name} is not hard."
-        )
-
-        if self.is_hard:
-            # Check that neither area, nor center nor min_shape are defined.
-            # It also checks that at least has one rectangle
-            assert not area_defined, (
-                f"Inconsistent hard module {self.name}: cannot specify area."
-            )
-            assert self.center is None or self.is_terminal, (
-                f"Inconsistent hard module {self.name}: cannot specify center."
-            )
-            assert self.aspect_ratio is None, (
-                f"Inconsistent hard module {self.name}: cannot specify aspect ratio."
-            )
-            assert self.is_terminal or self.num_rectangles > 0, (
-                f"Inconsistent hard module {self.name}: must have at least "
-                f"one rectangle or be a terminal."
-            )
-
-            # Calculate the area of hard modules
-            area = sum(r.area for r in self.rectangles)
-            self._area_regions = {KW.GROUND: area}
-            self._total_area = area
-
     @property
     def has_strop(self) -> bool:
         """
@@ -338,20 +363,26 @@ class Module:
     def create_square(self) -> None:
         """
         Creates a square for the module with the total area
-        (and removes the previous rectangles)
+        (and removes the previous rectangles). For IO pins, it creates a point.
         """
         assert self.center is not None, (
             f"Cannot calculate square for module {self.name}. Missing center."
         )
+
+        if self.is_iopin:
+            # For IO pins, it creates a point
+            self._rectangles = [
+                Rectangle(**{KW.CENTER: self.center, KW.SHAPE: Shape(0, 0)})
+            ]
+            return
         area = self.area()
         assert area >= 0, (
             f"Cannot calculate square for module {self.name}. Area is zero."
         )
         side = math.sqrt(area)
-        self._rectangles = list[Rectangle]()
-        self.add_rectangle(
+        self._rectangles = [
             Rectangle(**{KW.CENTER: self.center, KW.SHAPE: Shape(side, side)})
-        )
+        ]
 
     def create_strop(self) -> bool:
         """
@@ -368,16 +399,23 @@ class Module:
         """
         Calculates the center from the rectangles.
         It raises an exception in case there are no rectangles.
-        :return: the center of the module .
+        :return: the center of the module.
         """
         assert self.num_rectangles > 0, f"No rectangles in module {self.name}"
-        sum_x, sum_y, area = 0.0, 0.0, 0.0
+        sum_x, sum_y, total_area = 0.0, 0.0, 0.0
+        # Special case: just one rectangle (possibly a pin with zero area)
+        if self.num_rectangles == 1:
+            self.center = self.rectangles[0].center
+            return self.center
+
+        # General case: multiple rectangles
         for r in self.rectangles:
-            sum_x += r.area * r.center.x
-            sum_y += r.area * r.center.y
-            area += r.area
-        self.center = Point(sum_x / area, sum_y / area)
-        assert isinstance(self.center, Point)  # just for type checking
+            area_length = r.length if r.is_line else r.area
+            sum_x += area_length * r.center.x
+            sum_y += area_length * r.center.y
+            total_area += area_length
+
+        self.center = Point(sum_x / total_area, sum_y / total_area)
         return self.center
 
     def __str__(self) -> str:

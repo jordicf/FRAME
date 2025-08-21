@@ -16,6 +16,7 @@ venv10
 /example_visuals
 
 ignore
+TODO
 tools/legalfloor/example_visuals/*
 tools/legalizer/example_visuals1/*
 
@@ -76,4 +77,8 @@ tools/legalfloor/.ipynb_checkpoints/ExampleModel-checkpoint.ipynb
 tools/legalfloor/.ipynb_checkpoints/flopt_experiment-checkpoint.ipynb
 tools/legalfloor/.ipynb_checkpoints/flopt_experiment-checkpoint.ipynb
 /nvenv/
+
+# Documentation files
 doc/Floorplan_picts.pptx
+doc/PinAssignment.pptx
+doc/Model.pptx

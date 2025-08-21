@@ -9,7 +9,6 @@ Some common utils to read/write files and handle identifiers and numbers
 
 import pathlib
 from enum import Enum
-import numbers
 import re
 from typing import Any, Optional
 import yaml
@@ -51,7 +50,7 @@ def is_number(n: Any) -> bool:
     :param n: the number.
     :return: True if it is a number, False otherwise.
     """
-    return isinstance(n, numbers.Real)
+    return isinstance(n, (int, float))
 
 
 def string_is_number(s: str) -> bool:

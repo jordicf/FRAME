@@ -133,7 +133,7 @@ def draw_solution3D(
             c = scale(m.center, scaling)
             cx = c.x * scaling.xscale
             cy = (total_im_h - c.y) * scaling.yscale
-            if m.is_terminal:
+            if m.is_iopin:
                 p = Circle(
                     (cx, cy),
                     4 * total_im_h / len(module2color),

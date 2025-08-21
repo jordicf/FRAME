@@ -3,7 +3,7 @@
 # Orthogonal polygons
 **Author:** [Jordi Cortadella](https://www.cs.upc.edu/~jordicf)
 
-**Date:** August 25th, 2022
+**Date:** August 20th, 2025
 
 ---
 

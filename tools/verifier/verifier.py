@@ -41,7 +41,7 @@ def shape_check(m1: Module, m2: Module, epsilon: float):
     if t1 == "hard" or t1 == "fixed":
         a1 = m1.rectangles[0]
         a2 = m2.rectangles[0]
-        for i in range(0, len(m1.rectangles)):
+        for i in range(0, m1.num_rectangles):
             r1 = m1.rectangles[i]
             r2 = m2.rectangles[i]
             if abs((r1.center.x - a1.center.x) - (r2.center.x - a2.center.x)) > epsilon or \

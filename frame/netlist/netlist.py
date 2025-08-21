@@ -14,7 +14,7 @@ from frame.netlist.module import Module
 from frame.netlist.netlist_types import HyperEdge, NamedHyperEdge
 from frame.netlist.yaml_read_netlist import parse_yaml_netlist
 from frame.netlist.yaml_write_netlist import dump_yaml_modules, dump_yaml_edges
-from frame.geometry.geometry import Rectangle, parse_yaml_rectangle
+from frame.geometry.geometry import Rectangle
 from frame.utils.keywords import KW
 from frame.utils.utils import write_json_yaml, Python_object
 
@@ -212,12 +212,9 @@ class Netlist:
         smallest_distance = math.inf
         for m in self.modules:
             assert (
-                m.is_terminal
-                or m.is_soft
-                or m.center is not None
-                or m.num_rectangles > 0
+                m.is_iopin or m.is_soft or m.center is not None or m.num_rectangles > 0
             ), f"Module {m.name} is hard and has neither center nor rectangles"
-            if m.is_hard and not m.is_terminal and m.num_rectangles == 0:
+            if m.is_hard and not m.is_iopin and m.num_rectangles == 0:
                 m.create_square()
             if m.num_rectangles > 0:
                 m.calculate_center_from_rectangles()
@@ -227,14 +224,14 @@ class Netlist:
             for r in self.rectangles:
                 smallest_distance = min(smallest_distance, r.shape.w, r.shape.h)
             for m in self.modules:
-                a = m.area()
+                a = m.area() if not m.is_iopin else 0
                 if a > 0:
                     smallest_distance = min(smallest_distance, math.sqrt(a))
             Rectangle.set_epsilon(smallest_distance * 1e-12)
 
         # Check that hard modules have non-overlapping rectangles.
         for m in self.modules:
-            if m.is_hard and not m.is_terminal:
+            if m.is_hard and not m.is_iopin:
                 for r1, r2 in combinations(m.rectangles, 2):
                     assert not r1.overlap(r2), (
                         f"Inconsistent hard module {m.name}: overlapping rectangles."

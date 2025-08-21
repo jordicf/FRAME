@@ -12,7 +12,7 @@ from itertools import combinations
 from typing import Set, Deque, Any, Optional
 from dataclasses import dataclass
 
-from .yaml_parse_die import parse_yaml_die
+from .yaml_parse_die import parse_yaml_die, IOsegments
 from frame.geometry.geometry import (
     Shape,
     Rectangle,
@@ -59,6 +59,7 @@ class Die:
     # List of ground regions (not covered by fixed rectangles)
     _ground_regions: list[Rectangle]
     _blockages: list[Rectangle]  # List of blockages
+    _io_segments: Optional[IOsegments]  # List of IO segments (pin arrays)
     # List of fixed rectangles (obtained from a netlist)
     _fixed: list[Rectangle]
     _epsilon: float  # Precision when dealing with coordinates
@@ -70,13 +71,13 @@ class Die:
     def __init__(self, stream: str, netlist: Optional[Netlist] = None):
         """
         Constructor of a die from a file or from a string of text
-        :param stream: name of the YAML file (str) or handle to the file
+        :param stream: name of the JSON/YAML file (str) or text contents
         :param netlist: the netlist associated to the die
                         (necessary for fixed modules)
         """
         regions: list[Rectangle]
         self._netlist = netlist
-        self._die, regions = parse_yaml_die(stream)
+        self._die, regions, self._io_segments = parse_yaml_die(stream)
         self._epsilon = min(self.width, self.height) * 10e-12
         if not Rectangle.epsilon_defined():
             Rectangle.set_epsilon(self._epsilon)
@@ -101,6 +102,7 @@ class Die:
         self._calculate_cell_matrix()
         self._calculate_ground_rectangles()
         self._check_rectangles()
+        self._check_io_segments()
 
     @property
     def netlist(self) -> Netlist | None:
@@ -407,3 +409,21 @@ class Die:
         assert abs(area_rect - die.area) < self._epsilon, (
             "Incorrect total area of rectangles"
         )
+
+    def _check_io_segments(self) -> None:
+        """Checks that the IO segments are correct"""
+        if self._io_segments is None:
+            return  # No IO segments defined
+
+        # Check that we have a netlist where to find the IO pins
+        assert self._netlist is not None, "IO segments require a netlist"
+
+        # Check that all IO pins are defined in the netlist
+        for name in self._io_segments:
+            m = self._netlist.get_module(name)
+            assert m is not None, f"IO pin {name} not defined in the netlist"
+            assert m.is_iopin, f"Module {name} is not an IO pin"
+
+        for name, segments in self._io_segments.items():
+            for s in segments:
+                assert s.is_line, f"IO segment {s} for pin {name} is not a line"

@@ -40,7 +40,7 @@ def dump_yaml_module(module: Module) -> dict:
     :param module: a module
     :return: the data structure
     """
-    info = dict[str, float | bool | list | dict]()
+    info = dict[str, float | bool | list[Any] | dict[str, Any]]()
 
     # Dump all the information
     if not module.is_hard:
@@ -49,12 +49,14 @@ def dump_yaml_module(module: Module) -> dict:
         else:
             info[KW.AREA] = module.area()
 
-        if module.center is not None:
+        if module.center is not None and module.num_rectangles == 0:
             info[KW.CENTER] = [module.center.x, module.center.y]
 
         if module.aspect_ratio is not None:
             info[KW.ASPECT_RATIO] = [
-                module.aspect_ratio.min_wh, module.aspect_ratio.max_wh]
+                module.aspect_ratio.min_wh,
+                module.aspect_ratio.max_wh,
+            ]
 
     # If it is fixed, no need to say it is hard
     if module.is_fixed:
@@ -64,20 +66,19 @@ def dump_yaml_module(module: Module) -> dict:
 
     # In case it is a terminal, no need to say it is hard.
     # The terminal can be written (if it exists)
-    if module.is_terminal:
-        info[KW.TERMINAL] = True
+    if module.is_iopin:
+        info[KW.IO_PIN] = True
         info.pop(KW.HARD, None)
         if module.center is not None:
             info[KW.CENTER] = [module.center.x, module.center.y]
 
-    if len(module.rectangles) > 0:
+    if module.num_rectangles > 0:
         info[KW.RECTANGLES] = dump_yaml_rectangles(module.rectangles)
 
     return info
 
 
-def dump_yaml_rectangles(rectangles: list[Rectangle]) \
-        -> list[list[float | str]]:
+def dump_yaml_rectangles(rectangles: list[Rectangle]) -> list[list[float | str]]:
     """
     Generates a list of rectangles to be dumped in YAML
     :param rectangles: list of rectangles
@@ -85,8 +86,7 @@ def dump_yaml_rectangles(rectangles: list[Rectangle]) \
     """
     rects = list[list[float | str]]()
     for r in rectangles:
-        list_rect: list[float | str] = [
-            r.center.x, r.center.y, r.shape.w, r.shape.h]
+        list_rect: list[float | str] = [r.center.x, r.center.y, r.shape.w, r.shape.h]
         if r.region != KW.GROUND:
             list_rect.append(r.region)
         rects.append(list_rect)

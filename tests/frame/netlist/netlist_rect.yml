@@ -20,16 +20,19 @@ Modules: {
       hard: true
     },
     X: {
+      length: 0,
       center: [0, 4],
-      terminal: true
+      io_pin: true
     },
     Y: {
+      length: 0,
       center: [8, 10],
-      terminal: true
+      io_pin: true
     },
     Z: {
+      length: 0,
       center: [7, 0],
-      terminal: true
+      io_pin: true
     }
 }
 

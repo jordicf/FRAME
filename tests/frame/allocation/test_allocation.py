@@ -184,8 +184,7 @@ netlist1 = """
 Modules: {
   M1: {
     area: 18,
-    rectangles: [[3,3,6,3]],
-    fixed: false
+    rectangles: [[3,3,6,3]]
   },
   M2: {
     rectangles: [[4,2.5,4,5]],
@@ -205,8 +204,7 @@ netlist2 = """
 Modules: {
   M1: {
     area: 18,
-    rectangles: [[3,3,6,3]],
-    fixed: false
+    rectangles: [[3,3,6,3]]
   },
   M2: {
     rectangles: [[4,2.5,4,5]],
