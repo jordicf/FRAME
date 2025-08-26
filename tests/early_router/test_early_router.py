@@ -36,12 +36,12 @@ class TestEarlyRouter(unittest.TestCase):
                 'T0':
                 {
                     'center': [0.,0.],
-                    'terminal': True
+                    'io_pin': True
                 },
                 'T1':
                 {
                     'center': [3.,18.],
-                    'terminal': True
+                    'io_pin': True
                 }
             },
             'Nets':

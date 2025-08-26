@@ -230,8 +230,8 @@ class FeedThrough:
         if isinstance(input_data, Netlist):
             hanan_grid = HananGrid(input_data)
             self._graph = HananGraph3D(hanan_grid, lay, input_data, asap7=asap7)
-            self._m["n_terminals"] = len([1 for m in input_data.modules if m.is_iopin])
-            self._m["n_modules"] = input_data.num_modules - int(self._m["n_terminals"])
+            self._m["io_pins"] = len([1 for m in input_data.modules if m.is_iopin])
+            self._m["n_modules"] = input_data.num_modules - int(self._m['io_pins'])
         elif isinstance(input_data, HananGrid):
             hanan_grid = input_data
             self._graph = HananGraph3D(hanan_grid, layers=lay)
@@ -596,14 +596,14 @@ class FeedThrough:
                 source = self._graph.get_node(source_id)
                 if not source:
                     continue
-                elif self._graph.is_terminal(source):
+                elif self._graph.is_iopin(source):
                     # The capacity is not set beause it is infinity
                     continue
                 for target_id, e in self._graph.adjacent_list[source_id].items():
                     target = self._graph.get_node(target_id)
                     if not target:
                         continue
-                    elif target_id in visited or self._graph.is_terminal(target):
+                    elif target_id in visited or self._graph.is_iopin(target):
                         continue
                     vars1 = self._variables.get_variables(
                         edge_id=(source_id, target_id)

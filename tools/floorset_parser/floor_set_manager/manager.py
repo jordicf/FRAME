@@ -26,7 +26,7 @@ class FloorSetInstance():
     _d: float | None
     "Density Percentage"
     _modules: dict
-    "List of modules (blocks and terminals)"
+    "List of modules (blocks and io pins)"
     _nets: list[NamedHyperEdge]
     "List of edge connections"
     _width: float
@@ -34,14 +34,14 @@ class FloorSetInstance():
     _height: float
     "Die height"
 
-    def __init__(self, floorplan_data: dict[str,np.ndarray], density: float | None, terminals_as_modules: bool) -> None:
+    def __init__(self, floorplan_data: dict[str,np.ndarray], density: float | None, io_as_modules: bool) -> None:
         """
         :Args:
         :param dict[np.ndarray] floorplan_data: The raw floorplan data stored in a dictionary with keys: 
             ['area_blocks', 'b2b_connectivity', 'p2b_connectivity', 'pins_pos', 'placement_constraints',
             'vertex_blocks', 'b_tree', 'metrics']
         :param float density: A density percentage of the floorplan between 0 and 1. If None, no rescaling is made.
-        :param bool terminals_as_modules: whether store terminals pins as modules with rectangle of size 10^-3.
+        :param bool io_as_modules: whether store io pins as modules with rectangle of size 10^-3.
         """
 
         keys = ['area_blocks', 'b2b_connectivity', 'p2b_connectivity',
@@ -100,10 +100,10 @@ class FloorSetInstance():
             self._d = density
         self._alpha:float|None = None
 
-        self._parse_modules(terminals_as_modules)
+        self._parse_modules(io_as_modules)
         self._parse_connections()
 
-    def _parse_modules(self, terminals_as_modules: bool) -> None:
+    def _parse_modules(self, io_as_modules: bool) -> None:
         """
         Parse and initialize module data from the floorplan dataset.
 
@@ -153,7 +153,7 @@ class FloorSetInstance():
         for _id, pin_pos in enumerate(self._fp_data['pins_pos']):
             name = f"T{_id}"
             data = dict()
-            if terminals_as_modules:
+            if io_as_modules:
                 h = EPSILON
                 w = EPSILON
                 if float(pin_pos[0]) < EPSILON:
@@ -168,7 +168,7 @@ class FloorSetInstance():
                 data[KW.FIXED] = True
             else:
                 data[KW.CENTER] = [float(pin_pos[0]), float(pin_pos[1])]
-                data[KW.TERMINAL] = True
+                data[KW.IO_PIN] = True
 
             self._modules[name] = data
 

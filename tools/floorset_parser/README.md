@@ -16,7 +16,7 @@ The `floorplan_data` dictionary loaded from the FloorSet dataset folder is expec
    * Each row represents an edge as [pin, block, weight].
    * Values must be non-negative.
 
-- `pins_pos`: (n_pins, 2) ndarray representing the (x, y) coordinates of each pin or terminal. 
+- `pins_pos`: (n_pins, 2) ndarray representing the (x, y) coordinates of each pin or I/O pin. 
    * Values must be non-negative.
    * Each row corresponds to a pin location.
 

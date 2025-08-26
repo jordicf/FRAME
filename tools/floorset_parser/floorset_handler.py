@@ -66,9 +66,9 @@ def parse_options(prog: str | None = None, args: list[str] | None = None) -> dic
         help="Scaling factor for net weights (default: No changes)."
     )
     parser.add_argument(
-        "--store-terminals",
+        "--store-io-pins",
         action="store_true",
-        help="Store terminals as fixed modules instead of using a terminal flag"
+        help="Store IO pins as small fixed modules instead of using the io_pin flag"
     )
     return vars(parser.parse_args(args))
 
@@ -82,7 +82,7 @@ def main(prog: str | None = None, args: list[str] | None = None) -> None:
     outfilepath: str = options['output']
     density: float|None = options['connection_density']
     factor: float|None = options['scale_factor']
-    term2mod:bool = options['store_terminals']
+    term2mod:bool = options['store_io_pins']
 
     ds: Any
     if datasettype == "PrimeTraining":
@@ -145,7 +145,7 @@ def main(prog: str | None = None, args: list[str] | None = None) -> None:
                 'metrics': metrics
             } #TODO b_tree only for Lite Training
 
-            fp = FloorSetInstance(data, density, factor, term2mod)
+            fp = FloorSetInstance(data, density, term2mod)
 
             # Create a filename for the item
             filename = f"_{curr_id}"

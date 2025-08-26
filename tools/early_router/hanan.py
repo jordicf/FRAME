@@ -22,7 +22,7 @@ class HananCell:
 
 
 class HananGrid:
-    """Construct a Hanan Grid from a Netlist without considering the terminals
+    """Construct a Hanan Grid from a Netlist without considering the io pins
     or a list of hanancells"""
 
     _cells: dict[tuple[int, int], HananCell]
@@ -33,7 +33,7 @@ class HananGrid:
             x_coords = set()
             y_coords = set()
 
-            rectangles = netlist_or_cells.rectangles  # Terminals are not here
+            rectangles = netlist_or_cells.rectangles  # I/O pins are not here
 
             for r in rectangles:
                 # Add the two x and y coordinates
@@ -52,7 +52,7 @@ class HananGrid:
             # identified rectangle
             for m in netlist_or_cells.modules:
                 if m.is_iopin:
-                    # No cells involving terminals
+                    # No cells involving IO pins
                     # (created in the graph as nodes)
                     continue
 
@@ -230,7 +230,7 @@ class HananEdge3D:
 
 
 class HananGraph3D:
-    """Hanan Graph extended from a Hanan Grid, adding edges to adjacent cells and terminals.
+    """Hanan Graph extended from a Hanan Grid, adding edges to adjacent cells and I/O pins.
     Also, adds super nodes for each module"""
 
     _nodes: dict[NodeId, HananNode3D]
@@ -313,40 +313,40 @@ class HananGraph3D:
                             )
                         # No need to add target -> source, because we will visit target and it will be included
         if netlist:
-            self._add_terminals(netlist)
+            self._add_IO_pins(netlist)
 
     def __eq__(self, other) -> bool:
         if not isinstance(other, HananGraph3D):
             return NotImplemented
         return self._adj_list == other._adj_list
 
-    def _add_terminals(self, netlist: Netlist):
-        # Adding Terminals
+    def _add_IO_pins(self, netlist: Netlist):
+        # Adding IO pins
         t = 0
         for m in netlist.modules:
             if not m.center:
                 continue
             if m.is_iopin:
-                # Check module, Terminals always have a defined center
-                # Terminals are always on the lowest layer
-                terminal_id = (t, -1, 0)
-                terminal = HananNode3D(
-                    _id=terminal_id, center=m.center, modulename=m.name
+                # Check module, I/O pins always have a defined center
+                # I/O pins are always on the lowest layer
+                io_pin_id = (t, -1, 0)
+                io_node = HananNode3D(
+                    _id=io_pin_id, center=m.center, modulename=m.name
                 )
-                self._nodes[terminal_id] = terminal
+                self._nodes[io_pin_id] = io_node
                 t += 1
-                # Get the module that terminal is closest to, and create an edge
+                # Get the module that io_node is closest to, and create an edge
                 cell = self._hanan_grid.get_closest_cell_to_point(m.center)
                 if not cell:
                     continue
-                # Connect the terminal to all layers.
+                # Connect the io_node to all layers.
                 for layer_id in self._layers:
                     node_id = (cell._id[0], cell._id[1], layer_id)
-                    self._adj_list.setdefault(terminal_id, {})[node_id] = (
-                        self.add_edge3D(terminal_id, node_id, terminal=True)
+                    self._adj_list.setdefault(io_pin_id, {})[node_id] = (
+                        self.add_edge3D(io_pin_id, node_id, is_io=True)
                     )
-                    self._adj_list.setdefault(node_id, {})[terminal_id] = (
-                        self.add_edge3D(node_id, terminal_id, terminal=True)
+                    self._adj_list.setdefault(node_id, {})[io_pin_id] = (
+                        self.add_edge3D(node_id, io_pin_id, is_io=True)
                     )
 
     def add_edge3D(
@@ -354,7 +354,7 @@ class HananGraph3D:
         source_id: NodeId,
         target_id: NodeId,
         capacity: float = math.inf,
-        terminal: bool = False,
+        is_io: bool = False,
     ) -> HananEdge3D:
         source = self._nodes.get(source_id, None)
         target = self._nodes.get(target_id, None)
@@ -368,7 +368,7 @@ class HananGraph3D:
             length=l,
             capacity=capacity,
             crossing=source.modulename != target.modulename,
-            via=False if terminal else source_id[2] != target_id[2],
+            via=False if is_io else source_id[2] != target_id[2],
         )
         self._edges.append(edge)
         return edge
@@ -444,8 +444,8 @@ class HananGraph3D:
             "out": list(self._adj_list[node._id].values()),
         }
 
-    def is_terminal(self, node: HananNode3D) -> bool:
-        """Check if the node is a terminal"""
+    def is_iopin(self, node: HananNode3D) -> bool:
+        """Check if the node is an I/O pin"""
         return node._id[1] == -1
 
     def get_node(self, id: NodeId) -> HananNode3D | None:
@@ -481,11 +481,11 @@ class HananGraph3D:
 
         for m in net.modules:
             modules = self.get_nodes_by_modulename(m if isinstance(m, str) else m.name)
-            if any(self.is_terminal(n) for n in modules):
-                terminal = modules[0]
-                selected.append(terminal)
+            if any(self.is_iopin(n) for n in modules):
+                io_pin = modules[0]
+                selected.append(io_pin)
                 # Assuming one adjacent node
-                all_nodes.append([self.get_adj_nodes(terminal)[0]._id])
+                all_nodes.append([self.get_adj_nodes(io_pin)[0]._id])
             else:
                 # Only keep layer 0 for speed-up
                 all_nodes.append([n._id for n in modules if n._id[2] == 0])

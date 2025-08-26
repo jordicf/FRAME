@@ -578,7 +578,7 @@ def draw_congestion(
         else:
             lw = pct * math.sqrt(
                 scaling.xscale * scaling.yscale
-            )  # Probably a terminal connection and will be 0
+            )  # Probably a io_pin connection and will be 0
         lw = max(int(lw), 5)
 
         # Coordinates adjusted by frame
