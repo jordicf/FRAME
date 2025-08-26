@@ -7,7 +7,7 @@ import numpy as np
 import numpy.typing as npt
 from collections.abc import Iterable
 from dataclasses import dataclass
-from geometry import Point, Rectangle
+from frame.geometry.geometry import Point, Rectangle
 
 
 @dataclass
