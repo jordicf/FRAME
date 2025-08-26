@@ -119,7 +119,7 @@ class FloorSetInstance():
             vertices = vertices[vertices[:, 0] != -1]
             if len(vertices) > 1:  # Handling Prime FloorSet
                 data[KW.RECTANGLES] = strop_decomposition(vertices)
-                c = compute_centroid(data[KW.RECTANGLES])
+                #c = compute_centroid(data[KW.RECTANGLES])
             elif len(vertices) == 1:  # Handling Lite FloorSet
                 # In FloorSet a rectangle is stored as [w, h, x, y], where x,y
                 # is the low-left point. In FRAME rectangles are stored as [cx,cy,w,h],
@@ -128,7 +128,7 @@ class FloorSetInstance():
                 cy = float((vertices[3] + vertices[1]) / 2)
                 data[KW.RECTANGLES] = [cx, cy, float(
                     vertices[0]), float(vertices[1])]
-                c = Point(cx, cy)
+                #c = Point(cx, cy)
             else:
                 pass  # This should never happen
 
@@ -143,7 +143,7 @@ class FloorSetInstance():
                 data[KW.HARD] = True
             else:
                 data[KW.AREA] = float(self._fp_data['area_blocks'][mod_id])
-                data[KW.CENTER] = [c.x, c.y]
+                #data[KW.CENTER] = [c.x, c.y] # Blocks should have either center or rectangles, but not both
 
             self._modules[name] = data
 

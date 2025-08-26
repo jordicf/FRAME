@@ -17,7 +17,6 @@ class TestEarlyRouter(unittest.TestCase):
                 'M0':
                 {
                     'area': 65.0,
-                    'center': [4.5,6.5],
                     'rectangles':
                     [
                         [4.5,6.5,5,13]
@@ -26,7 +25,6 @@ class TestEarlyRouter(unittest.TestCase):
                 'M1':
                 {
                     'area': 68.0,
-                    'center': [5.91,14.04],
                     'rectangles':
                     [
                         [5,15.5,10,5],
