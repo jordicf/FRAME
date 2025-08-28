@@ -33,14 +33,16 @@ class HananGrid:
             x_coords = set()
             y_coords = set()
 
-            rectangles = netlist_or_cells.rectangles  # I/O pins are not here
-
-            for r in rectangles:
+            for m in netlist_or_cells.modules:
+                if m.is_iopin:
+                    # (created in the graph as nodes)
+                    continue
+                for r in m.rectangles:
                 # Add the two x and y coordinates
-                x_coords.add(r.bounding_box.ll.x)
-                x_coords.add(r.bounding_box.ur.x)
-                y_coords.add(r.bounding_box.ll.y)
-                y_coords.add(r.bounding_box.ur.y)
+                    x_coords.add(r.bounding_box.ll.x)
+                    x_coords.add(r.bounding_box.ur.x)
+                    y_coords.add(r.bounding_box.ll.y)
+                    y_coords.add(r.bounding_box.ur.y)
 
             xcoords2pos = {x: i for i, x in enumerate(sorted(list(x_coords)))}
             xpos2coords = {i: x for i, x in enumerate(sorted(list(x_coords)))}

@@ -268,14 +268,20 @@ class TestFloorSetInstance(unittest.TestCase):
             # num_p2b_nets, num_hardconstraints, b2b_weighted_wl, p2b_weighted_wl]
         }
         self.pol = [Point(x,y) for x,y in list(self.data['vertex_blocks'][17]) if x != -1 and y != -1]
-        self.recs = fun.strop_decomposition(self.pol)
+        self.recs = fun.rectangle_decomposition(self.pol)
     
-    def test_strop_decomposition(self):
-        self.assertListEqual(self.recs, [[116.0, 56.0, 72.0, 16.0], [140.0, 80.0, 24.0, 32.0]])
+    def test_rectangle_decomposition(self):
+        self.assertListEqual(self.recs, [[140.0, 80.0, 24.0, 32.0], [104.0, 56.0, 48.0, 16.0], [140.0, 56.0, 24.0, 16.0]])
 
-    def test_floorsetinstance_netlist(self, d:float|None=None, t:bool=False):
-        fs = FloorSetInstance(self.data, d, t)
+    def test_floorsetinstance_netlist(self, d:float|None=None):
+        # I/O as fixed
+        fs = FloorSetInstance(self.data, d)
         txt_yaml:str = str(fs.write_yaml_FPEF())
+        self.assertIsNotNone(txt_yaml)
+        Netlist(txt_yaml)
+        # I/O as soft
+        fs = FloorSetInstance(self.data, d, True)
+        txt_yaml = str(fs.write_yaml_FPEF())
         self.assertIsNotNone(txt_yaml)
         Netlist(txt_yaml)
 

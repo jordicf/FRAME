@@ -4,7 +4,7 @@
 
 import numpy as np
 from tools.floorset_parser.floor_set_manager.utils.utils import compute_centroid, compute_perimeter, weight_sum, \
-    strop_decomposition
+    rectangle_decomposition
 from frame.netlist.yaml_write_netlist import dump_yaml_namededges
 from frame.utils.utils import write_json_yaml
 from frame.utils.keywords import KW
@@ -12,9 +12,6 @@ from frame.utils.keywords import KW
 from frame.geometry.geometry import Point  # check if it is the same
 from frame.netlist.netlist_types import NamedHyperEdge
 from typing import Any
-
-
-EPSILON = 1e-3
 
 
 class FloorSetInstance():
@@ -34,14 +31,14 @@ class FloorSetInstance():
     _height: float
     "Die height"
 
-    def __init__(self, floorplan_data: dict[str,np.ndarray], density: float | None, io_as_modules: bool) -> None:
+    def __init__(self, floorplan_data: dict[str,np.ndarray], density: float | None, io_soft: bool = False) -> None:
         """
         :Args:
         :param dict[np.ndarray] floorplan_data: The raw floorplan data stored in a dictionary with keys: 
             ['area_blocks', 'b2b_connectivity', 'p2b_connectivity', 'pins_pos', 'placement_constraints',
             'vertex_blocks', 'b_tree', 'metrics']
         :param float density: A density percentage of the floorplan between 0 and 1. If None, no rescaling is made.
-        :param bool io_as_modules: whether store io pins as modules with rectangle of size 10^-3.
+        :param bool io_soft: whether store io pins as soft modules or as fixed (default).
         """
 
         keys = ['area_blocks', 'b2b_connectivity', 'p2b_connectivity',
@@ -100,10 +97,10 @@ class FloorSetInstance():
             self._d = density
         self._alpha:float|None = None
 
-        self._parse_modules(io_as_modules)
+        self._parse_modules(io_soft)
         self._parse_connections()
 
-    def _parse_modules(self, io_as_modules: bool) -> None:
+    def _parse_modules(self, io_soft: bool) -> None:
         """
         Parse and initialize module data from the floorplan dataset.
 
@@ -118,7 +115,7 @@ class FloorSetInstance():
             vertices = self._fp_data['vertex_blocks'][mod_id]
             vertices = vertices[vertices[:, 0] != -1]
             if len(vertices) > 1:  # Handling Prime FloorSet
-                data[KW.RECTANGLES] = strop_decomposition(vertices)
+                data[KW.RECTANGLES] = rectangle_decomposition(vertices)
                 #c = compute_centroid(data[KW.RECTANGLES])
             elif len(vertices) == 1:  # Handling Lite FloorSet
                 # In FloorSet a rectangle is stored as [w, h, x, y], where x,y
@@ -153,22 +150,12 @@ class FloorSetInstance():
         for _id, pin_pos in enumerate(self._fp_data['pins_pos']):
             name = f"T{_id}"
             data = dict()
-            if io_as_modules:
-                h = EPSILON
-                w = EPSILON
-                if float(pin_pos[0]) < EPSILON:
-                    x = float(pin_pos[0]) + EPSILON
-                elif float(pin_pos[0]) >= shape_x + EPSILON:
-                    x = float(pin_pos[0]) - EPSILON
-                if float(pin_pos[1]) < EPSILON:
-                    y = float(pin_pos[1]) + EPSILON
-                elif float(pin_pos[1]) >= shape_y + EPSILON:
-                    y = float(pin_pos[1]) - EPSILON
-                data[KW.RECTANGLES] = [x, y, w, h]
-                data[KW.FIXED] = True
+            data[KW.RECTANGLES] = [float(pin_pos[0]), float(pin_pos[1]),0,0]
+            data[KW.IO_PIN] = True
+            if io_soft:
+                data[KW.LENGTH] = 0
             else:
-                data[KW.CENTER] = [float(pin_pos[0]), float(pin_pos[1])]
-                data[KW.IO_PIN] = True
+                data[KW.FIXED] = True
 
             self._modules[name] = data
 

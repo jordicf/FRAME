@@ -7,7 +7,7 @@ from tools.early_router.build_model import FeedThrough
 from tools.early_router.hanan import HananGrid, HananGraph3D, HananCell, manhattan_dist, Layer, HananEdge3D, HananNode3D
 from frame.geometry.geometry import Point, Shape
 from frame.netlist.netlist import Netlist
-from ruamel.yaml import YAML
+import yaml
 
 class TestEarlyRouter(unittest.TestCase):
     def setUp(self):
@@ -34,12 +34,16 @@ class TestEarlyRouter(unittest.TestCase):
                 'T0':
                 {
                     'center': [0.,0.],
-                    'io_pin': True
+                    'io_pin': True,
+                    'length': 0.
                 },
                 'T1':
                 {
-                    'center': [3.,18.],
-                    'io_pin': True
+                    'rectangles': [
+                        [3.,18.,0.,0.]
+                    ],
+                    'io_pin': True,
+                    'fixed': True
                 }
             },
             'Nets':
@@ -49,7 +53,7 @@ class TestEarlyRouter(unittest.TestCase):
                 ['T1', 'M0', 256.]
             ]
         }
-        yaml_txt = YAML.dump(data, sort_keys=False)
+        yaml_txt = yaml.dump(data)
         self.fp_with_blanks = Netlist(yaml_txt)
         #from tools.draw.draw import get_floorplan_plot
         #get_floorplan_plot(self.fp_with_blanks, Shape(10,18)).save("./tests/early_router/test.png")
