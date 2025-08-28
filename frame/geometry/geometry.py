@@ -223,8 +223,8 @@ class Rectangle:
     def __init__(self, **kwargs: Any):
         """
         Constructor
-        :param kwargs: center (Point), shape (Shape), fixed (bool),
-                       hard (bool), region (str), name (str)
+        :param kwargs: center (Point), shape (Shape), ll (Point), ur (Point),
+                       fixed (bool), hard (bool), region (str), name (str)
         """
 
         # Attributes
