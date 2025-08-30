@@ -5,7 +5,6 @@ import urllib.request as ur
 import tarfile
 import numpy as np
 import math
-from frame.geometry.strop import Polygon
 from frame.geometry.geometry import Point
 
 
@@ -170,18 +169,20 @@ def compute_perimeter(vertices: PointSequence) -> float:
     for i in range(len(vertices) - 1):
         p1 = vertices[i]
         p2 = vertices[i + 1]
-        if isinstance(p1, Point):
+        if isinstance(p1, Point) and isinstance(p2, Point):
             distance = math.sqrt((p2.x - p1.x) ** 2 + (p2.y - p1.y) ** 2)
-        else:
+        elif isinstance(p1, np.ndarray) and isinstance(p2, np.ndarray):
             distance = math.sqrt((p2[0] - p1[0]) ** 2 + (p2[1] - p1[1]) ** 2)
+        else:
+            distance = 0
         perimeter += distance
 
     return float(perimeter)
 
 
-def strop_decomposition(vertices: PointSequence) -> list[Rectangle]:
+def rectangle_decomposition(vertices: PointSequence) -> list[Rectangle]:
     """
-    Decomposes a polygon into Single-Trunk-Rectilinear-Orthogonal-Polygons.
+    Decomposes a polygon into rectangles by iterating over the x and y axis.
 
     Args:
         vertices: List of dataclass Point or numpy.ndarray [p1, p2, ...]
@@ -202,7 +203,6 @@ def strop_decomposition(vertices: PointSequence) -> list[Rectangle]:
     cols = len(x_coords) - 1
 
     # Check each rectangle defined by consecutive x and y intervals
-    m = np.zeros((rows, cols), dtype=int)
     for i in range(rows):
         for j in range(cols):
             # Define the rectangle bounds
@@ -211,22 +211,11 @@ def strop_decomposition(vertices: PointSequence) -> list[Rectangle]:
             # Determine the center of the rectangle
             center_x = float((x_min + x_max) / 2)
             center_y = float((y_min + y_max) / 2)
+            w = x_max - x_min
+            h = y_max - y_min
             # Check if the center is inside the polygon
             if is_point_inside_polygon(Point(center_x, center_y), vertices):
-                m[i,j] = 1
-
-    s = Polygon(m)
-    assert len(s.instances) > 0, f"Polygon has no STROPs {vertices}"
-    sol = s.instances[0]
-    # Extract rectangles from the STROP instance
-    for r in sol.rectangles():
-        x_min, x_max = x_coords[r.columns.low], x_coords[r.columns.high + 1]
-        y_max, y_min = y_coords[r._rows.low], y_coords[r._rows.high + 1]
-        cx = (x_min + x_max) / 2
-        cy = (y_min + y_max) / 2
-        w = x_max - x_min
-        h = y_max - y_min
-        rectangles.append([float(cx), float(cy), float(w), float(h)])
+                rectangles.append([float(center_x), float(center_y), float(w), float(h)])
 
     return rectangles
 
