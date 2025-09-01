@@ -121,7 +121,7 @@ class FloorplanDatasetLite(Dataset):
             metrics_sol = self.cached_input_file_contents[6][layout_idx]
 
             input_data = (area_target, b2b_connectivity, p2b_connectivity, pins_pos, placement_constraints)
-            label_data = (tree_sol, fp_sol, metrics_sol)
-            sample = {'input': input_data, 'label': label_data}
+            label_data2 = (tree_sol, fp_sol, metrics_sol)
+            sample = {'input': input_data, 'label': label_data2}
             return sample
     
