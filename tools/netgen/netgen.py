@@ -11,7 +11,7 @@ from ruamel.yaml import YAML
 
 from frame.die.die import Die
 from frame.geometry.geometry import Shape
-from frame.utils.keywords import KW_MODULES, KW_NETS, KW_AREA, KW_CENTER
+from frame.utils.keywords import KW
 
 
 def parse_options(prog: str | None = None, args: list[str] | None = None) -> dict[str, Any]:
@@ -114,10 +114,10 @@ def gen_modules(area: float, rows: int, columns: int = 0,
     :return: the dictionary of modules
     """
     if columns <= 0:
-        return {module_name(r): {KW_AREA: area} for r in range(rows)}
+        return {module_name(r): {KW.AREA: area} for r in range(rows)}
 
     modules: dict[str, dict[str, float | list[float]]] = \
-        {module_name(r, c): {KW_AREA: area} for r in range(rows) for c in range(columns)}
+        {module_name(r, c): {KW.AREA: area} for r in range(rows) for c in range(columns)}
 
     if add_centers:
         assert die_shape is not None
@@ -125,7 +125,7 @@ def gen_modules(area: float, rows: int, columns: int = 0,
         y_offset = die_shape.h / rows
         for r in range(rows):
             for c in range(columns):
-                modules[module_name(r, c)][KW_CENTER] = [(0.5 + c) * x_offset + random.gauss(0, sd),
+                modules[module_name(r, c)][KW.CENTER] = [(0.5 + c) * x_offset + random.gauss(0, sd),
                                                          (0.5 + r) * y_offset + random.gauss(0, sd)]
 
     return modules
@@ -147,7 +147,7 @@ def gen_grid(rows: int, columns: int, area: float,
     modules = gen_modules(area, rows, columns, add_centers, sd, die_shape)
     horiz_edges = [[module_name(r, c), module_name(r, c + 1)] for r in range(rows) for c in range(columns - 1)]
     vert_edges = [[module_name(r, c), module_name(r + 1, c)] for r in range(rows - 1) for c in range(columns)]
-    return {KW_MODULES: modules, KW_NETS: [*horiz_edges, *vert_edges]}
+    return {KW.MODULES: modules, KW.NETS: [*horiz_edges, *vert_edges]}
 
 
 def gen_chain(n: int, area: float) -> dict[str, Any]:
@@ -159,7 +159,7 @@ def gen_chain(n: int, area: float) -> dict[str, Any]:
     """
     modules = gen_modules(area, n)
     edges = [[module_name(i), module_name(i + 1)] for i in range(n - 1)]
-    return {KW_MODULES: modules, KW_NETS: edges}
+    return {KW.MODULES: modules, KW.NETS: edges}
 
 
 def gen_ring(n: int, area: float) -> dict[str, Any]:
@@ -171,7 +171,7 @@ def gen_ring(n: int, area: float) -> dict[str, Any]:
     """
     modules = gen_modules(area, n)
     edges = [[module_name(i), module_name((i + 1) % n)] for i in range(n)]
-    return {KW_MODULES: modules, KW_NETS: edges}
+    return {KW.MODULES: modules, KW.NETS: edges}
 
 
 def gen_one_net(n: int, area: float) -> dict[str, Any]:
@@ -183,7 +183,7 @@ def gen_one_net(n: int, area: float) -> dict[str, Any]:
     """
     modules = gen_modules(area, n)
     edges = [[module_name(i) for i in range(n)]]
-    return {KW_MODULES: modules, KW_NETS: edges}
+    return {KW.MODULES: modules, KW.NETS: edges}
 
 
 def gen_star(n: int, area: float) -> dict[str, Any]:
@@ -195,7 +195,7 @@ def gen_star(n: int, area: float) -> dict[str, Any]:
     """
     modules = gen_modules(area, n)
     edges = [[module_name(0), module_name(i)] for i in range(1, n)]
-    return {KW_MODULES: modules, KW_NETS: edges}
+    return {KW.MODULES: modules, KW.NETS: edges}
 
 
 def gen_ring_star(n: int, area: float) -> dict[str, Any]:
@@ -209,7 +209,7 @@ def gen_ring_star(n: int, area: float) -> dict[str, Any]:
     edges_ring = [[module_name(i), module_name(i + 1)] for i in range(1, n - 1)] + [
         [module_name(n - 1), module_name(1)]]
     edge_star = [[module_name(0), module_name(i)] for i in range(1, n)]
-    return {KW_MODULES: modules, KW_NETS: edges_ring + edge_star}
+    return {KW.MODULES: modules, KW.NETS: edges_ring + edge_star}
 
 
 def gen_htree(nlevels: int, area: float) -> dict[str, Any]:
@@ -220,7 +220,7 @@ def gen_htree(nlevels: int, area: float) -> dict[str, Any]:
     :return: a dictionary of the modules and the edges
     """
     modules, edges, i = gen_htree_rec(nlevels, area, 1.0, 0)
-    return {KW_MODULES: modules, KW_NETS: edges}
+    return {KW.MODULES: modules, KW.NETS: edges}
 
 
 def gen_htree_rec(nlevels: int, area: float, weight: float, first_module: int)\
@@ -235,14 +235,14 @@ def gen_htree_rec(nlevels: int, area: float, weight: float, first_module: int)\
     """
     assert nlevels > 0
     name_center = module_name(first_module)
-    modules = {name_center: {KW_AREA: area}}
+    modules = {name_center: {KW.AREA: area}}
     edges: list[list[str | float]] = []
     if nlevels == 1:
         return modules, [], first_module + 1
 
     name_left, name_right = module_name(first_module + 1), module_name(first_module + 2)
-    modules[name_left] = {KW_AREA: area}
-    modules[name_right] = {KW_AREA: area}
+    modules[name_left] = {KW.AREA: area}
+    modules[name_right] = {KW.AREA: area}
     edges.append([name_left, name_center, weight])
     edges.append([name_right, name_center, weight])
 
