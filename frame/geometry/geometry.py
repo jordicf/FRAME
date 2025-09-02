@@ -318,7 +318,7 @@ class Rectangle:
 
     @staticmethod
     def undefine_epsilon() -> None:
-        """Undefines epsilon for the class"""
+        """Invalidates epsilon for the class"""
         Rectangle._distance_epsilon = Rectangle._area_epsilon = -1.0
 
     @staticmethod
@@ -360,12 +360,12 @@ class Rectangle:
     def is_line(self) -> bool:
         """Indicates whether the rectangle is a line (width or height is zero)"""
         return self._shape.w == 0 or self._shape.h == 0
-    
+
     @property
     def is_point(self) -> bool:
         """Indicates whether the rectangle is a point (width and height are zero)"""
         return self._shape.w == 0 and self._shape.h == 0
-    
+
     @property
     def fixed(self) -> bool:
         return self._fixed
@@ -405,17 +405,17 @@ class Rectangle:
     @location.setter
     def location(self, loc: StropLocation) -> None:
         self._location = loc
-        
+
     @property
     def id(self) -> int:
         """Returns the unique identifier of the rectangle"""
         return self._id
-    
+
     @id.setter
     def id(self, value: int) -> None:
         """Sets the unique identifier of the rectangle (-1"""
         assert isinstance(value, int) and value >= -1, "Invalid rectangle id"
-        self._id = value    
+        self._id = value
 
     def duplicate(self) -> Rectangle:
         """
@@ -452,13 +452,11 @@ class Rectangle:
     def area(self) -> float:
         """Returns the area of the rectangle"""
         return self._shape.w * self._shape.h
-    
+
     @property
     def length(self) -> float:
         """Returns the length of the rectangle (it must be a line)"""
-        assert self.is_line, (
-            "Cannot compute length of a rectangle that is not a line"
-        )
+        assert self.is_line, "Cannot compute length of a rectangle that is not a line"
         return self._shape.w + self._shape.h
 
     def point_inside(self, p: Point) -> bool:
@@ -861,7 +859,7 @@ def create_strop(rectangles: list[Rectangle]) -> bool:
     (in case the STROP has been identified).
     In case more than one rectangle can be a trunk, the one with the largest
     area is selected. The selected trunk is put at the front of the list.
-    If no STROPG can be identified, it returns False
+    If no STROP can be identified, it returns False
     :param rectangles: list of rectangles of the polygon
     :return: True if the STROP is identified, and False otherwise
     """

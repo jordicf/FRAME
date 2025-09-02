@@ -45,6 +45,7 @@ class TestAllocation(unittest.TestCase):
         for m, nr in [("M1", 1), ("M2", 1), ("M3", 0)]:
             self.assertEqual(n.get_module(m).num_rectangles, nr)
         m2r = read_json_yaml_text(mod2rect, False)
+        assert isinstance(m2r, dict)
         n.assign_rectangles(m2r)
         for m, nr in [("M1", 2), ("M2", 1), ("M3", 2)]:
             self.assertEqual(n.get_module(m).num_rectangles, nr)

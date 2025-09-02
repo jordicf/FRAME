@@ -8,10 +8,12 @@ Modules of a netlist
 """
 
 import math
-from typing import Optional, Any
+from typing import Optional, Any, TypedDict, NotRequired
 from frame.geometry.geometry import Point, Shape, AspectRatio, Rectangle, create_strop
 from frame.utils.keywords import KW
 from frame.utils.utils import valid_identifier, is_number
+
+_ModuleParams = bool | Point | AspectRatio | float | dict[str, float] | list[Rectangle]
 
 
 class Module:
@@ -40,12 +42,12 @@ class Module:
     _area_rectangles: float
     _pin_length: float  # Length of the IO pin (negative if not defined)
 
-    def __init__(self, name: str, **kwargs: dict[str, Any]):
+    def __init__(self, name: str, **kwargs: _ModuleParams) -> None:
         """
         Constructor
         :param kwargs: name (str), center (Point), aspect_ratio (AspectRatio),
-                       area (float or dict),
-        hard (boolean), fixed (boolean), IO pin (boolean)
+                       area (float or dict), hard (boolean), fixed (boolean),
+                       flip (boolean), IO pin (boolean)
         """
         self._name = name
         self._center = None
@@ -63,7 +65,7 @@ class Module:
         self._read_parameters(name, kwargs)
         self._check_consistency(kwargs)
 
-    def _read_parameters(self, name: str, kwargs: dict[str, Any]) -> None:
+    def _read_parameters(self, name: str, kwargs: dict[str, _ModuleParams]) -> None:
         """Parsers the information of a module"""
 
         # Check the name
@@ -92,6 +94,7 @@ class Module:
                     ), f"Module {name}: incorrect aspect ratio"
                     self._aspect_ratio = value
                 case KW.AREA:
+                    assert isinstance(value, (int, float, dict))
                     self._area_regions = self._read_region_area(value)
                 case KW.LENGTH:
                     assert isinstance(value, (int, float)) and value >= 0, (
@@ -99,13 +102,16 @@ class Module:
                     )
                     self._pin_length = float(value)
                 case KW.FIXED:
+                    assert isinstance(value, bool)
                     self._fixed = self._hard = value
                 case KW.HARD:
                     assert KW.FIXED not in kwargs, (
                         f"Module {name}: {KW.FIXED} and {KW.HARD} are mutually exclusive"
                     )
+                    assert isinstance(value, bool)
                     self._hard = value
                 case KW.FLIP:
+                    assert isinstance(value, bool)
                     self._flip = value
                 case KW.IO_PIN:
                     assert KW.AREA not in kwargs, (
@@ -117,8 +123,10 @@ class Module:
                     assert KW.FLIP not in kwargs, (
                         f"Module {name}: IO pin cannot have flip attribute"
                     )
+                    assert isinstance(value, bool)
                     self._iopin = value
                 case KW.RECTANGLES:
+                    assert isinstance(value, list)
                     for r in value:
                         assert isinstance(r, Rectangle), (
                             f"Module {name}: incorrect rectangle {r}"

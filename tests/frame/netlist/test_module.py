@@ -17,7 +17,8 @@ class TestModule(unittest.TestCase):
         self.assertRaises(AssertionError, Module, "good_name", area="no_number")
 
     def test_module_rectangles(self):
-        b = Module("my_module", area={'dsp': 10, 'lut': 6, 'bram': 20})
+        area_dict: dict[str, float] = {'dsp': 10, 'lut': 6, 'bram': 20}
+        b = Module("my_module", area=area_dict)
         self.assertEqual(b.num_rectangles, 0)
 
         # Create 3 rectangles
@@ -27,6 +28,7 @@ class TestModule(unittest.TestCase):
         self.assertEqual(b.num_rectangles, 3)
         self.assertEqual(b.area_rectangles, 36)
         b.calculate_center_from_rectangles()
+        assert b.center is not None
         self.assertTrue(5.3333 < b.center.x < 5.334)
         self.assertTrue(4.8888 < b.center.y < 4.8889)
 

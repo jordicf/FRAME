@@ -39,7 +39,7 @@ class XY_Box:
     def area(self) -> float:
         """Returns the area of the box."""
         return self.width * self.height
-    
+
     def dup(self) -> XY_Box:
         """Returns a duplication of the box."""
         return XY_Box(self.xmin, self.xmax, self.ymin, self.ymax)
@@ -60,15 +60,6 @@ class XY_Box:
             and self.ymax == other.ymax
         )
 
-    def bbox(self, other: XY_Box) -> XY_Box:
-        """Returns the bounding box of self and other."""
-        return XY_Box(
-            xmin=min(self.xmin, other.xmin),
-            xmax=max(self.xmax, other.xmax),
-            ymin=min(self.ymin, other.ymin),
-            ymax=max(self.ymax, other.ymax),
-        )
-
     def distance(self, other: XY_Box) -> float:
         """Returns the Manhattan distance between the two rectangles."""
         dx = max(0.0, other.xmin - self.xmax, self.xmin - other.xmax)
@@ -85,38 +76,6 @@ class XY_Box:
             and self.ymax >= other.ymin
         )
 
-    def iso_area_merge(self, other: XY_Box, direction: str) -> XY_Box:
-        """Returns a rectangle with the same area as the sum of the two
-        rectangles. The rectangle is aligned with the edge of the trunk
-        corresponding to the direction (ymin for N, ymax for S, xmin for E, xmax for W).
-        The center of gravity of the resulting rectangle is the same as the
-        center of gravity of the two rectangles weighted by their area."""
-        assert direction in "NSEW", f"Invalid direction {direction} in iso_area_merge"
-        area = self.area + other.area
-        self_ratio = self.area / area
-        other_ratio = other.area / area
-        xc = (
-            (self.xmin + self.xmax) * self_ratio
-            + (other.xmin + other.xmax) * other_ratio
-        ) / 2
-        yc = (
-            (self.ymin + self.ymax) * self_ratio
-            + (other.ymin + other.ymax) * other_ratio
-        ) / 2
-        if direction == "N":
-            height = 2*(yc - self.ymin)
-            width = area / height
-        elif direction == "S":
-            height = 2*(self.ymax - yc)
-            width = area / height
-        elif direction == "E":
-            width = 2*(xc - self.xmin)
-            height = area / width
-        else:  # direction == "W"
-            width = 2*(self.xmax - xc)
-            height = area / width
-        return XY_Box(xc - width/2, xc + width/2, yc - height/2, yc + height/2)
-
     def iso_area_absorb(self, other: XY_Box, direction: str) -> XY_Box:
         """Returns a rectangle with the same area as the sum of the two
         rectangles. The rectangle is aligned with the edge of the trunk
@@ -125,53 +84,54 @@ class XY_Box:
         without exceeding the boundary of the other rectangle."""
         assert direction in "NSEW", f"Invalid direction {direction} in iso_area_merge"
         # This function is tedious, since it has many cases (NSEW, left/right/top/bottom)
-        pprint(f"Absorbing {self} and {other} in direction {direction}")
+        # pprint(f"Absorbing {self} and {other} in direction {direction}")
 
         big, small = (self, other) if self.area >= other.area else (other, self)
         new_b = big.dup()
         if direction in "NS":
             left = big.xmin < small.xmin
-            if left: # big is to the left of small
-                new_b.xmax += small.area/big.height
+            if left:  # big is to the left of small
+                new_b.xmax += small.area / big.height
                 if new_b.xmax > small.xmax:
-                    inc_area = (new_b.xmax - small.xmax)*new_b.height
+                    inc_area = (new_b.xmax - small.xmax) * new_b.height
                     new_b.xmax = small.xmax
                     if direction == "N":
                         new_b.ymax += inc_area / new_b.width
-                    else: # direction == "S"
+                    else:  # direction == "S"
                         new_b.ymin -= inc_area / new_b.width
-            else: # big is to the right of small
-                new_b.xmin -= small.area/big.height
+            else:  # big is to the right of small
+                new_b.xmin -= small.area / big.height
                 if new_b.xmin < small.xmin:
-                    inc_area = (small.xmin - new_b.xmin)*new_b.height
+                    inc_area = (small.xmin - new_b.xmin) * new_b.height
                     new_b.xmin = small.xmin
                     if direction == "N":
                         new_b.ymax += inc_area / new_b.width
-                    else: # direction == "S"
+                    else:  # direction == "S"
                         new_b.ymin -= inc_area / new_b.width
-        else: # direction in "EW"
+        else:  # direction in "EW"
             top = big.ymin > small.ymin
-            if top: # big is above small
-                new_b.ymin -= small.area/big.width
+            if top:  # big is above small
+                new_b.ymin -= small.area / big.width
                 if new_b.ymin < small.ymin:
-                    inc_area = (small.ymin - new_b.ymin)*new_b.width
+                    inc_area = (small.ymin - new_b.ymin) * new_b.width
                     new_b.ymin = small.ymin
                     if direction == "E":
                         new_b.xmax += inc_area / new_b.height
-                    else: # direction == "W"
+                    else:  # direction == "W"
                         new_b.xmin -= inc_area / new_b.height
-            else: # big is below small
-                new_b.ymax += small.area/big.width
+            else:  # big is below small
+                new_b.ymax += small.area / big.width
                 if new_b.ymax > small.ymax:
-                    inc_area = (new_b.ymax - small.ymax)*new_b.width
+                    inc_area = (new_b.ymax - small.ymax) * new_b.width
                     new_b.ymax = small.ymax
                     if direction == "E":
                         new_b.xmax += inc_area / new_b.height
-                    else: # direction == "W"
+                    else:  # direction == "W"
                         new_b.xmin -= inc_area / new_b.height
-        pprint(f"Result: {new_b}")
+        # pprint(f"Result: {new_b}")
         return new_b
-        
+
+
 # Some methods to extend the functionality of rportion
 
 
@@ -190,21 +150,15 @@ def _RPoly2Box(r: RPolygon) -> XY_Box:
     return XY_Box(xmin, xmax, ymin, ymax)
 
 
-def closest_boxes(boxes: Iterable[XY_Box]) -> tuple[XY_Box, XY_Box]:
-    """Returns the pair of closest boxes in the given iterable."""
-    min_dist = float("inf")
-    closest_pair = (XY_Box(0, 0, 0, 0), XY_Box(0, 0, 0, 0))  # fake assignment
-    for b1, b2 in itertools.combinations(boxes, 2):
-        dist = b1.distance(b2)
-        if dist < min_dist:
-            min_dist = dist
-            closest_pair = (b1, b2)
-    assert min_dist < float("inf")
-    return closest_pair
-
-
 class StropDecomposition:
-    """Class to represent the STROP decomposition of a polygon"""
+    """Class to represent the STROP decomposition of a polygon. The STROP
+    can be a subset of the polygon. The STROP is represented by a trunk
+    (a rectangle) and a set of branches (rectangles) in the four directions.
+    The branches are disjoint and do not overlap with the trunk.
+    The class provides methods to reduce the number of branches by merging
+    branches in a given direction. The class also provides a method to
+    compute the Jaccard similarity of the STROP with respect to the original
+    polygon."""
 
     _ref: FPolygon
     _trunk: XY_Box
@@ -302,7 +256,7 @@ class StropDecomposition:
 
     def reduce(self) -> StropDecomposition:
         """Reduces the number of branches of the STROP by reducing the
-        branches in one of the directions. It selectes the direction that
+        branches in one of the directions. It selects the direction that
         maximizes the similarity with the original polygon.
         Returns a new StropDecomposition with the same original area."""
         assert self.num_branches > 0, "No branches to reduce"
@@ -316,7 +270,7 @@ class StropDecomposition:
                     best_strop = new_strop
         assert best_strop is not None
         return best_strop
-    
+
     def reduce_branches(self, direction: str) -> StropDecomposition:
         """Reduces branches in the given direction by merging the
         closest pair of branches. In case only one branch remains, the branch
@@ -325,7 +279,7 @@ class StropDecomposition:
         assert direction in "NSEW", f"Invalid direction {direction} in reduce_branches"
         num_branches = len(self._branches[direction])
         assert num_branches > 0, f"No branches in direction {direction} to reduce"
-        
+
         new_strop = self.dup()
         if len(new_strop._branches[direction]) == 1:
             area = self.area(direction)
@@ -355,12 +309,11 @@ class StropDecomposition:
         new_strop._branches[direction].remove(b1)
         new_strop._branches[direction].remove(b2)
         new_strop._branches[direction].add(new_b)
-        
-        # Previous version: merge the closest pair of branches until only one branch remains
-        #b1, b2 = closest_boxes(new_strop._branches[direction])
-        #new_b = b1.iso_area_merge(b2, direction)
-        return new_strop
 
+        # Previous version: merge the closest pair of branches until only one branch remains
+        # b1, b2 = closest_boxes(new_strop._branches[direction])
+        # new_b = b1.iso_area_merge(b2, direction)
+        return new_strop
 
 
 class FPolygon:
@@ -369,9 +322,11 @@ class FPolygon:
     closed-open intervals."""
 
     _polygon: RPolygon  # The polygon represented in rportion
+    _area: float  # The area of the polygon
 
     def __init__(self, rectangles: Iterable[XY_Box] = list()):
         self._polygon = RPolygon()
+        self._area = -1.0
         self._strop_decomposition = None
         for r in rectangles:
             self._polygon |= rclosedopen(
@@ -387,7 +342,11 @@ class FPolygon:
     @property
     def area(self) -> float:
         """Returns the area of the polygon"""
-        return sum(_RPoly2Box(r).area for r in self._polygon.rectangle_partitioning())
+        if self._area < 0.0:
+            self._area = sum(
+                _RPoly2Box(r).area for r in self._polygon.rectangle_partitioning()
+            )
+        return self._area
 
     def __or__(self, other: FPolygon) -> FPolygon:
         """Returns the union of polygons"""

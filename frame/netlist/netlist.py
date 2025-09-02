@@ -9,7 +9,7 @@ Module to represent netlists
 
 import math
 from itertools import combinations
-from typing import Optional, Iterator
+from typing import Optional, Iterator, Iterable
 from frame.netlist.module import Module
 from frame.netlist.netlist_types import HyperEdge, NamedHyperEdge
 from frame.netlist.yaml_read_netlist import parse_yaml_netlist
@@ -140,7 +140,7 @@ class Netlist:
         """Returns the list of rectangles of a module"""
         return self.get_module(module).rectangles
 
-    def assign_rectangles_module(self, module: str, rects: Iterator[Rectangle]) -> None:
+    def assign_rectangles_module(self, module: str, rects: Iterable[Rectangle]) -> None:
         """
         Defines the rectangles of a module of the netlist.
         The previous rectangles are removed.
