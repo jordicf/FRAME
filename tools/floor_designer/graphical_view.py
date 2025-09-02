@@ -4,8 +4,8 @@ from PySide6.QtWidgets import (
     QGraphicsItem,
     QFrame
 )
-from PySide6.QtCore import Qt
-from PySide6.QtGui import QWheelEvent, QPainter
+from PySide6.QtCore import Qt, QPointF
+from PySide6.QtGui import QWheelEvent, QPainter, QBrush, QColor, QPen
 
 class GraphicalView(QGraphicsView):
     """
@@ -13,11 +13,11 @@ class GraphicalView(QGraphicsView):
     The class creates its own QGrpahicsScene and provides functionallity to visualize
     and interct with it. Supports zooming in and out.
     """
-    scene_ref: QGraphicsScene
+    _scene_ref: QGraphicsScene
     _min_zoom: float
     _current_zoom: float
 
-    def __init__(self, scene_width: int = 400, scene_height: int = 400) -> None:
+    def __init__(self, scene_width: int, scene_height: int) -> None:
         super().__init__()
 
         self.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAsNeeded)
@@ -26,23 +26,31 @@ class GraphicalView(QGraphicsView):
         self.setAlignment(Qt.AlignmentFlag.AlignCenter)
         self.setRenderHint(QPainter.RenderHint.Antialiasing)
 
-        self.scene_ref = QGraphicsScene()
-        self.setScene(self.scene_ref)
+        self._scene_ref = QGraphicsScene()
+        self._scene_ref.setSceneRect(0,0,scene_width,scene_height)
+        self.setScene(self._scene_ref)
+        brush = QBrush(QColor(200, 200, 200, 50), Qt.BrushStyle.CrossPattern)
+        self._scene_ref.setBackgroundBrush(brush)
+
+        rect = self._scene_ref.sceneRect()
+        pen = QPen(Qt.GlobalColor.black, 2)
+        pen.setCosmetic(True)
+        border = self._scene_ref.addRect(rect, pen)
+        border.setZValue(1000)
+        border.setFlag(QGraphicsItem.GraphicsItemFlag.ItemIsSelectable, False)
+        border.setFlag(QGraphicsItem.GraphicsItemFlag.ItemIsMovable, False)
 
         self.setTransformationAnchor(QGraphicsView.ViewportAnchor.AnchorUnderMouse)
 
-        # Adjust the view and the scene
-        self.scene_ref.setSceneRect(0,0,scene_width, scene_height)
-        self._fit_scene()
-        self._adjust_view_to_scene()
+        self.fit_scene()
 
     def show_item(self, item: QGraphicsItem) -> None:
         """Adds an item to the scene so it becomes visible on the screen."""
-        self.scene_ref.addItem(item)
+        self._scene_ref.addItem(item)
 
     def clear_scene(self) -> None:
         """Clears all the elements from the scene."""
-        self.scene_ref.clear()
+        self._scene_ref.clear()
 
     def wheelEvent(self, event: QWheelEvent) -> None:
         """
@@ -70,39 +78,42 @@ class GraphicalView(QGraphicsView):
     def _zoom_out(self) -> None:
         """Decreases the scene zoom level by a factor of 0.8, or fits the scene if the 
         minimum zoom level is reached."""
-        current_scale = self.transform().m11()  # Zoom real aplicado
+        current_scale = self.transform().m11()  # Applied zoom
         new_zoom = current_scale * 0.8
         if new_zoom >= self._min_zoom:
             self.scale(0.8, 0.8)
             self._current_zoom = new_zoom
         else:
-            self._fit_scene()
+            self.fit_scene()
 
-    def _fit_scene(self) -> None:
+    def fit_scene(self) -> None:
         """Fits the scene rect into the view preserving the aspect ratio, ensuring
-        the whole scene is visible. Initializes the minimum and current zoom levels."""
+        the whole scene is visible. Initializes the minimum and current zoom levels."""  
         scene_rect = self.sceneRect()
+        scene_rect.setTopLeft(QPointF(scene_rect.left()-10,scene_rect.top()-10))
+        scene_rect.setBottomRight(QPointF(scene_rect.right() + 10, scene_rect.bottom()+10))   
         self.fitInView(scene_rect, Qt.AspectRatioMode.KeepAspectRatio)
 
         transform = self.transform()
         self._min_zoom = transform.m11()
         self._current_zoom = self._min_zoom
 
-    def _adjust_view_to_scene(self) -> None:
-        """Adjusts the view size and zoom so that the scene height fits 400 pixels,
-        while preserving the scene's aspect ratio."""
-        scene_rect = self.sceneRect()
+    # def _adjust_view_to_scene(self) -> None:
+    #     """Adjusts the view size and zoom so that the scene height fits 400 pixels,
+    #     while preserving the scene's aspect ratio."""
+    #     scene_rect = self.sceneRect()
 
-        aspect_ratio = scene_rect.width() / scene_rect.height()
-        desired_height = 400
-        desired_width = int(aspect_ratio * desired_height)
+    #     aspect_ratio = scene_rect.width() / scene_rect.height()
+    #     desired_height = 480
+    #     desired_width = int(aspect_ratio * desired_height)
 
-        self.setFixedSize(desired_width, desired_height)
+    #     self.setFixedSize(desired_width, desired_height)
 
-        self._min_zoom = 400/scene_rect.height()
-        self._current_zoom = self._min_zoom
+    #     self._min_zoom = desired_height/scene_rect.height()
+    #     self._current_zoom = self._min_zoom
 
-        self.resetTransform()
-        transform_matrix = self.transform()
-        transform_matrix.scale(self._min_zoom,self._min_zoom)
-        self.setTransform(transform_matrix)
+    #     self.resetTransform()
+    #     transform_matrix = self.transform()
+    #     transform_matrix.scale(self._min_zoom,self._min_zoom)
+    #     self.setTransform(transform_matrix)
+    

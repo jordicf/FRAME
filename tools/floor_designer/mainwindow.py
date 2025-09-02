@@ -101,34 +101,15 @@ class MainWindow(QMainWindow):
         if question == QMessageBox.StandardButton.Yes:
             current_tab = self._tab_widget.tabText(self._tab_widget.currentIndex())
             if current_tab == "Design":
-                scene = self._widget1.graphical_view.scene()
-                for item in scene.selectedItems():
-                    if isinstance(item, Module):
-                        del self._widget1.modules[item.name]
-                        # Find the item index in the combo box to delete it
-                        index = self._widget3.module_combo_box.findText(item.name)
-                        if index != -1:
-                            self._widget3.module_combo_box.removeItem(index)
-                        scene.removeItem(item)
-                    if isinstance(item, RectObj):
-                        selected_mod = self._widget1.selected_mod
-                        assert selected_mod is not None
-                        if item == selected_mod.trunk:
-                            pass
-                        else:
-                            selected_mod.branches.discard(item)
-                            scene.removeItem(item)
+                removed_module = self._widget1.remove_selected_item()
+                if removed_module:
+                    self._widget3.remove_from_combobox(removed_module)
             elif current_tab == "Add Rectangle To A Module":
-                scene = self._widget3.graphical_view.scene() # scene of the third tab
-                for item in scene.selectedItems():
-                    # Remove rectangles that were recently added in this tab
-                    if isinstance(item, RectObj) and item in self._widget3.new_rects:
-                        self._widget3.new_rects.remove(item)
-                        scene.removeItem(item)
+                self._widget3.remove_selected_items()
         
     def _rotate_selected_item(self) -> None:
         """Rotate the currently selected item by 90 degrees clockwise."""
-        selected_items = self._widget1.graphical_view.scene().selectedItems()
+        selected_items = self._widget1.scene().selectedItems()
 
         if len(selected_items) == 1:
             item = selected_items[0]
