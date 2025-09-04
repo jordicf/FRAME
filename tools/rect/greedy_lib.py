@@ -2,16 +2,16 @@
 # For the FRAME Project.
 # Licensed under the MIT License (see https://github.com/jordicf/FRAME/blob/master/LICENSE.txt).
 import os
-from ctypes import *
+import ctypes
 from typing import Type
 
 
-class BOX(Structure):
-    _fields_ = ("x1", c_double), \
-               ("y1", c_double), \
-               ("x2", c_double), \
-               ("y2", c_double), \
-               ("p", c_double)
+class BOX(ctypes.Structure):
+    _fields_ = ("x1", ctypes.c_double), \
+               ("y1", ctypes.c_double), \
+               ("x2", ctypes.c_double), \
+               ("y2", ctypes.c_double), \
+               ("p", ctypes.c_double)
 
 
 class GreedyManager:
@@ -19,9 +19,9 @@ class GreedyManager:
     def __init__(self):
         # path = os.path.abspath(os.path.join(os.path.dirname(__file__), "rect_greedy.pyd"))
         path = "C:/Users/Lenovo/Documents/GitHub/FRAME/tools/rect/rect_greedy.pyd"
-        self.mylib = CDLL(path)
+        self.mylib = ctypes.CDLL(path)
         self.mylib.find_best_box.restype = BOX
-        self.mylib.find_best_box.argtypes = [POINTER(BOX), c_double, c_double, c_long, c_double]
+        self.mylib.find_best_box.argtypes = [ctypes.POINTER(BOX), ctypes.c_double, ctypes.c_double, ctypes.c_long, ctypes.c_double]
 
     def find_best_box(self, ww: float, hh: float, nb: int, pr: float,
                       inboxes: list[tuple[float, float, float, float, float]]) -> \
@@ -29,13 +29,13 @@ class GreedyManager:
         assert(nb == len(inboxes))
 
         # First, we cast the inputs into c types
-        boxarr: Type[Array[BOX]] = BOX * nb
-        inboxrecast = cast(boxarr(*(map(lambda t: BOX(t[0], t[1], t[2], t[3], t[4]), inboxes))), POINTER(BOX))
+        boxarr: Type[ctypes.Array[BOX]] = BOX * nb
+        inboxrecast = ctypes.cast(boxarr(*(map(lambda t: BOX(t[0], t[1], t[2], t[3], t[4]), inboxes))), ctypes.POINTER(BOX))
 
-        w = c_double(ww)
-        h = c_double(hh)
-        n = c_long(nb)
-        p = c_double(pr)
+        w = ctypes.c_double(ww)
+        h = ctypes.c_double(hh)
+        n = ctypes.c_long(nb)
+        p = ctypes.c_double(pr)
 
         # Then, we call the solver
         box: BOX = self.mylib.find_best_box(inboxrecast, w, h, n, p)

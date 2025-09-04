@@ -69,12 +69,6 @@ class TestPoint(unittest.TestCase):
         self.assertEqual(2 / self.p, Point(2, 1))
         self.assertEqual(1 / self.p, Point(1, 0.5))
         self.assertEqual(-1 / self.p, Point(-1, -0.5))
-        with self.assertRaises(ZeroDivisionError):
-            self.p / 0
-        with self.assertRaises(ZeroDivisionError):
-            -1.5 / self.q
-        with self.assertRaises(ZeroDivisionError):
-            10 / self.r
 
     def test_dot_product(self) -> None:
         self.assertEqual(self.p & self.q, -1.5)

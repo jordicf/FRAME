@@ -40,6 +40,21 @@ class Carrier:
     ycoords: A sorted list of y coordinates
     gm: The object that calls the greedy algorithm
     """
+    
+    input_problem: InputProblem
+    selbox: str
+    factor: float
+    inibox: InputBox
+    blocks: list[int]
+    prev_x: dict[float, float]
+    prev_y: dict[float, float]
+    next_x: dict[float, float]
+    next_y: dict[float, float]
+    xcoords: list[float]
+    ycoords: list[float]
+    theoreticalBestArea: float
+    gm: GreedyManager
+        
     def __init__(self):
         self.input_problem: InputProblem = []
         self.selbox: str = ""
