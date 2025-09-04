@@ -43,11 +43,24 @@ def dump_yaml_module(module: Module) -> dict:
     info = dict[str, float | bool | list[Any] | dict[str, Any]]()
 
     # Dump all the information
+    
+    if module.is_fixed:
+        info[KW.FIXED] = True
+    elif module.is_hard:
+        info[KW.HARD] = True
+        
+    if module.is_iopin:
+        info[KW.IO_PIN] = True
+    
+    # Soft modules
     if not module.is_hard:
-        if len(module.area_regions) == 1 and KW.GROUND in module.area_regions:
-            info[KW.AREA] = module.area(KW.GROUND)
+        if module.is_iopin:
+            info[KW.LENGTH] = module.pin_length
         else:
-            info[KW.AREA] = module.area()
+            if len(module.area_regions) == 1 and KW.GROUND in module.area_regions:
+                info[KW.AREA] = module.area(KW.GROUND)
+            else:
+                info[KW.AREA] = module.area()
 
         if module.center is not None and module.num_rectangles == 0:
             info[KW.CENTER] = [module.center.x, module.center.y]
@@ -57,20 +70,6 @@ def dump_yaml_module(module: Module) -> dict:
                 module.aspect_ratio.min_wh,
                 module.aspect_ratio.max_wh,
             ]
-
-    # If it is fixed, no need to say it is hard
-    if module.is_fixed:
-        info[KW.FIXED] = True
-    elif module.is_hard:
-        info[KW.HARD] = True
-
-    # In case it is a terminal, no need to say it is hard.
-    # The terminal can be written (if it exists)
-    if module.is_iopin:
-        info[KW.IO_PIN] = True
-        info.pop(KW.HARD, None)
-        if module.center is not None:
-            info[KW.CENTER] = [module.center.x, module.center.y]
 
     if module.num_rectangles > 0:
         info[KW.RECTANGLES] = dump_yaml_rectangles(module.rectangles)
