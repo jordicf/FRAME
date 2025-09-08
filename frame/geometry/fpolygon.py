@@ -9,7 +9,6 @@ from __future__ import annotations
 import copy
 from typing import Iterable, Iterator, Optional
 from dataclasses import dataclass
-import itertools
 from pprint import pprint
 import portion as p
 from rportion import RPolygon, rclosedopen
