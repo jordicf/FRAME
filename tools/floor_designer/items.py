@@ -25,7 +25,7 @@ class Module(QGraphicsItemGroup):
     - terminal: 
 
     The group handles mouse events to enable interaction based on its attribute.
-    Modules may also be connected to 'nets'.
+    Modules may also be connected to 'fly lines'.
     """
 
     _name: str
@@ -33,10 +33,11 @@ class Module(QGraphicsItemGroup):
     _trunk: RectObj # main rectangle
     _branches: set[RectObj] # adjacent to the main rect
     _grouped: bool = True
-    _nets: set['Net']
+    _fly_lines: set['FlyLine']
     _area: float
     _maintain_area: bool = False # used for resizing soft modules
     _is_iopin: bool
+    _blockages: set[QGraphicsRectItem]
 
     def __init__(self, name: str, atr: str, trunk: RectObj, iopin: bool = False, color: QColor|None = None) -> None:
         super().__init__()
@@ -44,9 +45,10 @@ class Module(QGraphicsItemGroup):
         self._attribute = atr
         self._trunk = trunk
         self._branches = set[RectObj]()
-        self._nets = set[Net]()
+        self._fly_lines = set[FlyLine]()
         self._area = 0 # It will be updated
         self._is_iopin = iopin
+        self._blockages = set[QGraphicsRectItem]()
 
         self.setFlag(QGraphicsItem.GraphicsItemFlag.ItemIsSelectable, True)
 
@@ -75,38 +77,40 @@ class Module(QGraphicsItemGroup):
             event.ignore()
 
     def mouseReleaseEvent(self, event: QGraphicsSceneMouseEvent) -> None:
-        """Updates the position of the nets when the mouse is released, to ensure
+        """Updates the position of the fly lines when the mouse is released, to ensure
         that they end in the correct position after fast movements."""
-        self.update_nets()
+        self.update_fly_lines()
         return super().mouseReleaseEvent(event)
 
     def itemChange(self, change: QGraphicsItem.GraphicsItemChange, value: QPointF) -> QPointF:
-        """Keeps the module inside the scene rectangle on position change, and updates the nets accordingly."""
+        """Keeps the module inside the scene rectangle on position change, and updates the fly lines accordingly."""
         if change == QGraphicsItem.GraphicsItemChange.ItemPositionChange and self.scene():
             new_pos = value
-            scene_rect = self.scene().sceneRect()
-
-            # boundingRect() in local coordinates -> map it to scene coordinates
+            dx = dy = 0.0
             rect = self.mapRectToScene(self.boundingRect())
             moved_rect = rect.translated(new_pos - self.pos()) # move to the new position
 
-            dx = dy = 0.0
+            scene_rect = self.scene().sceneRect()
+            alignment_rects = [scene_rect] + [block.mapRectToScene(block.rect()) for block in self._blockages]
+            # boundingRect() in local coordinates -> map it to scene coordinates
+            for alignment_rect in alignment_rects:
 
-            if abs(moved_rect.left() - scene_rect.left()) < SCENE_MAGNET :
-                dx = scene_rect.left() - moved_rect.left()
-            elif abs(moved_rect.right() - scene_rect.right()) < SCENE_MAGNET:
-                dx = scene_rect.right() - moved_rect.right()
+                if abs(moved_rect.left() - alignment_rect.left()) < SCENE_MAGNET :
+                    dx = alignment_rect.left() - moved_rect.left()
+                elif abs(moved_rect.right() - alignment_rect.right()) < SCENE_MAGNET:
+                    dx = alignment_rect.right() - moved_rect.right()
 
-            if abs(moved_rect.top() - scene_rect.top()) < SCENE_MAGNET:
-                dy = scene_rect.top() - moved_rect.top()
-            elif abs(moved_rect.bottom() - scene_rect.bottom()) < SCENE_MAGNET:
-                dy = scene_rect.bottom() - moved_rect.bottom()
+                if abs(moved_rect.top() - alignment_rect.top()) < SCENE_MAGNET:
+                    dy = alignment_rect.top() - moved_rect.top()
+                elif abs(moved_rect.bottom() - alignment_rect.bottom()) < SCENE_MAGNET:
+                    dy = alignment_rect.bottom() - moved_rect.bottom()
 
-            if dx or dy:
-                self.update_nets()
-                return QPointF(new_pos.x() + dx, new_pos.y() + dy)
+                if dx or dy:
+                    self.update_fly_lines()
             
-        self.update_nets()
+            return QPointF(new_pos.x() + dx, new_pos.y() + dy)
+            
+        self.update_fly_lines()
         return super().itemChange(change, value)
     
     def add_rect_to_module(self, rect: RectObj, is_trunk: bool = False) -> None:
@@ -115,6 +119,15 @@ class Module(QGraphicsItemGroup):
         rect.setFlag(QGraphicsItem.GraphicsItemFlag.ItemIsSelectable, True)
         rect.maintain_area = self.maintain_area
         rect.set_module(self)
+
+        if self._is_iopin:
+            rect.is_iopin = True
+            pen = QPen()
+            pen.setColor(self._trunk.brush().color())
+            pen.setCosmetic(True)
+            pen.setWidth(10)
+            rect.setPen(pen)
+            rect.setOpacity(1)
 
         if self._attribute == "hard" or self._attribute == "soft":
             self.setFlag(QGraphicsItem.GraphicsItemFlag.ItemIsMovable)
@@ -131,14 +144,6 @@ class Module(QGraphicsItemGroup):
                 pen.setCosmetic(True)
                 rect.setPen(pen)
 
-        if self._is_iopin:
-            rect.is_iopin = True
-            pen = QPen()
-            pen.setColor(self._trunk.brush().color())
-            pen.setCosmetic(True)
-            pen.setWidth(10)
-            rect.setPen(pen)
-            rect.setOpacity(1)
 
         if is_trunk:
             rect.set_as_trunk()
@@ -355,7 +360,7 @@ class Module(QGraphicsItemGroup):
 
     def regroup(self) -> None:
         """Adds the trunk and branches back to the group and joins them together. 
-        Also updates nets' position and the area, in case any rectangles were resized while ungrouped."""
+        Also updates fly-lines' position and the area, in case any rectangles were resized while ungrouped."""
         self.join()
         self.scene().clearSelection()
         self.addToGroup(self._trunk)
@@ -364,7 +369,7 @@ class Module(QGraphicsItemGroup):
         
         self._grouped = True
         
-        self.update_nets()
+        self.update_fly_lines()
         self.update_area()
 
     def ungroup(self) -> None:
@@ -388,8 +393,8 @@ class Module(QGraphicsItemGroup):
         if self._is_iopin:
             return self._trunk.midpoint()
 
-        total_area = 0
-        x, y = 0, 0
+        total_area = 0.0
+        x, y = 0.0, 0.0
 
         for rectobj in {self._trunk} | self._branches:
             center = rectobj.midpoint()
@@ -401,18 +406,18 @@ class Module(QGraphicsItemGroup):
 
         return QPointF(x/total_area, y/total_area)
 
-    def add_net(self, net: 'Net') -> None:
-        """Adds a given net to the set if nets connected to this module."""
-        self._nets.add(net)
+    def add_fly_line(self, fly_line: 'FlyLine') -> None:
+        """Adds a given fly line to the set of fly lines connected to this module."""
+        self._fly_lines.add(fly_line)
 
-    def update_nets(self) -> None:
-        """Updates all the nets connected to the module."""
-        for net in self._nets:
-            net.update_net()
+    def update_fly_lines(self) -> None:
+        """Updates all the fly lines connected to the module."""
+        for fly_line in self._fly_lines:
+            fly_line.update_fly_line()
 
     def connected_modules(self) -> list[str]:
         """Returns a sorted list with the names of the modules it's connected to."""
-        connected_mod = {mod._name for net in self._nets for mod in net.modules}
+        connected_mod = {mod._name for fly_line in self._fly_lines for mod in fly_line.modules}
         connected_mod.discard(self._name)
         return sorted(connected_mod)
 
@@ -446,9 +451,12 @@ class Module(QGraphicsItemGroup):
         
         return rect
 
-    def has_net(self, net: Net) -> bool:
-        """Returns if the given net belongs to this module."""
-        return net in self._nets
+    def has_fly_line(self, fly_line: FlyLine) -> bool:
+        """Returns if the given fly line belongs to this module."""
+        return fly_line in self._fly_lines
+
+    def set_blockages(self, blockages: set[QGraphicsRectItem]) -> None:
+        self._blockages = blockages
 
     @property
     def area(self):
@@ -497,14 +505,14 @@ class Module(QGraphicsItemGroup):
     def is_iopin(self) -> bool:
         return self._is_iopin
 
-class Net:
+class FlyLine:
     """
-    A class to represent a net connecting multiple modules in a graphical view. The connections
-    are visualized as lines drawn from the centroid of the net to the centroids of each connected
+    A class to represent a fly linr connecting multiple modules in a graphical view. The connections
+    are visualized as lines drawn from the centroid of the fly line to the centroids of each connected
     module.
     """
-    _view: GraphicalView # The view where the net is shown
-    _modules: set[Module] # The modules this net connects
+    _view: GraphicalView # The view where the fly line is shown
+    _modules: set[Module] # The modules this fly line connects
     _lines: set[QGraphicsLineItem]
     _weight: float
     _visible: bool = True
@@ -521,12 +529,12 @@ class Net:
         self._pen.setWidthF(pen_width)
 
         for module in self._modules:
-            module.add_net(self)
+            module.add_fly_line(self)
 
-        self.update_net()
+        self.update_fly_line()
 
-    def update_net(self) -> None:
-        """Updates the net by redrawing lines between modules or to the centroid."""
+    def update_fly_line(self) -> None:
+        """Updates the fly lines by redrawing lines between modules or to the centroid."""
         self.clear_lines()
 
         if len(self._modules) == 2: # Just a single line connecting the 2 modules
@@ -549,9 +557,9 @@ class Net:
             line.hide()
 
     def centroid_modules(self) -> QPointF:
-        """Calculates the centroid of the modules this net connects."""
-        total_area = 0
-        x, y = 0, 0
+        """Calculates the centroid of the modules this fly line connects."""
+        total_area = 0.0
+        x, y = 0.0, 0.0
 
         for mod in self._modules:
             cent = mod.centroid()
@@ -564,7 +572,7 @@ class Net:
         if total_area != 0:
             return QPointF(x/total_area, y/total_area)
         else:         
-            x, y = 0, 0
+            x, y = 0.0, 0.0
             for mod in self._modules:
                 cent = mod.centroid()
                 x += mod.x()
@@ -572,21 +580,20 @@ class Net:
             num_mod = len(self._modules)
             return QPointF(x/num_mod, y/num_mod)
 
-
     def hide(self) -> None:
-        """Hides all lines of the net."""
+        """Hides all lines of the fly line."""
         for line in self._lines:
             line.setVisible(False)
         self._visible = False
 
     def show(self) -> None:
-        """Makes all lines of the net visible."""
+        """Makes all lines of the fly line visible."""
         for line in self._lines:
             line.setVisible(True)
         self._visible = True
 
     def clear_lines(self) -> None:
-        """Removes and clears all the lines from the net."""
+        """Removes and clears all the lines from the fly line."""
         for line in self._lines:
             line.scene().removeItem(line)
 
@@ -594,7 +601,7 @@ class Net:
 
     @property
     def modules(self) -> set[Module]:
-        "Returns the set of modules the net connects."
+        "Returns the set of modules the fly line connects."
         return self._modules
 
 
@@ -615,8 +622,9 @@ class RectObj(QGraphicsRectItem):
     _pen_trunk: QPen | None = None # pen used to draw the trunk point
     _text_trunk: QGraphicsTextItem | None = None # module's name
 
+    # If it's a pin:
     _is_iopin: bool = False
-    _horizontal: bool #horizontal or vertical
+    _orientation: str # N, S, W, E  (To know where to locate the text and the direction to resize)
 
     def __init__(self, x: float, y: float, w: float, h: float):
         if w == 0:
@@ -678,9 +686,11 @@ class RectObj(QGraphicsRectItem):
                         else:
                             rect_midp.setY(sib_midp.y() + (rect.height()+sib_rect.height())/2)
 
+            self._update_text_position()
             return self.midpoint_to_topleft(rect_midp)
         if change != QGraphicsRectItem.GraphicsItemChange.ItemChildRemovedChange:
             self._update_text_position()
+            
         return super().itemChange(change, value)
     
     def copy(self) -> 'RectObj':
@@ -716,8 +726,15 @@ class RectObj(QGraphicsRectItem):
     
     def create_handles(self) -> None:
         """Creates 4 Handles for the rectangle and positions them acordingly."""
-        for corner in ("top-left", "top-right", "bottom-right", "bottom-left"):
-            handle = Handle(corner, self)
+        if self._is_iopin:
+            corners = ["top-left", "bottom-right"]
+            is_iopin = True
+        else:
+            corners = ["top-left", "top-right", "bottom-right", "bottom-left"]
+            is_iopin = False
+
+        for corner in corners:
+            handle = Handle(corner, self, is_iopin=is_iopin)
             self._handles[corner] = handle
         self.update_handles_position()
 
@@ -726,9 +743,11 @@ class RectObj(QGraphicsRectItem):
         rect = self.rect()
         
         self._handles["top-left"].setPos(rect.topLeft())
-        self._handles["top-right"].setPos(rect.topRight())
         self._handles["bottom-right"].setPos(rect.bottomRight())
-        self._handles["bottom-left"].setPos(rect.bottomLeft())
+
+        if not self.is_iopin:
+            self._handles["top-right"].setPos(rect.topRight())
+            self._handles["bottom-left"].setPos(rect.bottomLeft())
 
     def resize_from_handle(self, corner: str, scene_pos: QPointF) -> None:
         """
@@ -750,8 +769,18 @@ class RectObj(QGraphicsRectItem):
         elif corner == "bottom-left":
             new_rect.setBottomLeft(local_pos)
 
-        # Prevent creating a rectangle that is too small
-        if new_rect.width() < 5 or new_rect.height() < 5:
+        
+        w, h = new_rect.width(), new_rect.height()
+        if self._is_iopin:
+            if ( w < 0.1 or h < 0.1):
+                return
+            elif w > 0.1 and h > 0.1:
+                if w > h:
+                    new_rect.setHeight(0.1)
+                else:
+                    new_rect.setWidth(0.1)
+
+        if not self._is_iopin and (w < 1 or h < 1): # Prevent creating a rectangle that is too small
             return
 
         self.prepareGeometryChange()
@@ -841,10 +870,10 @@ class RectObj(QGraphicsRectItem):
             color = self.brush().color()
             complementary_color = QColor(255 - color.red(), 255 - color.green(), 255 - color.blue())
 
-            self._pen = QPen(complementary_color)
-            self._pen.setWidth(12)
-            self._pen.setJoinStyle(Qt.PenJoinStyle.RoundJoin)
-            self._pen.setCosmetic(True)
+            self._pen_trunk = QPen(complementary_color)
+            self._pen_trunk.setWidth(12)
+            self._pen_trunk.setJoinStyle(Qt.PenJoinStyle.RoundJoin)
+            self._pen_trunk.setCosmetic(True)
         
         assert self._module is not None
         self._text_trunk = QGraphicsTextItem(self._module.name, self)
@@ -853,25 +882,27 @@ class RectObj(QGraphicsRectItem):
         self._text_trunk.setDefaultTextColor(Qt.GlobalColor.black)
         self._text_trunk.setFlag(QGraphicsTextItem.GraphicsItemFlag.ItemIgnoresTransformations)
         self._text_trunk.setPos(self.rect().center())
-
+        self._text_trunk.adjustSize()
 
     def _update_text_position(self) -> None:
         """If the item has text (it's a trunk), centers the text in the middle of the rectangle."""
         if self._text_trunk:
-            if not self._is_iopin:
-                self._text_trunk.setPos(self.rect().center())
-            else:
+            center = self.rect().center()
+            self._text_trunk.setPos(center)
+
+            if self._is_iopin:
                 pos = self.pos()
                 scene = self.scene()
-                if pos.x() == 0:
-                    w = self._text_trunk.boundingRect().width()
-                    self._text_trunk.setX(-w)
-                elif pos.y() <= 0:
+                if abs(pos.x()) < 2:
+                    self._text_trunk.setRotation(0)
+                    self._text_trunk.setX(center.x()-12)
+                elif abs(pos.y()) < 2:
                     self._text_trunk.setRotation(300)
-                    if pos.y() == 0:
-                        self._text_trunk.setY(pos.y()-2)
-                elif scene and pos.y() == scene.sceneRect().bottom():
+                    self._text_trunk.setY(center.y()-2)
+                elif scene and abs(pos.y() - scene.sceneRect().bottom()) < 2:
                     self._text_trunk.setRotation(45)
+                elif scene and abs(pos.x() - scene.sceneRect().right()) < 2:
+                    self._text_trunk.setRotation(0)
 
     def show_text(self, show: bool) -> None:
         """Shows or hides the trunk's text depending on the value of 'show'."""
@@ -889,8 +920,8 @@ class RectObj(QGraphicsRectItem):
         point with the complementary color."""
         super().paint(painter, option, widget) # Draw the rectangle as always
 
-        if self._show_trunk_point and self._pen:
-            painter.setPen(self._pen)
+        if self._show_trunk_point and self._pen_trunk:
+            painter.setPen(self._pen_trunk)
             painter.setOpacity(0.8)
             center = self.rect().center()
             painter.drawPoint(center)
@@ -932,19 +963,29 @@ class Handle(QGraphicsRectItem):
     """  
     _corner: str
 
-    def __init__(self, corner: str, parent: RectObj):   
+    def __init__(self, corner: str, parent: RectObj, is_iopin: bool = False):   
         """Initializes a new Handle instance for resizing the given parent RectObj."""
         if corner == "top-left":
-            x, y = 0, 0
+            if is_iopin:
+                x, y =  -HANDLE_IO_PIN/2, -HANDLE_IO_PIN/2
+            else:
+                x, y = 0, 0
         elif corner == "top-right":
             x, y = -HANDLE_SIZE, 0
         elif corner == "bottom-right":
-            x, y = -HANDLE_SIZE, -HANDLE_SIZE
+            if is_iopin:
+                x, y = -HANDLE_IO_PIN/2, -HANDLE_IO_PIN/2
+            else:
+                x, y = -HANDLE_SIZE, -HANDLE_SIZE
         elif corner == "bottom-left":
             x, y = 0, -HANDLE_SIZE
         else:
             assert False, "Incorrect corner"
-        super().__init__(x, y, HANDLE_SIZE, HANDLE_SIZE)
+
+        if is_iopin:
+            super().__init__(x, y, HANDLE_IO_PIN, HANDLE_IO_PIN)
+        else:
+            super().__init__(x, y, HANDLE_SIZE, HANDLE_SIZE)
         self._corner = corner
         self.setParentItem(parent)
         self.setAcceptHoverEvents(True)

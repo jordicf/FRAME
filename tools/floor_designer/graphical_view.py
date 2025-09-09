@@ -36,7 +36,7 @@ class GraphicalView(QGraphicsView):
         pen = QPen(Qt.GlobalColor.black, 2)
         pen.setCosmetic(True)
         border = self._scene_ref.addRect(rect, pen)
-        border.setZValue(1000)
+        border.setZValue(-1000)
         border.setFlag(QGraphicsItem.GraphicsItemFlag.ItemIsSelectable, False)
         border.setFlag(QGraphicsItem.GraphicsItemFlag.ItemIsMovable, False)
 

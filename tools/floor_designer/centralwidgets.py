@@ -9,7 +9,7 @@ from PySide6.QtWidgets import (
 from PySide6.QtCore import Qt, QSize
 from PySide6.QtGui import QBrush, QColor, QResizeEvent
 from graphical_view import GraphicalView
-from tools.floor_designer.items import Module, Net, RectObj
+from tools.floor_designer.items import Module, FlyLine, RectObj
 
 from frame.netlist.netlist import Netlist 
 from frame.geometry.geometry import Rectangle, Point, Shape
@@ -28,8 +28,8 @@ class FloorplanDesigner(QWidget):
     _selected_mod: Module|None = None
     _info_layout: QVBoxLayout # Layout for displaying module information
     _netlist: Netlist
-    _nets: set[Net]
-    _nets_button_group: QButtonGroup # Manage the visibility of the nets
+    _fly_lines: set[FlyLine]
+    _fly_lines_button_group: QButtonGroup # Manage the visibility of the fly lines
     _blockages: set[QGraphicsRectItem]
 
     def __init__(self):
@@ -37,7 +37,7 @@ class FloorplanDesigner(QWidget):
 
         # die = Die("tools\\floor_designer\\Examples\\die_dim.yml")
         # die = Die("tools\\floor_designer\\Examples\\die_for_blck.yml")
-        die = Die("tools\\floor_designer\\Examples\\DIEF_10.yaml")
+        die = Die("tools\\floor_designer\\Examples\\DIEF_4.yaml")
 
         self._graphical_view = GraphicalView(int(die.width),int(die.height))
         self._graphical_view.scene().selectionChanged.connect(self._selected_module_changed)
@@ -46,17 +46,17 @@ class FloorplanDesigner(QWidget):
         self._blockages = set[QGraphicsRectItem]()
 
         # self._netlist = Netlist("tests\\frame\\netlist\\netlist_rect.yml")
-        self._netlist = Netlist("tools\\floor_designer\\Examples\\FPEF_10.yaml")
+        self._netlist = Netlist("tools\\floor_designer\\Examples\\FPEF_4.yaml")
         # self._netlist = Netlist("tools\\floor_designer\\Examples\\legalize.yml")
         # self._netlist = Netlist("tools\\floor_designer\\Examples\\netlist_for_blck.yml")
 
-        self.load_modules()
-        self.load_nets()
         self.load_blockages(die)
+        self.load_modules()
+        self.load_fly_lines()
 
         v_layout = QVBoxLayout()
         v_layout.addWidget(self._create_info_box())
-        v_layout.addWidget(self._create_nets_box())
+        v_layout.addWidget(self._create_fly_lines_box())
         v_layout.addWidget(self._create_visual_details_box())
 
         h_layout = QHBoxLayout()
@@ -106,7 +106,7 @@ class FloorplanDesigner(QWidget):
 
                 self._selected_mod = selection[0]
 
-        self._update_nets_visibility(self._nets_button_group.checkedButton()) # update nets based on the selection and the buttons   
+        self._update_fly_lines_visibility(self._fly_lines_button_group.checkedButton()) # update fly lines based on the selection and the buttons   
         self._update_info_box()
 
     def create_and_add_module(self, name: str, x: float, y: float, w: float, h: float, atr: str) -> None:
@@ -160,6 +160,7 @@ class FloorplanDesigner(QWidget):
                 trunk = mod_net.rectangles[0]
                 iopin = mod_net.is_iopin
                 module_new = Module(mod_net.name, atr, rectangle_to_rectobj(trunk, scene_h), iopin, QColor.fromRgbF(colors[i][0], colors[i][1], colors[i][2]))
+                module_new.set_blockages(self._blockages)
 
                 # Add the branches
                 for branch in mod_net.rectangles[1:]:
@@ -213,7 +214,7 @@ class FloorplanDesigner(QWidget):
         stores its layout in self._info_layout for later updates."""
 
         info_box = QGroupBox("Selected Module Info")
-        info_box.setFixedWidth(220)
+        info_box.setFixedWidth(240)
 
         self._info_layout = QVBoxLayout()
         self._info_layout.setAlignment(Qt.AlignmentFlag.AlignTop)
@@ -243,7 +244,7 @@ class FloorplanDesigner(QWidget):
             self._info_layout.addWidget(atr_label)
             self._info_layout.addWidget(group_checkbox)
 
-            if self._selected_mod.attribute == "soft":
+            if self._selected_mod.attribute == "soft" and not self._selected_mod.is_iopin:
                 area_checkbox = QCheckBox("Maintain area")
                 area_checkbox.setChecked(self._selected_mod.maintain_area)
                 area_checkbox.checkStateChanged.connect(self._area_checkbox_changed)
@@ -276,15 +277,15 @@ class FloorplanDesigner(QWidget):
             elif state == Qt.CheckState.Checked:
                 self._selected_mod.maintain_area = True
 
-    def load_nets(self) -> None:
-        """Initializes the nets by reading them from the netlist."""
-        self._nets = set[Net]()
+    def load_fly_lines(self) -> None:
+        """Initializes the fly lines by reading them from the netlist."""
+        self._fly_lines = set[FlyLine]()
         sorted_edges = sorted(self._netlist.edges[:], key= lambda edge: edge.weight)
         if sorted_edges:
             min_weight, max_weight = sorted_edges[0].weight, sorted_edges[-1].weight
 
         for edge in self._netlist.edges:
-            connections = set[Module]() # Modules this net connects
+            connections = set[Module]() # Modules this fly line connects
             for original_mod in edge.modules:
                 floor_mod = self._modules.get(original_mod.name, None)
                 if floor_mod is not None: # make sure this module exists in the floor widget
@@ -292,10 +293,10 @@ class FloorplanDesigner(QWidget):
 
             if len(connections) == len(edge.modules): # Doesn't connect terminals
                 pen_width = self._scale_weight_to_pen(edge.weight, min_weight, max_weight) # type: ignore
-                self._nets.add(Net(self._graphical_view, connections, edge.weight, pen_width))          
+                self._fly_lines.add(FlyLine(self._graphical_view, connections, edge.weight, pen_width))          
 
     def _scale_weight_to_pen(self, weight: float, min_weight: float, max_weight: float) -> float:
-        """ Maps a net weight to a pen width:
+        """ Maps a fly line weight to a pen width:
         - min_weight to MIN_NET_PEN
         - max_weight to MAX_NET_PEN
         - values in between are scaled linearly
@@ -307,49 +308,49 @@ class FloorplanDesigner(QWidget):
         
         return MIN_NET_PEN + (weight - min_weight) * (MAX_NET_PEN - MIN_NET_PEN) / (max_weight - min_weight)
 
-    def _create_nets_box(self) -> QGroupBox:
+    def _create_fly_lines_box(self) -> QGroupBox:
         """
-        Creates and returns a group box with radio buttons to control net visibilitiy.
+        Creates and returns a group box with radio buttons to control fly line visibilitiy.
         Options are:
-        - Show all nets
-        - Show only the nets of the selected module
-        - Hide all nets
+        - Show all fly lines
+        - Show only the fly lines of the selected module
+        - Hide all fly lines
         """
-        nets_box = QGroupBox("Nets")
-        nets_box.setFixedHeight(120)
-        nets_box.setFixedWidth(220)
+        fly_lines_box = QGroupBox("Fly Lines")
+        fly_lines_box.setFixedHeight(120)
+        fly_lines_box.setFixedWidth(240)
 
-        all_nets_btn = QRadioButton("Show all nets")
-        module_nets_btn = QRadioButton("Show nets of the selected module")
-        hide_nets_btn = QRadioButton("Hide all nets")
+        all_fly_lines_btn = QRadioButton("Show all fly lines")
+        module_fly_lines_btn = QRadioButton("Show fly lines of the selected module")
+        hide_fly_lines_btn = QRadioButton("Hide all fly lines")
 
         # Group the radio buttons and put them in a layout
-        self._nets_button_group = QButtonGroup(nets_box)
+        self._fly_lines_button_group = QButtonGroup(fly_lines_box)
         layout = QVBoxLayout()
-        for button in (all_nets_btn, module_nets_btn, hide_nets_btn):
-            self._nets_button_group.addButton(button)
+        for button in (all_fly_lines_btn, module_fly_lines_btn, hide_fly_lines_btn):
+            self._fly_lines_button_group.addButton(button)
             layout.addWidget(button) 
 
-        self._nets_button_group.setExclusive(True)
-        self._nets_button_group.buttonClicked.connect(self._update_nets_visibility)
-        all_nets_btn.setChecked(True) # Default selection
+        self._fly_lines_button_group.setExclusive(True)
+        self._fly_lines_button_group.buttonClicked.connect(self._update_fly_lines_visibility)
+        all_fly_lines_btn.setChecked(True) # Default selection
 
-        nets_box.setLayout(layout)
-        return nets_box
+        fly_lines_box.setLayout(layout)
+        return fly_lines_box
     
-    def _update_nets_visibility(self, button: QAbstractButton) -> None:
-        """Updates net visibility based on the selected radio button option and 
+    def _update_fly_lines_visibility(self, button: QAbstractButton) -> None:
+        """Updates fly lines visibility based on the selected radio button option and 
         the currently selected module."""
         
-        if button.text() == "Show all nets":
-            for net in self._nets:
-                net.show()
-        elif button.text() == "Hide all nets" or self._selected_mod is None:
-            for net in self._nets:
-                net.hide()
+        if button.text() == "Show all fly lines":
+            for fly_line in self._fly_lines:
+                fly_line.show()
+        elif button.text() == "Hide all fly lines" or self._selected_mod is None:
+            for fly_line in self._fly_lines:
+                fly_line.hide()
         else:
-            for net in self._nets:
-                net.show() if self._selected_mod.has_net(net) else net.hide()
+            for fly_line in self._fly_lines:
+                fly_line.show() if self._selected_mod.has_fly_line(fly_line) else fly_line.hide()
    
     def _create_visual_details_box(self) -> QGroupBox:
         """
@@ -359,7 +360,7 @@ class FloorplanDesigner(QWidget):
         """
         visual_details_box = QGroupBox("Visual Details")
         visual_details_box.setFixedHeight(100)
-        visual_details_box.setFixedWidth(220)
+        visual_details_box.setFixedWidth(240)
 
         names_checkbox = QCheckBox("Show module names")
         names_checkbox.setChecked(True)
@@ -420,6 +421,7 @@ class FloorplanDesigner(QWidget):
                     selected_mod.branches.discard(item)
                     selected_mod.update_area()
                     scene.removeItem(item)
+        return None
 
     def get_module(self, module_name: str) -> Module:
         """Given the name of a Module, returns its instance."""
@@ -606,6 +608,7 @@ class CreateRectangle(QWidget):
     _module_combo_box: QComboBox # To select a module
     _selected_module: Module
     _new_rects: set[RectObj] # New rectangles that will be added to the module
+    _add_to_design_button: QPushButton
 
     def __init__(self, floor: FloorplanDesigner, tab_widget: QTabWidget):
         super().__init__()
@@ -636,6 +639,7 @@ class CreateRectangle(QWidget):
         Returns : The group box with a combo box."""
 
         mod_box = QGroupBox("Select Module")
+        mod_box.setFixedWidth(280)
         label = QLabel("Which module would you like to add the rectangle to?")
         self._module_combo_box = QComboBox()
         self._module_combo_box.setInsertPolicy(QComboBox.InsertPolicy.InsertAlphabetically)
@@ -656,6 +660,7 @@ class CreateRectangle(QWidget):
         Returns : The group box with the labels, lines to edit and a button."""
 
         dim_box = QGroupBox("Dimensions")
+        dim_box.setFixedWidth(280)
         label_w, self._linedit_w = create_labeled_lineedit("width")
         label_h, self._linedit_h = create_labeled_lineedit("height")
         grid = create_grid(label_w, self._linedit_w, label_h, self._linedit_h)
@@ -682,17 +687,18 @@ class CreateRectangle(QWidget):
         """
 
         act_box = QGroupBox("Actions")
+        act_box.setFixedWidth(280)
+
+        self._add_to_design_button = QPushButton("Add to Design")
+        self._add_to_design_button.setEnabled(False)
+        self._add_to_design_button.clicked.connect(self._add_to_floor_scene)
 
         join_button = QPushButton("Join")
-        join_button.clicked.connect(lambda checked=False: self._join_new_rectangles(self.add_to_design_button))
-
-        self.add_to_design_button = QPushButton("Add to Design")
-        self.add_to_design_button.setEnabled(False)
-        self.add_to_design_button.clicked.connect(self._add_to_floor_scene)
+        join_button.clicked.connect(lambda checked=False: self._join_new_rectangles(self._add_to_design_button))
 
         layout = QVBoxLayout()
         layout.addWidget(join_button)
-        layout.addWidget(self.add_to_design_button)
+        layout.addWidget(self._add_to_design_button)
 
         act_box.setLayout(layout)
 
@@ -715,7 +721,7 @@ class CreateRectangle(QWidget):
             self._new_rects.add(rect)
             self._selected_module.add_rect_to_module(rect)
             self._selected_module.removeFromGroup(rect) # to be able to move it
-            self.add_to_design_button.setEnabled(False)
+            self._add_to_design_button.setEnabled(False)
 
             rect.setFlag(QGraphicsItem.GraphicsItemFlag.ItemIsSelectable)
             rect.setFlag(QGraphicsItem.GraphicsItemFlag.ItemIsMovable)
@@ -766,21 +772,22 @@ class CreateRectangle(QWidget):
         
         for item in self._floor.scene().items():
             if isinstance(item, Module):
-                clone = item.copy()
-                clone.setFlag(QGraphicsItem.GraphicsItemFlag.ItemIsMovable, False)
-                clone.setFlag(QGraphicsItem.GraphicsItemFlag.ItemIsSelectable, False)
+                if not item.is_iopin:
+                    clone = item.copy()
+                    clone.setFlag(QGraphicsItem.GraphicsItemFlag.ItemIsMovable, False)
+                    clone.setFlag(QGraphicsItem.GraphicsItemFlag.ItemIsSelectable, False)
 
-                clone.trunk.setFlag(QGraphicsItem.GraphicsItemFlag.ItemIsMovable, False)
-                for rect in clone.branches:
-                    rect.setFlag(QGraphicsItem.GraphicsItemFlag.ItemIsMovable, False)
+                    clone.trunk.setFlag(QGraphicsItem.GraphicsItemFlag.ItemIsMovable, False)
+                    for rect in clone.branches:
+                        rect.setFlag(QGraphicsItem.GraphicsItemFlag.ItemIsMovable, False)
 
-                self._graphical_view.show_item(clone)
+                    self._graphical_view.show_item(clone)
 
-                if item.name == self._module_combo_box.currentText():
-                    self._selected_module = clone
-                else:
-                    clone.setBrush(QBrush(Qt.GlobalColor.lightGray))
-                    clone.setZValue(-1)
+                    if item.name == self._module_combo_box.currentText():
+                        self._selected_module = clone
+                    else:
+                        clone.setBrush(QBrush(Qt.GlobalColor.lightGray))
+                        clone.setZValue(-1)
             
             for item in self._floor.blockages():
                 blockage = QGraphicsRectItem(item.rect())
@@ -865,6 +872,13 @@ def rectobj_to_rectangle(rectobj: RectObj, scene_h: float) -> Rectangle:
     """
     rectobj_rect = rectobj.rect()
     w, h = rectobj_rect.width(), rectobj_rect.height()
+    if rectobj.is_iopin:
+        if w == 0.1:
+            w = 0
+        if h == 0.1:
+            h = 0
+
+        assert w == 0 or h == 0
 
     pos = rectobj.scenePos()
     x, y = pos.x(), pos.y() # top-left corner
@@ -895,3 +909,6 @@ def set_blockage_style(blockage: QGraphicsRectItem) -> None:
     # brush.setColor(Qt.GlobalColor.gray)
     brush.setStyle(Qt.BrushStyle.FDiagPattern)
     blockage.setBrush(brush)
+    pen = blockage.pen()
+    pen.setCosmetic(True)
+    blockage.setPen(pen)

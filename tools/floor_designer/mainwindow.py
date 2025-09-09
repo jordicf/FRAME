@@ -30,14 +30,14 @@ class MainWindow(QMainWindow):
         # Create widgets and tabs
         self._tab_widget = QTabWidget()
         self._widget1 = FloorplanDesigner()
-        self._widget2 = CreateModule(self._widget1)
+        # self._widget2 = CreateModule(self._widget1)
         self._widget3 = CreateRectangle(self._widget1, self._tab_widget)
 
-        for widget in (self._widget1, self._widget2, self._widget3):
+        for widget in (self._widget1, self._widget3):
             widget.setParent(self)
 
         self._tab_widget.addTab(self._widget1, "Design")
-        self._tab_widget.addTab(self._widget2, "Add Module")
+        # self._tab_widget.addTab(self._widget2, "Add Module")
         self._tab_widget.addTab(self._widget3, "Add Rectangle To A Module")
 
         self.setCentralWidget(self._tab_widget)
@@ -87,7 +87,7 @@ class MainWindow(QMainWindow):
         rotate_button = QPushButton("Rotate")
         rotate_button.setStatusTip("Rotate the currently selected item")
         rotate_button.clicked.connect(self._rotate_selected_item)
-        toolbar.addWidget(rotate_button)
+        # toolbar.addWidget(rotate_button)
 
     def _remove_selected_item(self) -> None:
         """Removes the currently selected items from the scene acter user confirmation.
