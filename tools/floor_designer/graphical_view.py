@@ -2,7 +2,8 @@ from PySide6.QtWidgets import (
     QGraphicsView,
     QGraphicsScene,
     QGraphicsItem,
-    QFrame
+    QFrame,
+    QGraphicsRectItem
 )
 from PySide6.QtCore import Qt, QPointF
 from PySide6.QtGui import QWheelEvent, QPainter, QBrush, QColor, QPen
@@ -16,8 +17,9 @@ class GraphicalView(QGraphicsView):
     _scene_ref: QGraphicsScene
     _min_zoom: float
     _current_zoom: float
+    _border_rect: QGraphicsRectItem|None
 
-    def __init__(self, scene_width: int, scene_height: int) -> None:
+    def __init__(self) -> None:
         super().__init__()
 
         self.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAsNeeded)
@@ -27,18 +29,11 @@ class GraphicalView(QGraphicsView):
         self.setRenderHint(QPainter.RenderHint.Antialiasing)
 
         self._scene_ref = QGraphicsScene()
-        self._scene_ref.setSceneRect(0,0,scene_width,scene_height)
         self.setScene(self._scene_ref)
+        self._border_rect = None
+
         brush = QBrush(QColor(200, 200, 200, 50), Qt.BrushStyle.CrossPattern)
         self._scene_ref.setBackgroundBrush(brush)
-
-        rect = self._scene_ref.sceneRect()
-        pen = QPen(Qt.GlobalColor.black, 2)
-        pen.setCosmetic(True)
-        border = self._scene_ref.addRect(rect, pen)
-        border.setZValue(-1000)
-        border.setFlag(QGraphicsItem.GraphicsItemFlag.ItemIsSelectable, False)
-        border.setFlag(QGraphicsItem.GraphicsItemFlag.ItemIsMovable, False)
 
         self.setTransformationAnchor(QGraphicsView.ViewportAnchor.AnchorUnderMouse)
 
@@ -51,6 +46,7 @@ class GraphicalView(QGraphicsView):
     def clear_scene(self) -> None:
         """Clears all the elements from the scene."""
         self._scene_ref.clear()
+        self._border_rect = None
 
     def wheelEvent(self, event: QWheelEvent) -> None:
         """
@@ -98,22 +94,18 @@ class GraphicalView(QGraphicsView):
         self._min_zoom = transform.m11()
         self._current_zoom = self._min_zoom
 
-    # def _adjust_view_to_scene(self) -> None:
-    #     """Adjusts the view size and zoom so that the scene height fits 400 pixels,
-    #     while preserving the scene's aspect ratio."""
-    #     scene_rect = self.sceneRect()
+    def set_scene_rect(self, scene_width: int, scene_height: int) -> None:
+        self._scene_ref.setSceneRect(0,0,scene_width,scene_height)
 
-    #     aspect_ratio = scene_rect.width() / scene_rect.height()
-    #     desired_height = 480
-    #     desired_width = int(aspect_ratio * desired_height)
+        if self._border_rect is not None:
+            self._scene_ref.removeItem(self._border_rect)
 
-    #     self.setFixedSize(desired_width, desired_height)
+        pen = QPen(Qt.GlobalColor.black, 2)
+        pen.setCosmetic(True)
+        border = self._scene_ref.addRect(self._scene_ref.sceneRect(), pen)
+        border.setZValue(-1000)
+        border.setFlag(QGraphicsItem.GraphicsItemFlag.ItemIsSelectable, False)
+        border.setFlag(QGraphicsItem.GraphicsItemFlag.ItemIsMovable, False)
 
-    #     self._min_zoom = desired_height/scene_rect.height()
-    #     self._current_zoom = self._min_zoom
-
-    #     self.resetTransform()
-    #     transform_matrix = self.transform()
-    #     transform_matrix.scale(self._min_zoom,self._min_zoom)
-    #     self.setTransform(transform_matrix)
+        self.fit_scene()
     

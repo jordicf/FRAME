@@ -22,10 +22,13 @@ class Module(QGraphicsItemGroup):
     - soft: movable and resizable
     - hard: movable with fixed size
     - fixed: not movable and fixed size
-    - terminal: 
 
     The group handles mouse events to enable interaction based on its attribute.
     Modules may also be connected to 'fly lines'.
+
+    I/O Pins can be represented using this same class, which makes it easier to integrate
+    them into the application and connect them to fly lines. Existing functions can 
+    handle them as modules with a few variations.
     """
 
     _name: str
@@ -37,7 +40,7 @@ class Module(QGraphicsItemGroup):
     _area: float
     _maintain_area: bool = False # used for resizing soft modules
     _is_iopin: bool
-    _blockages: set[QGraphicsRectItem]
+    _blockages: set[QGraphicsRectItem] # blockages of the die
 
     def __init__(self, name: str, atr: str, trunk: RectObj, iopin: bool = False, color: QColor|None = None) -> None:
         super().__init__()
@@ -81,29 +84,35 @@ class Module(QGraphicsItemGroup):
         that they end in the correct position after fast movements."""
         self.update_fly_lines()
         return super().mouseReleaseEvent(event)
-
+    
     def itemChange(self, change: QGraphicsItem.GraphicsItemChange, value: QPointF) -> QPointF:
-        """Keeps the module inside the scene rectangle on position change, and updates the fly lines accordingly."""
+        """Keeps the module align with the scene rectangle on position change, and updates the fly lines
+        accordingly. I/O pins are also aligned with the blockages."""
         if change == QGraphicsItem.GraphicsItemChange.ItemPositionChange and self.scene():
             new_pos = value
             dx = dy = 0.0
             rect = self.mapRectToScene(self.boundingRect())
             moved_rect = rect.translated(new_pos - self.pos()) # move to the new position
 
+            magnet = SCENE_MAGNET * self.transform().m11()
+            extra_sp_pin = 0.05 if self._is_iopin else 0 # the extra space a pin has because the minimum width/height for a RectObj is 0.1
+
             scene_rect = self.scene().sceneRect()
-            alignment_rects = [scene_rect] + [block.mapRectToScene(block.rect()) for block in self._blockages]
-            # boundingRect() in local coordinates -> map it to scene coordinates
+            alignment_rects = [scene_rect]
+            if self._is_iopin:
+                alignment_rects = alignment_rects + [block.mapRectToScene(block.rect()) for block in self._blockages]
+
             for alignment_rect in alignment_rects:
 
-                if abs(moved_rect.left() - alignment_rect.left()) < SCENE_MAGNET :
-                    dx = alignment_rect.left() - moved_rect.left()
-                elif abs(moved_rect.right() - alignment_rect.right()) < SCENE_MAGNET:
-                    dx = alignment_rect.right() - moved_rect.right()
+                if abs(moved_rect.left() - alignment_rect.left()) < magnet :
+                    dx = alignment_rect.left() - moved_rect.left() - extra_sp_pin
+                elif abs(moved_rect.right() - alignment_rect.right()) < magnet:
+                    dx = alignment_rect.right() - moved_rect.right() + extra_sp_pin
 
-                if abs(moved_rect.top() - alignment_rect.top()) < SCENE_MAGNET:
-                    dy = alignment_rect.top() - moved_rect.top()
-                elif abs(moved_rect.bottom() - alignment_rect.bottom()) < SCENE_MAGNET:
-                    dy = alignment_rect.bottom() - moved_rect.bottom()
+                if abs(moved_rect.top() - alignment_rect.top()) < magnet:
+                    dy = alignment_rect.top() - moved_rect.top() - extra_sp_pin
+                elif abs(moved_rect.bottom() - alignment_rect.bottom()) < magnet:
+                    dy = alignment_rect.bottom() - moved_rect.bottom() + extra_sp_pin
 
                 if dx or dy:
                     self.update_fly_lines()
@@ -115,10 +124,11 @@ class Module(QGraphicsItemGroup):
     
     def add_rect_to_module(self, rect: RectObj, is_trunk: bool = False) -> None:
         """Adds the given rectangle to the module and sets its properties based on its role 
-        (trunk or branch) and the module's attribute."""
+        (trunk or branch), the module's attribute, and if it is an I/O pin."""
         rect.setFlag(QGraphicsItem.GraphicsItemFlag.ItemIsSelectable, True)
         rect.maintain_area = self.maintain_area
         rect.set_module(self)
+        self.addToGroup(rect)
 
         if self._is_iopin:
             rect.is_iopin = True
@@ -144,19 +154,18 @@ class Module(QGraphicsItemGroup):
                 pen.setCosmetic(True)
                 rect.setPen(pen)
 
-
         if is_trunk:
             rect.set_as_trunk()
         else:
             rect.setBrush(self._trunk.brush()) # same color
             self._branches.add(rect)
 
-        self.addToGroup(rect)
         self._area += rect.area
     
+
     def copy(self) -> 'Module':
         """Returns a copy of the module."""
-        new_module = Module(self._name, self._attribute, self._trunk.copy(), color=self._trunk.brush().color())
+        new_module = Module(self._name, self._attribute, self._trunk.copy(), self.is_iopin, color=self._trunk.brush().color())
         for rect in self._branches:
             new_module.add_rect_to_module(rect.copy())
 
@@ -167,6 +176,13 @@ class Module(QGraphicsItemGroup):
         self._trunk.setBrush(brush)
         for rect in self._branches:
             rect.setBrush(brush)
+
+    def setPen(self, pen: QPen) -> None:
+        """Applies the given pen to the trunk and all rectangles in the module."""
+        self._trunk.setPen(pen)
+        for rect in self._branches:
+            rect.setPen(pen)
+
 
     def join(self) -> None:
         """Aligns the branches around the trunk according to their initial location. After all branches are placed,
@@ -297,7 +313,8 @@ class Module(QGraphicsItemGroup):
                 if bottom < rect_botm: # exceeds both above and below
                     # create a new rectangle for the upper part (the lower part will be cut later)
                     top_left = rect.scenePos()
-                    rect2 = RectObj(top_left.x(),top_left.y(), new_rect.width(), top-top_left.y())
+                    w, h = new_rect.width(), top-top_left.y()
+                    rect2 = RectObj(top_left.x() + w/2, top_left.y() + h/2, w, h)
                     self.add_rect_to_module(rect2)
                 else: # only exceeds above
                     new_rect.setBottom(top_mapped)
@@ -342,7 +359,8 @@ class Module(QGraphicsItemGroup):
                 if right < rect_right: # exceeds both left and right
                     # create a new rectangle for the left part (the right part will be cut later)
                     top_left = rect.scenePos()
-                    rect2 = RectObj(top_left.x(),top_left.y(), left - top_left.x(), new_rect.height())
+                    w, h = left - top_left.x(), new_rect.height()
+                    rect2 = RectObj(top_left.x() + w/2, top_left.y() + h/2, w, h)
                     self.add_rect_to_module(rect2)
                 else: # exceeds only left
                     new_rect.setRight(left_mapped)
@@ -379,6 +397,7 @@ class Module(QGraphicsItemGroup):
             self.removeFromGroup(rect)
         
         self._grouped = False
+
 
     def update_area(self) -> None:
         """Recalculates and updates the total area of the module."""
@@ -421,6 +440,11 @@ class Module(QGraphicsItemGroup):
         connected_mod.discard(self._name)
         return sorted(connected_mod)
 
+    def has_fly_line(self, fly_line: FlyLine) -> bool:
+        """Returns if the given fly line belongs to this module."""
+        return fly_line in self._fly_lines
+
+
     def shape(self) -> QPainterPath:
         """Returns the selectable shape of the module. It only makes selectable the area with
         the rectangles, not the full bounding rect."""
@@ -451,11 +475,9 @@ class Module(QGraphicsItemGroup):
         
         return rect
 
-    def has_fly_line(self, fly_line: FlyLine) -> bool:
-        """Returns if the given fly line belongs to this module."""
-        return fly_line in self._fly_lines
-
     def set_blockages(self, blockages: set[QGraphicsRectItem]) -> None:
+        """Assigns the given set of blockage rectangles to the item, to be used later for alignment 
+        during position changes."""
         self._blockages = blockages
 
     @property
@@ -503,18 +525,19 @@ class Module(QGraphicsItemGroup):
 
     @property
     def is_iopin(self) -> bool:
+        """Indicates whether the module is an I/O pin."""
         return self._is_iopin
 
 class FlyLine:
     """
-    A class to represent a fly linr connecting multiple modules in a graphical view. The connections
+    A class to represent a fly line connecting multiple modules in a graphical view. The connections
     are visualized as lines drawn from the centroid of the fly line to the centroids of each connected
     module.
     """
     _view: GraphicalView # The view where the fly line is shown
     _modules: set[Module] # The modules this fly line connects
     _lines: set[QGraphicsLineItem]
-    _weight: float
+    _weight: float # Number of wires
     _visible: bool = True
     _pen: QPen # The pen used to draw the lines (with the corresponding width)
 
@@ -610,12 +633,14 @@ class RectObj(QGraphicsRectItem):
     """
     A class that provides a customized rectangle item that you can add to a QGraphicsScene.
     Optionally includes handles for interactive resizing.
+    There are special functions for rectangles used as a module trunk and for those 
+    representing I/O pins.
     """
 
     _handles: dict[str,Handle] # key: corner, value: Handle
     _area: float
     _maintain_area: bool = False
-    _module: Module | None = None
+    _module: Module | None = None # Module this rect belongs to
 
     # If it's a trunk:
     _show_trunk_point: bool = False
@@ -624,15 +649,16 @@ class RectObj(QGraphicsRectItem):
 
     # If it's a pin:
     _is_iopin: bool = False
-    _orientation: str # N, S, W, E  (To know where to locate the text and the direction to resize)
+    _horizontal: bool | None = None # if it's not a pin it will be None
 
     def __init__(self, x: float, y: float, w: float, h: float):
+        """Creates the rectangle given the center point (x,y) and the dimensions (w,h)."""
         if w == 0:
             w = 0.1
         if h == 0:
             h = 0.1
         super().__init__(0, 0, w, h)
-        self.setPos(x, y)
+        self.setPos(x - w/2, y - h/2)
         self._handles = dict[str,Handle]()
         self._area = w * h
 
@@ -644,11 +670,6 @@ class RectObj(QGraphicsRectItem):
         pen.setCosmetic(True) # Has always the same width
         pen.setWidth(1)
         self.setPen(pen)
-
-    def hoverEnterEvent(self, event: QGraphicsSceneHoverEvent) -> None:
-        midpoint = self.midpoint()
-        self.setToolTip(f"center: ({midpoint.x()/20},{midpoint.y()/20})")
-        return super().hoverEnterEvent(event)
 
     def mousePressEvent(self, event: QGraphicsSceneMouseEvent) -> None:
         """Sets the cursor to an open hand when the rectangle is pressed.
@@ -695,11 +716,12 @@ class RectObj(QGraphicsRectItem):
     
     def copy(self) -> 'RectObj':
         """Returns a copy of the rectangle."""
-        scene_pos = self.scenePos()
-        rect = RectObj(scene_pos.x(), scene_pos.y(), self.rect().width(), self.rect().height())
+        center = self.midpoint()
+        rect = RectObj(center.x(), center.y(), self.rect().width(), self.rect().height())
         rect.setBrush(self.brush())
         return rect
     
+
     def midpoint(self) -> QPointF:
         """Returns de center point of the rectangle (in scene coordinates)."""
         point, rect = self.scenePos(), self.rect()
@@ -724,10 +746,12 @@ class RectObj(QGraphicsRectItem):
         y = mid.y() - rect.height()/2
         return QPointF(x,y)
     
+
     def create_handles(self) -> None:
-        """Creates 4 Handles for the rectangle and positions them acordingly."""
+        """Creates Handles for the rectangle and positions them acordingly."""
         if self._is_iopin:
-            corners = ["top-left", "bottom-right"]
+            self._set_orientation()
+            corners = ["left", "right"] if self._horizontal else ["top", "bottom"]
             is_iopin = True
         else:
             corners = ["top-left", "top-right", "bottom-right", "bottom-left"]
@@ -742,10 +766,16 @@ class RectObj(QGraphicsRectItem):
         """Positions the handles at the corners of the rectangle."""
         rect = self.rect()
         
-        self._handles["top-left"].setPos(rect.topLeft())
-        self._handles["bottom-right"].setPos(rect.bottomRight())
-
-        if not self.is_iopin:
+        if self._is_iopin:
+            if self._horizontal:
+                self._handles["left"].setPos(rect.topLeft())
+                self._handles["right"].setPos(rect.bottomRight())
+            else:
+                self._handles["top"].setPos(rect.topLeft())
+                self._handles["bottom"].setPos(rect.bottomRight())
+        else:
+            self._handles["top-left"].setPos(rect.topLeft())
+            self._handles["bottom-right"].setPos(rect.bottomRight())
             self._handles["top-right"].setPos(rect.topRight())
             self._handles["bottom-left"].setPos(rect.bottomLeft())
 
@@ -754,33 +784,37 @@ class RectObj(QGraphicsRectItem):
         Resizes the rectangle based on the new position of the specified corner's handle.
         
         Args:
-            corner: Which corner is being dragged ("top-left", "top-right", "bottom-right", "bottom-left").
+            corner: Which corner is being dragged ("top-left", "top-right", "bottom-right", "bottom-left",
+            "top", "bottom", "left", "right").
             scene_pos: The new mouse position in scene coordinates.
         """
         local_pos = self.mapFromScene(scene_pos)
         new_rect = self.rect()
 
-        if corner == "top-left":
-            new_rect.setTopLeft(local_pos)
-        elif corner == "top-right":
-            new_rect.setTopRight(local_pos)
-        elif corner == "bottom-right":
-            new_rect.setBottomRight(local_pos)
-        elif corner == "bottom-left":
-            new_rect.setBottomLeft(local_pos)
-
-        
-        w, h = new_rect.width(), new_rect.height()
         if self._is_iopin:
-            if ( w < 0.1 or h < 0.1):
-                return
-            elif w > 0.1 and h > 0.1:
-                if w > h:
-                    new_rect.setHeight(0.1)
-                else:
-                    new_rect.setWidth(0.1)
+            if corner == "top":
+                new_rect.setTop(local_pos.y())
+            elif corner == "bottom":
+                new_rect.setBottom(local_pos.y())
+            elif corner == "left":
+                new_rect.setLeft(local_pos.x())
+            elif corner == "right":
+                new_rect.setRight(local_pos.x())
+        else:
+            if corner == "top-left":
+                new_rect.setTopLeft(local_pos)
+            elif corner == "top-right":
+                new_rect.setTopRight(local_pos)
+            elif corner == "bottom-right":
+                new_rect.setBottomRight(local_pos)
+            elif corner == "bottom-left":
+                new_rect.setBottomLeft(local_pos)
 
-        if not self._is_iopin and (w < 1 or h < 1): # Prevent creating a rectangle that is too small
+        # Prevent creating a rectangle that is too small
+        w, h = new_rect.width(), new_rect.height()
+        if self._is_iopin and ( w < 0.1 or h < 0.1):
+            return
+        if not self._is_iopin and (w < 1 or h < 1):
             return
 
         self.prepareGeometryChange()
@@ -861,7 +895,54 @@ class RectObj(QGraphicsRectItem):
         w, h = old_rect.width(), old_rect.height()
         self.setRect(0, 0, w, h)
         self._area = w * h
+
+
+    def _set_orientation(self) -> None:
+        """This function is for I/O Pins only. Determines if the pin is oriented horizontally or not."""
+        rect = self.rect()
+        w, h = rect.width(), rect.height()
+
+        if w != h:
+            if w > h:
+                self._horizontal = True
+            else:
+                self._horizontal = False
+        else:
+            center = self.midpoint()
+            if center.x() == 0 or center.x() == self.scene().height(): # if it's placed in a corner it will be horizontal by default
+                self._horizontal = True
+            else:
+                self._horizontal = False
+        
+        return None
     
+    def change_orientation(self):
+        """For I/O pins. Rotates the rectangle 90º, swaps the handles and modifies the 
+        horizontal attribute."""
+        assert self.is_iopin
+        rect = self.rect()
+        w, h = rect.width(), rect.height()
+
+        rect.setRight(h)
+        rect.setBottom(w)
+        self.setRect(rect)
+
+        if self._handles:
+            if self._horizontal:
+                self._handles["top"] = self._handles.pop("left")
+                self._handles["top"].change_corner("top")
+                
+                self._handles["bottom"] = self._handles.pop("right")
+                self._handles["bottom"].change_corner("bottom")
+            else:
+                self._handles["left"] = self._handles.pop("top")
+                self._handles["left"].change_corner("left")
+                self._handles["right"] = self._handles.pop("bottom")
+                self._handles["right"].change_corner("right")
+
+        self._horizontal = not self._horizontal
+        self.update_handles_position()
+
     def set_as_trunk(self) -> None:
         """Marks the rectangle as a trunk, creates a pen for drawing its center point,
         and creates the text item for displaying the module's name."""
@@ -885,7 +966,8 @@ class RectObj(QGraphicsRectItem):
         self._text_trunk.adjustSize()
 
     def _update_text_position(self) -> None:
-        """If the item has text (it's a trunk), centers the text in the middle of the rectangle."""
+        """If the item has text (it's a trunk), centers the text in the middle of the rectangle.
+        For I/O pins adjusts its rotation if it's placed at the scene borders."""
         if self._text_trunk:
             center = self.rect().center()
             self._text_trunk.setPos(center)
@@ -920,7 +1002,7 @@ class RectObj(QGraphicsRectItem):
         point with the complementary color."""
         super().paint(painter, option, widget) # Draw the rectangle as always
 
-        if self._show_trunk_point and self._pen_trunk:
+        if self._show_trunk_point and self._pen_trunk: #pins don't show this point
             painter.setPen(self._pen_trunk)
             painter.setOpacity(0.8)
             center = self.rect().center()
@@ -947,10 +1029,12 @@ class RectObj(QGraphicsRectItem):
 
     @property
     def is_iopin(self) -> bool:
+        """Returns whether the rectangle is part of an I/O pin."""
         return self._is_iopin
     
     @is_iopin.setter
     def is_iopin(self, is_iopin: bool) -> None:
+        """Set whether the rectangle is part of an I/O pin."""
         self._is_iopin = is_iopin
 
 HANDLE_SIZE = 16
@@ -965,14 +1049,14 @@ class Handle(QGraphicsRectItem):
 
     def __init__(self, corner: str, parent: RectObj, is_iopin: bool = False):   
         """Initializes a new Handle instance for resizing the given parent RectObj."""
-        if corner == "top-left":
+        if corner in "top-left":
             if is_iopin:
                 x, y =  -HANDLE_IO_PIN/2, -HANDLE_IO_PIN/2
             else:
                 x, y = 0, 0
         elif corner == "top-right":
             x, y = -HANDLE_SIZE, 0
-        elif corner == "bottom-right":
+        elif corner in "bottom-right":
             if is_iopin:
                 x, y = -HANDLE_IO_PIN/2, -HANDLE_IO_PIN/2
             else:
@@ -986,6 +1070,7 @@ class Handle(QGraphicsRectItem):
             super().__init__(x, y, HANDLE_IO_PIN, HANDLE_IO_PIN)
         else:
             super().__init__(x, y, HANDLE_SIZE, HANDLE_SIZE)
+
         self._corner = corner
         self.setParentItem(parent)
         self.setAcceptHoverEvents(True)
@@ -1019,10 +1104,14 @@ class Handle(QGraphicsRectItem):
         return super().mouseReleaseEvent(event)
     
     def hoverEnterEvent(self, event: QGraphicsSceneHoverEvent):
-        """Changes the cursor to a diagonal resize icon when the mouse hovers over the handle."""
+        """Changes the cursor to a resize icon depending on the handle's corner."""
         if self._corner in ("top-left", "bottom-right"):
             self.setCursor(Qt.CursorShape.SizeFDiagCursor)
-        else:
+        elif self._corner in ("top", "bottom"):
+            self.setCursor(Qt.CursorShape.SizeVerCursor)
+        elif self._corner in ("left", "right"):
+            self.setCursor(Qt.CursorShape.SizeHorCursor)
+        else: # "top.right", "bottom-lelft"
             self.setCursor(Qt.CursorShape.SizeBDiagCursor)
         super().hoverEnterEvent(event)
 
@@ -1031,21 +1120,6 @@ class Handle(QGraphicsRectItem):
         self.unsetCursor()
         super().hoverLeaveEvent(event)
 
-# class IOPin:
-#     _name: str
-#     _atr: str
-#     _pins: set[QGraphicsRectItem]
-#     _segments: set[QGraphicsRectItem]
-
-#     def __init__(self, name: str, atr: str, rectangles: list[list[float]], color: QColor) -> None:
-#         self._name, self._atr = name, atr
-#         for rect in rectangles:
-#             p1 = QPointF(rect[])
-        
-
-# class Line(QGraphicsLineItem):
-#     _iopin: IOPin
-
-#     def _init_(self, line: QLineF, iopin: IOPin, color: QColor) -> None:
-#         super().__init__(line)
-#         self._iopin = iopin
+    def change_corner(self, corner: str) -> None:
+        """Changes the corner attribute to the given corner (or side)."""
+        self._corner = corner

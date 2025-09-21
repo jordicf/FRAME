@@ -3,221 +3,221 @@ Modules:
         hard: true
         rectangles:
         -   - 22.5
-            - 15.0
+            - 162.0
             - 45.0
             - 30.0
     M1:
         area: 450.0
         rectangles:
         -   - 82.5
-            - 15.0
+            - 162.0
             - 15.0
             - 30.0
     M10:
         area: 900.0
         rectangles:
         -   - 120.0
-            - 90.0
+            - 87.0
             - 30.0
             - 30.0
     M11:
         area: 2250.0
         rectangles:
         -   - 165.0
-            - 37.5
+            - 139.5
             - 30.0
             - 75.0
     M12:
         area: 900.0
         rectangles:
         -   - 97.5
-            - 60.0
+            - 117.0
             - 15.0
             - 60.0
     M13:
         fixed: true
         rectangles:
         -   - 90.0
-            - 127.5
+            - 49.5
             - 30.0
             - 45.0
     M14:
         area: 900.0
         rectangles:
         -   - 82.5
-            - 60.0
+            - 117.0
             - 15.0
             - 60.0
     M15:
         area: 2250.0
         rectangles:
         -   - 120.0
-            - 37.5
+            - 139.5
             - 30.0
             - 75.0
     M16:
         area: 1575.0
         rectangles:
         -   - 67.5
-            - 97.5
+            - 79.5
             - 15.0
             - 15.0
         -   - 67.5
-            - 127.5
+            - 94.5
+            - 15.0
+            - 15.0
+        -   - 67.5
+            - 49.5
             - 15.0
             - 45.0
-        -   - 67.5
-            - 82.5
-            - 15.0
-            - 15.0
         -   - 90.0
-            - 97.5
+            - 79.5
             - 30.0
             - 15.0
     M17:
         area: 1380.0
         rectangles:
         -   - 195.5
-            - 97.5
+            - 79.5
+            - 31.0
+            - 15.0
+        -   - 195.5
+            - 94.5
             - 31.0
             - 15.0
         -   - 165.0
-            - 97.5
+            - 79.5
             - 30.0
-            - 15.0
-        -   - 195.5
-            - 82.5
-            - 31.0
             - 15.0
     M19:
         area: 1350.0
         rectangles:
         -   - 142.5
-            - 82.5
+            - 94.5
             - 15.0
-            - 15.0
-        -   - 165.0
-            - 82.5
-            - 30.0
             - 15.0
         -   - 142.5
-            - 52.5
+            - 124.5
             - 15.0
             - 45.0
+        -   - 165.0
+            - 94.5
+            - 30.0
+            - 15.0
     M2:
         area: 450.0
         rectangles:
         -   - 97.5
-            - 15.0
+            - 162.0
             - 15.0
             - 30.0
     M20:
         area: 4276.0
         rectangles:
         -   - 60.0
-            - 52.5
+            - 124.5
             - 30.0
             - 45.0
         -   - 22.5
-            - 52.5
+            - 124.5
             - 45.0
             - 45.0
         -   - 60.0
-            - 15.0
+            - 162.0
             - 30.0
             - 30.0
     M21:
         area: 1620.0
         rectangles:
         -   - 105.0
-            - 163.5
+            - 13.5
             - 60.0
             - 27.0
     M22:
         area: 2430.0
         rectangles:
         -   - 142.5
-            - 127.5
+            - 49.5
             - 15.0
-            - 45.0
-        -   - 120.0
-            - 127.5
-            - 30.0
             - 45.0
         -   - 142.5
-            - 163.5
+            - 13.5
             - 15.0
             - 27.0
+        -   - 120.0
+            - 49.5
+            - 30.0
+            - 45.0
     M23:
         area: 3042.0
         rectangles:
         -   - 195.5
-            - 163.5
+            - 13.5
             - 31.0
             - 27.0
         -   - 165.0
-            - 163.5
+            - 13.5
             - 30.0
             - 27.0
         -   - 195.5
-            - 127.5
+            - 49.5
             - 31.0
             - 45.0
     M3:
         area: 450.0
         rectangles:
         -   - 142.5
-            - 15.0
+            - 162.0
             - 15.0
             - 30.0
     M4:
         area: 930.0
         rectangles:
         -   - 195.5
-            - 15.0
+            - 162.0
             - 31.0
             - 30.0
     M5:
         area: 1395.0
         rectangles:
         -   - 195.5
-            - 52.5
+            - 124.5
             - 31.0
             - 45.0
     M6:
         fixed: true
         rectangles:
         -   - 22.5
-            - 82.5
+            - 94.5
             - 45.0
             - 15.0
     M7:
         area: 225.0
         rectangles:
         -   - 52.5
-            - 82.5
+            - 94.5
             - 15.0
             - 15.0
     M8:
         area: 225.0
         rectangles:
         -   - 142.5
-            - 97.5
+            - 79.5
             - 15.0
             - 15.0
     M9:
         area: 1350.0
         rectangles:
         -   - 165.0
-            - 127.5
+            - 49.5
             - 30.0
             - 45.0
     T0:
-        fixed: true
         io_pin: true
+        length: 0.0
         rectangles:
         -   - 0.0
-            - 0.0
+            - 177.0
             - 0
             - 0
     T1:
@@ -225,7 +225,7 @@ Modules:
         io_pin: true
         rectangles:
         -   - 9.0
-            - 0.0
+            - 177.0
             - 0
             - 0
     T10:
@@ -233,7 +233,7 @@ Modules:
         io_pin: true
         rectangles:
         -   - 90.0
-            - 0.0
+            - 177.0
             - 0
             - 0
     T11:
@@ -241,7 +241,7 @@ Modules:
         io_pin: true
         rectangles:
         -   - 99.0
-            - 0.0
+            - 177.0
             - 0
             - 0
     T12:
@@ -249,7 +249,7 @@ Modules:
         io_pin: true
         rectangles:
         -   - 108.0
-            - 0.0
+            - 177.0
             - 0
             - 0
     T13:
@@ -257,7 +257,7 @@ Modules:
         io_pin: true
         rectangles:
         -   - 117.0
-            - 0.0
+            - 177.0
             - 0
             - 0
     T14:
@@ -265,7 +265,7 @@ Modules:
         io_pin: true
         rectangles:
         -   - 126.0
-            - 0.0
+            - 177.0
             - 0
             - 0
     T15:
@@ -273,7 +273,7 @@ Modules:
         io_pin: true
         rectangles:
         -   - 135.0
-            - 0.0
+            - 177.0
             - 0
             - 0
     T16:
@@ -281,7 +281,7 @@ Modules:
         io_pin: true
         rectangles:
         -   - 144.0
-            - 0.0
+            - 177.0
             - 0
             - 0
     T17:
@@ -289,7 +289,7 @@ Modules:
         io_pin: true
         rectangles:
         -   - 153.0
-            - 0.0
+            - 177.0
             - 0
             - 0
     T18:
@@ -297,7 +297,7 @@ Modules:
         io_pin: true
         rectangles:
         -   - 162.0
-            - 0.0
+            - 177.0
             - 0
             - 0
     T19:
@@ -305,7 +305,7 @@ Modules:
         io_pin: true
         rectangles:
         -   - 171.0
-            - 0.0
+            - 177.0
             - 0
             - 0
     T2:
@@ -313,7 +313,7 @@ Modules:
         io_pin: true
         rectangles:
         -   - 18.0
-            - 0.0
+            - 177.0
             - 0
             - 0
     T20:
@@ -321,7 +321,7 @@ Modules:
         io_pin: true
         rectangles:
         -   - 180.0
-            - 0.0
+            - 177.0
             - 0
             - 0
     T21:
@@ -329,7 +329,7 @@ Modules:
         io_pin: true
         rectangles:
         -   - 189.0
-            - 0.0
+            - 177.0
             - 0
             - 0
     T22:
@@ -337,7 +337,7 @@ Modules:
         io_pin: true
         rectangles:
         -   - 198.0
-            - 0.0
+            - 177.0
             - 0
             - 0
     T23:
@@ -345,23 +345,23 @@ Modules:
         io_pin: true
         rectangles:
         -   - 207.0
-            - 0.0
+            - 177.0
             - 0
             - 0
     T26:
         io_pin: true
         length: 25.0
         rectangles:
-        -   - 18.0
-            - 177.0
-            - 25
+        -   - 32.8086560364
+            - 0.0
+            - 25.0
             - 0
     T3:
         fixed: true
         io_pin: true
         rectangles:
         -   - 27.0
-            - 0.0
+            - 177.0
             - 0
             - 0
     T30:
@@ -369,7 +369,7 @@ Modules:
         io_pin: true
         rectangles:
         -   - 54.0
-            - 177.0
+            - 0.0
             - 0
             - 0
     T31:
@@ -377,7 +377,7 @@ Modules:
         io_pin: true
         rectangles:
         -   - 63.0
-            - 177.0
+            - 0.0
             - 0
             - 0
     T32:
@@ -385,7 +385,7 @@ Modules:
         io_pin: true
         rectangles:
         -   - 72.0
-            - 177.0
+            - 0.0
             - 0
             - 0
     T33:
@@ -393,7 +393,7 @@ Modules:
         io_pin: true
         rectangles:
         -   - 81.0
-            - 177.0
+            - 0.0
             - 0
             - 0
     T34:
@@ -401,7 +401,7 @@ Modules:
         io_pin: true
         rectangles:
         -   - 90.0
-            - 177.0
+            - 0.0
             - 0
             - 0
     T35:
@@ -409,7 +409,7 @@ Modules:
         io_pin: true
         rectangles:
         -   - 99.0
-            - 177.0
+            - 0.0
             - 0
             - 0
     T36:
@@ -417,7 +417,7 @@ Modules:
         io_pin: true
         rectangles:
         -   - 108.0
-            - 177.0
+            - 0.0
             - 0
             - 0
     T37:
@@ -425,7 +425,7 @@ Modules:
         io_pin: true
         rectangles:
         -   - 117.0
-            - 177.0
+            - 0.0
             - 0
             - 0
     T38:
@@ -433,7 +433,7 @@ Modules:
         io_pin: true
         rectangles:
         -   - 126.0
-            - 177.0
+            - 0.0
             - 0
             - 0
     T39:
@@ -441,7 +441,7 @@ Modules:
         io_pin: true
         rectangles:
         -   - 135.0
-            - 177.0
+            - 0.0
             - 0
             - 0
     T4:
@@ -449,7 +449,7 @@ Modules:
         io_pin: true
         rectangles:
         -   - 36.0
-            - 0.0
+            - 177.0
             - 0
             - 0
     T40:
@@ -457,7 +457,7 @@ Modules:
         io_pin: true
         rectangles:
         -   - 144.0
-            - 177.0
+            - 0.0
             - 0
             - 0
     T41:
@@ -465,7 +465,7 @@ Modules:
         io_pin: true
         rectangles:
         -   - 153.0
-            - 177.0
+            - 0.0
             - 0
             - 0
     T42:
@@ -473,7 +473,7 @@ Modules:
         io_pin: true
         rectangles:
         -   - 162.0
-            - 177.0
+            - 0.0
             - 0
             - 0
     T43:
@@ -481,7 +481,7 @@ Modules:
         io_pin: true
         rectangles:
         -   - 171.0
-            - 177.0
+            - 0.0
             - 0
             - 0
     T44:
@@ -489,7 +489,7 @@ Modules:
         io_pin: true
         rectangles:
         -   - 180.0
-            - 177.0
+            - 0.0
             - 0
             - 0
     T45:
@@ -497,7 +497,7 @@ Modules:
         io_pin: true
         rectangles:
         -   - 189.0
-            - 177.0
+            - 0.0
             - 0
             - 0
     T46:
@@ -505,7 +505,7 @@ Modules:
         io_pin: true
         rectangles:
         -   - 198.0
-            - 177.0
+            - 0.0
             - 0
             - 0
     T47:
@@ -513,7 +513,7 @@ Modules:
         io_pin: true
         rectangles:
         -   - 207.0
-            - 177.0
+            - 0.0
             - 0
             - 0
     T48:
@@ -521,7 +521,7 @@ Modules:
         io_pin: true
         rectangles:
         -   - 0.0
-            - 9.0
+            - 168.0
             - 0
             - 0
     T49:
@@ -529,7 +529,7 @@ Modules:
         io_pin: true
         rectangles:
         -   - 0.0
-            - 18.0
+            - 159.0
             - 0
             - 0
     T5:
@@ -537,7 +537,7 @@ Modules:
         io_pin: true
         rectangles:
         -   - 45.0
-            - 0.0
+            - 177.0
             - 0
             - 0
     T50:
@@ -545,7 +545,7 @@ Modules:
         io_pin: true
         rectangles:
         -   - 0.0
-            - 27.0
+            - 150.0
             - 0
             - 0
     T51:
@@ -553,7 +553,7 @@ Modules:
         io_pin: true
         rectangles:
         -   - 0.0
-            - 36.0
+            - 141.0
             - 0
             - 0
     T52:
@@ -561,7 +561,7 @@ Modules:
         io_pin: true
         rectangles:
         -   - 0.0
-            - 45.0
+            - 132.0
             - 0
             - 0
     T53:
@@ -569,7 +569,7 @@ Modules:
         io_pin: true
         rectangles:
         -   - 0.0
-            - 54.0
+            - 123.0
             - 0
             - 0
     T54:
@@ -577,7 +577,7 @@ Modules:
         io_pin: true
         rectangles:
         -   - 0.0
-            - 63.0
+            - 114.0
             - 0
             - 0
     T57:
@@ -585,15 +585,15 @@ Modules:
         length: 30.0
         rectangles:
         -   - 0.0
-            - 83.7127659574468
+            - 92.8337129841
             - 0
-            - 42.57446808510639
+            - 30.0
     T59:
         fixed: true
         io_pin: true
         rectangles:
         -   - 0.0
-            - 108.0
+            - 69.0
             - 0
             - 0
     T6:
@@ -601,7 +601,7 @@ Modules:
         io_pin: true
         rectangles:
         -   - 54.0
-            - 0.0
+            - 177.0
             - 0
             - 0
     T60:
@@ -609,7 +609,7 @@ Modules:
         io_pin: true
         rectangles:
         -   - 0.0
-            - 117.0
+            - 60.0
             - 0
             - 0
     T61:
@@ -617,7 +617,7 @@ Modules:
         io_pin: true
         rectangles:
         -   - 0.0
-            - 126.0
+            - 51.0
             - 0
             - 0
     T62:
@@ -625,7 +625,7 @@ Modules:
         io_pin: true
         rectangles:
         -   - 0.0
-            - 135.0
+            - 42.0
             - 0
             - 0
     T63:
@@ -633,7 +633,7 @@ Modules:
         io_pin: true
         rectangles:
         -   - 0.0
-            - 144.0
+            - 33.0
             - 0
             - 0
     T64:
@@ -641,7 +641,7 @@ Modules:
         io_pin: true
         rectangles:
         -   - 0.0
-            - 153.0
+            - 24.0
             - 0
             - 0
     T65:
@@ -649,7 +649,7 @@ Modules:
         io_pin: true
         rectangles:
         -   - 0.0
-            - 162.0
+            - 15.0
             - 0
             - 0
     T66:
@@ -657,7 +657,7 @@ Modules:
         io_pin: true
         rectangles:
         -   - 0.0
-            - 171.0
+            - 6.0
             - 0
             - 0
     T67:
@@ -665,7 +665,7 @@ Modules:
         io_pin: true
         rectangles:
         -   - 211.0
-            - 9.0
+            - 168.0
             - 0
             - 0
     T68:
@@ -673,7 +673,7 @@ Modules:
         io_pin: true
         rectangles:
         -   - 211.0
-            - 18.0
+            - 159.0
             - 0
             - 0
     T69:
@@ -681,7 +681,7 @@ Modules:
         io_pin: true
         rectangles:
         -   - 211.0
-            - 27.0
+            - 150.0
             - 0
             - 0
     T7:
@@ -689,7 +689,7 @@ Modules:
         io_pin: true
         rectangles:
         -   - 63.0
-            - 0.0
+            - 177.0
             - 0
             - 0
     T70:
@@ -697,7 +697,7 @@ Modules:
         io_pin: true
         rectangles:
         -   - 211.0
-            - 36.0
+            - 141.0
             - 0
             - 0
     T71:
@@ -705,7 +705,7 @@ Modules:
         io_pin: true
         rectangles:
         -   - 211.0
-            - 45.0
+            - 132.0
             - 0
             - 0
     T72:
@@ -713,7 +713,7 @@ Modules:
         io_pin: true
         rectangles:
         -   - 211.0
-            - 54.0
+            - 123.0
             - 0
             - 0
     T73:
@@ -721,7 +721,7 @@ Modules:
         io_pin: true
         rectangles:
         -   - 211.0
-            - 63.0
+            - 114.0
             - 0
             - 0
     T74:
@@ -729,7 +729,7 @@ Modules:
         io_pin: true
         rectangles:
         -   - 211.0
-            - 72.0
+            - 105.0
             - 0
             - 0
     T75:
@@ -737,7 +737,7 @@ Modules:
         io_pin: true
         rectangles:
         -   - 211.0
-            - 81.0
+            - 96.0
             - 0
             - 0
     T76:
@@ -745,7 +745,7 @@ Modules:
         io_pin: true
         rectangles:
         -   - 211.0
-            - 90.0
+            - 87.0
             - 0
             - 0
     T77:
@@ -753,7 +753,7 @@ Modules:
         io_pin: true
         rectangles:
         -   - 211.0
-            - 99.0
+            - 78.0
             - 0
             - 0
     T78:
@@ -761,7 +761,7 @@ Modules:
         length: 10.0
         rectangles:
         -   - 211.0
-            - 108.0
+            - 69.4487471526
             - 0
             - 10.0
     T79:
@@ -769,7 +769,7 @@ Modules:
         io_pin: true
         rectangles:
         -   - 211.0
-            - 117.0
+            - 60.0
             - 0
             - 0
     T8:
@@ -777,7 +777,7 @@ Modules:
         io_pin: true
         rectangles:
         -   - 72.0
-            - 0.0
+            - 177.0
             - 0
             - 0
     T80:
@@ -785,7 +785,7 @@ Modules:
         io_pin: true
         rectangles:
         -   - 211.0
-            - 126.0
+            - 51.0
             - 0
             - 0
     T81:
@@ -793,7 +793,7 @@ Modules:
         io_pin: true
         rectangles:
         -   - 211.0
-            - 135.0
+            - 42.0
             - 0
             - 0
     T82:
@@ -801,7 +801,7 @@ Modules:
         io_pin: true
         rectangles:
         -   - 211.0
-            - 144.0
+            - 33.0
             - 0
             - 0
     T83:
@@ -809,7 +809,7 @@ Modules:
         io_pin: true
         rectangles:
         -   - 211.0
-            - 153.0
+            - 24.0
             - 0
             - 0
     T84:
@@ -817,7 +817,7 @@ Modules:
         io_pin: true
         rectangles:
         -   - 211.0
-            - 162.0
+            - 15.0
             - 0
             - 0
     T85:
@@ -825,7 +825,7 @@ Modules:
         io_pin: true
         rectangles:
         -   - 211.0
-            - 171.0
+            - 6.0
             - 0
             - 0
     T9:
@@ -833,7 +833,7 @@ Modules:
         io_pin: true
         rectangles:
         -   - 81.0
-            - 0.0
+            - 177.0
             - 0
             - 0
 Nets:

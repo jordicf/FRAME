@@ -1,6 +1,6 @@
 from PySide6.QtCore import QSize, Qt
-from PySide6.QtWidgets import QMainWindow,QToolBar,QPushButton,QStatusBar, QApplication, QTabWidget, QMessageBox
-from centralwidgets import FloorplanDesigner, CreateModule, Module, CreateRectangle, RectObj
+from PySide6.QtWidgets import QMainWindow,QToolBar,QPushButton,QStatusBar, QApplication, QTabWidget, QMessageBox, QFileDialog
+from centralwidgets import FloorplanDesigner, CreateModule, CreateRectangle
 
 class MainWindow(QMainWindow):
     """Main application window for the floorplanning tool.
@@ -48,9 +48,11 @@ class MainWindow(QMainWindow):
         menu_bar = self.menuBar()
         file_menu = menu_bar.addMenu("File")
         # An acction is an object that you can either add to the toolbar or the menu bar
+        open_action = file_menu.addAction("Open Design")
+        open_action.triggered.connect(self._open_files)
         quit_action = file_menu.addAction("Quit")
-        file_menu.addAction("Save")
         quit_action.triggered.connect(self._app.quit)
+        file_menu.addAction("Save")
 
         edit_menu = menu_bar.addMenu("Edit")
         edit_menu.addAction("Copy")
@@ -84,11 +86,6 @@ class MainWindow(QMainWindow):
         remove_button.clicked.connect(self._remove_selected_item)
         toolbar.addWidget(remove_button)
 
-        rotate_button = QPushButton("Rotate")
-        rotate_button.setStatusTip("Rotate the currently selected item")
-        rotate_button.clicked.connect(self._rotate_selected_item)
-        # toolbar.addWidget(rotate_button)
-
     def _remove_selected_item(self) -> None:
         """Removes the currently selected items from the scene acter user confirmation.
         Modules or rectangles depending on the active tab. In the Add Rectangle tab, you 
@@ -101,18 +98,19 @@ class MainWindow(QMainWindow):
         if question == QMessageBox.StandardButton.Yes:
             current_tab = self._tab_widget.tabText(self._tab_widget.currentIndex())
             if current_tab == "Design":
-                removed_module = self._widget1.remove_selected_item()
-                if removed_module:
-                    self._widget3.remove_from_combobox(removed_module)
+                self._widget1.remove_selected_item()
             elif current_tab == "Add Rectangle To A Module":
                 self._widget3.remove_selected_items()
         
-    def _rotate_selected_item(self) -> None:
-        """Rotate the currently selected item by 90 degrees clockwise."""
-        selected_items = self._widget1.scene().selectedItems()
+    def _open_files(self) -> None:
 
-        if len(selected_items) == 1:
-            item = selected_items[0]
-            if isinstance(item, Module) or isinstance(selected_items[0], RectObj):
-                item.setTransformOriginPoint(item.boundingRect().center())
-                item.setRotation((item.rotation() + 90) % 360)
+        die_path, _ = QFileDialog.getOpenFileName(self, "Select Die File", "tools\\floor_designer\\Examples", "YAML/JSON files (*.yaml *.yml *.json);;All Files (*)")
+        if not die_path:
+            return
+
+        netlist_path, _ = QFileDialog.getOpenFileName(self, "Select Netlist File", "tools\\floor_designer\\Examples", "YAML/JSON files (*.yaml *.yml *.json);;All Files (*)")
+        if not netlist_path:
+            return
+        
+        self._widget1.load_files(die_path, netlist_path)
+        self._widget3.set_combobox_and_scene()

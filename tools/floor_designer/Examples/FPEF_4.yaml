@@ -213,7 +213,7 @@ Modules:
             - 30.0
             - 45.0
     T0:
-        fixed: true
+        length: 0
         io_pin: true
         rectangles:
         - 0.0

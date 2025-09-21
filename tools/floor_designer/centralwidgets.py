@@ -4,7 +4,8 @@ from typing import Iterator
 from PySide6.QtWidgets import (
     QWidget, QLabel, QPushButton, QVBoxLayout, QHBoxLayout, QSizePolicy, QLineEdit,
     QGridLayout, QGroupBox, QCheckBox, QButtonGroup,QMessageBox, QComboBox, QGraphicsItem,
-    QTabWidget, QLayout, QGraphicsRectItem, QRadioButton, QAbstractButton, QGraphicsScene
+    QTabWidget, QLayout, QGraphicsRectItem, QRadioButton, QAbstractButton, QGraphicsScene,
+    QFileDialog
 )
 from PySide6.QtCore import Qt, QSize
 from PySide6.QtGui import QBrush, QColor, QResizeEvent
@@ -19,40 +20,31 @@ MIN_NET_PEN = 1
 MAX_NET_PEN = 4
 
 class FloorplanDesigner(QWidget):
-    """A widget for designing a chip floorplan by placing and managing rectangular modules.
+    """
+    A widget for designing a chip floorplan by placing and managing rectangular modules.
     The widget provides an interactive graphical view where users can select, move and edit
-    modules that are loaded from a netlist."""
+    modules that are loaded from a netlist.
+    """
 
     _graphical_view: GraphicalView
+    _netlist: Netlist| None
+
     _modules: dict[str,Module] # key: name, value: module
-    _selected_mod: Module|None = None
-    _info_layout: QVBoxLayout # Layout for displaying module information
-    _netlist: Netlist
     _fly_lines: set[FlyLine]
-    _fly_lines_button_group: QButtonGroup # Manage the visibility of the fly lines
     _blockages: set[QGraphicsRectItem]
+    
+    _selected_mod: Module|None = None
+    
+    _info_layout: QVBoxLayout # Layout for displaying module information
+    _fly_lines_button_group: QButtonGroup # Manage the visibility of the fly lines
 
     def __init__(self):
         super().__init__()
-
-        # die = Die("tools\\floor_designer\\Examples\\die_dim.yml")
-        # die = Die("tools\\floor_designer\\Examples\\die_for_blck.yml")
-        die = Die("tools\\floor_designer\\Examples\\DIEF_4.yaml")
-
-        self._graphical_view = GraphicalView(int(die.width),int(die.height))
-        self._graphical_view.scene().selectionChanged.connect(self._selected_module_changed)
-        self._graphical_view.scene().setParent(self)
+        self._graphical_view = GraphicalView()
         self._modules = dict[str,Module]()
         self._blockages = set[QGraphicsRectItem]()
-
-        # self._netlist = Netlist("tests\\frame\\netlist\\netlist_rect.yml")
-        self._netlist = Netlist("tools\\floor_designer\\Examples\\FPEF_4.yaml")
-        # self._netlist = Netlist("tools\\floor_designer\\Examples\\legalize.yml")
-        # self._netlist = Netlist("tools\\floor_designer\\Examples\\netlist_for_blck.yml")
-
-        self.load_blockages(die)
-        self.load_modules()
-        self.load_fly_lines()
+        self._netlist = None
+        self._fly_lines = set[FlyLine]()
 
         v_layout = QVBoxLayout()
         v_layout.addWidget(self._create_info_box())
@@ -63,11 +55,10 @@ class FloorplanDesigner(QWidget):
         h_layout.addWidget(self._graphical_view)
         h_layout.addSpacing(10)
         h_layout.addLayout(v_layout)
-        self._update_info_box()
 
         save_button = QPushButton("Save")
         save_button.setSizePolicy(QSizePolicy.Policy.Fixed, QSizePolicy.Policy.Fixed)
-        save_button.clicked.connect(self._ask_how_to_save)
+        save_button.clicked.connect(self._save_as_dialog)
 
         button_layout = QHBoxLayout()
         button_layout.addStretch()
@@ -80,15 +71,117 @@ class FloorplanDesigner(QWidget):
         layout.addLayout(button_layout)
         self.setLayout(layout)
 
+    def load_files(self, die_path: str, netlist_path: str) -> None:
+        """Clears the scene and internal data structures, then loads a die file and a netlist file into
+        the application. Sets up the new scene dimensions and loads the items contained in these files:
+        blockages, modules and fly lines."""
+        self._modules.clear()
+        self._blockages.clear()
+        self._fly_lines.clear()
+        self._graphical_view.clear_scene()
+
+        die = Die(die_path)
+        self._netlist = Netlist(netlist_path)
+
+        self._graphical_view.set_scene_rect(int(die.width), int(die.height))
+        self._graphical_view.scene().selectionChanged.connect(self._selected_module_changed)
+
+        self.load_blockages(die)
+        self.load_modules()
+        self.load_fly_lines()
+        self._update_info_box()
+
+    def load_modules(self) -> None:
+            """
+            Adds the modules of the netlist to the floor widget and the graphical view.
+            Note: in PySide6 the Y-axis origin (0,0) is at the top-left corner and increases downwards. The coordinates
+            are converted so that the visual representation matches the original positive-up Y-axis.
+            """
+            colors: list[tuple[float, float, float]] = distinctipy.get_colors(self._netlist.num_modules, pastel_factor=0.4, rng=100) # type: ignore
+            i = 0
+            scene_h = self._graphical_view.sceneRect().height() # to apply the conversion for the Y-axis
+            
+            assert self._netlist is not None
+            for mod_net in sorted(self._netlist.modules, key=lambda mod: mod.name):
+                # Attribute
+                if mod_net.is_hard:
+                    atr = "fixed" if mod_net.is_fixed else "hard"
+                else:
+                    atr = "soft"
+
+                # Create the module with the trunk
+                trunk = mod_net.rectangles[0]
+                iopin = mod_net.is_iopin
+                color = QColor.fromRgbF(colors[i][0], colors[i][1], colors[i][2])
+                module_new = Module(mod_net.name, atr, rectangle_to_rectobj(trunk, scene_h), iopin, color)
+                module_new.set_blockages(self._blockages)
+
+                # Add the branches
+                for branch in mod_net.rectangles[1:]:
+                    module_new.add_rect_to_module(rectangle_to_rectobj(branch, scene_h))
+
+                self.add_module(module_new)
+                i += 1
+
+    def save_modules(self, path: str, format: str) -> None:
+        """
+        Modifies the netlist with the current module definitions and saves it in a YAML file.
+        Converts the y-coordinates back to a positive-up orientation.
+        """
+        assert self._netlist is not None
+        scene_h = self._graphical_view.scene().height() # to apply the conversion for the Y-axis
+
+        for name, module in self._modules.items():
+            rects =  list[Rectangle]()
+            rects.append(rectobj_to_rectangle(module.trunk, scene_h))
+            for branch in module.branches:
+                rects.append(rectobj_to_rectangle(branch, scene_h))
+            self._netlist.assign_rectangles_module(name, iter(rects))
+
+        if "YAML" in format:
+            self._netlist.write_yaml(path)
+        elif "JSON" in format:
+            self._netlist.write_json(path)
+        else:
+            raise ValueError("Unsupported file extension.")
+
+    def load_fly_lines(self) -> None:
+        """Initializes the fly lines by reading them from the netlist."""
+        assert self._netlist is not None
+        self._fly_lines = set[FlyLine]()
+        sorted_edges = sorted(self._netlist.edges[:], key= lambda edge: edge.weight)
+        if sorted_edges:
+            min_weight, max_weight = sorted_edges[0].weight, sorted_edges[-1].weight
+
+            for edge in self._netlist.edges:
+                connections = set[Module]() # Modules this fly line connects
+                for original_mod in edge.modules:
+                    floor_mod = self._modules.get(original_mod.name, None)
+                    if floor_mod is not None: # make sure this module exists in the floor widget
+                        connections.add(floor_mod)
+
+                pen_width = self._scale_weight_to_pen(edge.weight, min_weight, max_weight)
+                self._fly_lines.add(FlyLine(self._graphical_view, connections, edge.weight, pen_width)) 
+
+    def load_blockages(self, die: Die) -> None:
+        """Adds the blockages described in a given die to the graphical view."""
+        scene_h = self._graphical_view.scene().height()
+        for block in die.blockages:
+            new_blockage = rectangle_to_blockage(block, scene_h)
+            self._graphical_view.show_item(new_blockage)
+            self._blockages.add(new_blockage)
+
+
     def _selected_module_changed(self) -> None:
         """Manages selection changes in the scene.
-        - If a different module is selected, the previously selected one in regrouped and the
+        - If a different module is selected, the previously selected one is regrouped and the
         new module is moved to the front. 
         - If a rectangle inside a module is selected, the parent module remains assigned to 
         self.selected_mod to preserve the current context.
         """
 
         selection = self._graphical_view.scene().selectedItems()
+        iopin_rect_selected = False # a RectObj that is an I/O pin has been selected
 
         if len(selection) == 0:
             if self._selected_mod is not None and self._selected_mod.grouped:
@@ -105,9 +198,22 @@ class FloorplanDesigner(QWidget):
                     selection[0].setZValue(z_value) # move it to the front
 
                 self._selected_mod = selection[0]
+            elif isinstance(selection[0], RectObj):
+                iopin_rect_selected = selection[0].is_iopin # to update the info box
+                    
 
         self._update_fly_lines_visibility(self._fly_lines_button_group.checkedButton()) # update fly lines based on the selection and the buttons   
-        self._update_info_box()
+        self._update_info_box(iopin_rect_selected)
+    
+    def _selected_iopin_change_orientation(self) -> None:
+        """Changes the orientation of the selected I/O pin."""
+        selection = self._graphical_view.scene().selectedItems()
+
+        if len(selection) == 1:
+            rect = selection[0]
+            if isinstance(rect, RectObj) and rect.is_iopin:
+                rect.change_orientation()
+
 
     def create_and_add_module(self, name: str, x: float, y: float, w: float, h: float, atr: str) -> None:
         """
@@ -138,76 +244,6 @@ class FloorplanDesigner(QWidget):
         self._modules[module.name] = module
         self._graphical_view.show_item(module)
 
-    def load_modules(self) -> None:
-        """
-        Adds the modules of the netlist to the floor widget and the graphical view.
-        Note: in PySide6 the Y-axis origin (0,0) is at the top-left corner and increases downwards. The coordinates
-        are converted so that the visual representation matches the original positive-up Y-axis.
-        """
-        colors: list[tuple[float, float, float]] = distinctipy.get_colors(self._netlist.num_modules, pastel_factor=0.4, rng=100) # type: ignore
-        i = 0
-        scene_h = self._graphical_view.sceneRect().height() # to apply the conversion for the Y-axis
-        
-        for mod_net in sorted(self._netlist.modules, key=lambda mod: mod.name):
-            # if not mod_net.is_iopin:
-                # Attribute
-                if mod_net.is_hard:
-                    atr = "fixed" if mod_net.is_fixed else "hard"
-                else:
-                    atr = "soft"
-
-                # Create the module with the trunk
-                trunk = mod_net.rectangles[0]
-                iopin = mod_net.is_iopin
-                module_new = Module(mod_net.name, atr, rectangle_to_rectobj(trunk, scene_h), iopin, QColor.fromRgbF(colors[i][0], colors[i][1], colors[i][2]))
-                module_new.set_blockages(self._blockages)
-
-                # Add the branches
-                for branch in mod_net.rectangles[1:]:
-                    module_new.add_rect_to_module(rectangle_to_rectobj(branch, scene_h))
-
-                self.add_module(module_new)
-                i += 1
-
-    def save_modules(self) -> None:
-        """
-        Modifies the netlist with the current module definitions and saves it in a YAML file.
-        Converts the y-coordinates back to a positive-up orientation.
-        """
-        scene_h = self._graphical_view.scene().height() # to apply the conversion for the Y-axis
-
-        for name, module in self._modules.items():
-            rects =  list[Rectangle]()
-            rects.append(rectobj_to_rectangle(module.trunk, scene_h))
-            for branch in module.branches:
-                rects.append(rectobj_to_rectangle(branch, scene_h))
-            self._netlist.assign_rectangles_module(name, iter(rects))
-
-        self._netlist.write_yaml("tools\\floor_designer\\Examples\\saved_netlist.yml")
-
-    def _ask_how_to_save(self) -> None:
-
-        self.save_modules()
-
-        # msg_box = QMessageBox(self)
-        # msg_box.setWindowTitle("Saving Format")
-        # msg_box.setText("How would you like to represent the rectangles?\n\n"
-        #                 "- Point (x, y), width and height\n"
-        #                 "- Top-Left and Bottom-Right corners")
-        
-        # btn_w_h = QPushButton("Point + w + h", )
-        # btn_top_left_bottom_right = QPushButton("T-Left + B-Right")
-
-        # msg_box.addButton(QMessageBox.StandardButton.Cancel)
-        # msg_box.addButton(btn_w_h, QMessageBox.ButtonRole.AcceptRole, )
-        # msg_box.addButton(btn_top_left_bottom_right, QMessageBox.ButtonRole.AcceptRole)
-
-        # msg_box.exec_()
-
-        # if msg_box.clickedButton() == btn_w_h:
-        #     self.save_modules(False)
-        # elif msg_box.clickedButton() == btn_top_left_bottom_right:
-        #     self.save_modules()
 
     def _create_info_box(self) -> QGroupBox:
         """Creates and returns a group box to display the selected module information and
@@ -222,9 +258,11 @@ class FloorplanDesigner(QWidget):
         self._info_layout.setSpacing(10)
         info_box.setLayout(self._info_layout)
 
+        self._update_info_box()
+
         return info_box
     
-    def _update_info_box(self) -> None:
+    def _update_info_box(self, iopin_selected: bool = False) -> None:
         """Refreshes the info box with data from the selected module."""
 
         clear_layout(self._info_layout) # Clear old info
@@ -250,13 +288,18 @@ class FloorplanDesigner(QWidget):
                 area_checkbox.checkStateChanged.connect(self._area_checkbox_changed)
                 self._info_layout.addWidget(area_checkbox)
 
+            if iopin_selected and self._selected_mod.attribute != "fixed":
+                orientation_button = QPushButton("Change orientation")
+                orientation_button.clicked.connect(self._selected_iopin_change_orientation)
+                self._info_layout.addWidget(orientation_button)
+
             self._info_layout.addWidget(QLabel("<b>Connected to:</b>"))
             label = QLabel(", ".join(self._selected_mod.connected_modules()))
             label.setWordWrap(True) # Break text into lines if it's too long
             label.setSizePolicy(QSizePolicy.Policy.Preferred, QSizePolicy.Policy.MinimumExpanding)
             label.setAlignment(Qt.AlignmentFlag.AlignTop)
             self._info_layout.addWidget(label)
-    
+
     def _group_checkbox_changed(self, state: int) -> None:
         """Groups or ungroups the selected module when the group checkbox changes."""
 
@@ -277,36 +320,6 @@ class FloorplanDesigner(QWidget):
             elif state == Qt.CheckState.Checked:
                 self._selected_mod.maintain_area = True
 
-    def load_fly_lines(self) -> None:
-        """Initializes the fly lines by reading them from the netlist."""
-        self._fly_lines = set[FlyLine]()
-        sorted_edges = sorted(self._netlist.edges[:], key= lambda edge: edge.weight)
-        if sorted_edges:
-            min_weight, max_weight = sorted_edges[0].weight, sorted_edges[-1].weight
-
-        for edge in self._netlist.edges:
-            connections = set[Module]() # Modules this fly line connects
-            for original_mod in edge.modules:
-                floor_mod = self._modules.get(original_mod.name, None)
-                if floor_mod is not None: # make sure this module exists in the floor widget
-                    connections.add(floor_mod)
-
-            if len(connections) == len(edge.modules): # Doesn't connect terminals
-                pen_width = self._scale_weight_to_pen(edge.weight, min_weight, max_weight) # type: ignore
-                self._fly_lines.add(FlyLine(self._graphical_view, connections, edge.weight, pen_width))          
-
-    def _scale_weight_to_pen(self, weight: float, min_weight: float, max_weight: float) -> float:
-        """ Maps a fly line weight to a pen width:
-        - min_weight to MIN_NET_PEN
-        - max_weight to MAX_NET_PEN
-        - values in between are scaled linearly
-
-        Returns the computed pen width."""
-
-        if min_weight == max_weight:
-            return (MIN_NET_PEN + MAX_NET_PEN) / 2
-        
-        return MIN_NET_PEN + (weight - min_weight) * (MAX_NET_PEN - MIN_NET_PEN) / (max_weight - min_weight)
 
     def _create_fly_lines_box(self) -> QGroupBox:
         """
@@ -352,6 +365,7 @@ class FloorplanDesigner(QWidget):
             for fly_line in self._fly_lines:
                 fly_line.show() if self._selected_mod.has_fly_line(fly_line) else fly_line.hide()
    
+
     def _create_visual_details_box(self) -> QGroupBox:
         """
         Creates and returns a group box with checkboxes for visual options.
@@ -392,31 +406,33 @@ class FloorplanDesigner(QWidget):
         for module in self._modules.values():
             module.trunk.show_trunk_point(show_trunk_point)
 
-    def load_blockages(self, die: Die) -> None:
-        """Adds the blockages described in a given die to the graphical view."""
-        scene_h = self._graphical_view.scene().height()
-        for block in die.blockages:
-            new_blockage = rectangle_to_blockage(block, scene_h)
-            self._graphical_view.show_item(new_blockage)
-            self._blockages.add(new_blockage)
+
+    def resizeEvent(self, event: QResizeEvent) -> None:
+        """Adjusts the graphical view to fit the scene when the window is resized."""
+        self._graphical_view.fit_scene()
+        return super().resizeEvent(event)
+
 
     def scene(self) -> QGraphicsScene:
         """Returns the scene of the widget."""
         return self._graphical_view.scene()
 
-    def remove_selected_item(self) -> str|None:
-        """Removes the currently selected item, returning its name if it's a Module, or None otherwise."""
+    def remove_selected_item(self) -> None:
+        """Removes the currently selected RectObj if it is allowed. Shows an error message
+        if a Module or a trunk rectangle is selected."""
         scene = self._graphical_view.scene()
         for item in scene.selectedItems():
             if isinstance(item, Module):
-                del self._modules[item.name]
-                scene.removeItem(item)
-                return item.name
+                QMessageBox.critical(self, "Invalid Operation",
+                    "Modules can't be removed.",
+                    QMessageBox.StandardButton.Ok)
             if isinstance(item, RectObj):
                 selected_mod = self._selected_mod
                 assert selected_mod is not None
                 if item == selected_mod.trunk:
-                    pass
+                    QMessageBox.critical(self, "Invalid Operation",
+                    "Trunks can't be removed.",
+                    QMessageBox.StandardButton.Ok)
                 else:
                     selected_mod.branches.discard(item)
                     selected_mod.update_area()
@@ -434,18 +450,42 @@ class FloorplanDesigner(QWidget):
                 module.regroup()
 
     def module_names(self) -> Iterator[str]:
-        """Yiedls all module names, excluding I/O pins."""
-        for name, module in self._modules.items():
-            if not module.is_iopin:
-                yield name
+        """Yiedls all module (and I/O pin) names."""
+        for name in self._modules.keys():
+            yield name
 
     def blockages(self) -> Iterator[QGraphicsRectItem]:
+        """Yields all blockage items in the scene."""
         for blockage in self._blockages:
             yield blockage
 
-    def resizeEvent(self, event: QResizeEvent) -> None:
-        self._graphical_view.fit_scene()
-        return super().resizeEvent(event)
+
+    def _scale_weight_to_pen(self, weight: float, min_weight: float, max_weight: float) -> float:
+        """ Maps a fly line weight to a pen width:
+        - min_weight to MIN_NET_PEN
+        - max_weight to MAX_NET_PEN
+        - values in between are scaled linearly
+
+        Returns the computed pen width."""
+
+        if min_weight == max_weight:
+            return (MIN_NET_PEN + MAX_NET_PEN) / 2
+        
+        return MIN_NET_PEN + (weight - min_weight) * (MAX_NET_PEN - MIN_NET_PEN) / (max_weight - min_weight)
+
+    def _save_as_dialog(self) -> None:
+
+        save_path, format = QFileDialog.getSaveFileName(self, "Select File to Save", "", "YAML files (*.yaml *.yml);;JSON files (*.json)")
+        if not save_path:
+            return
+
+        try:
+            self.save_modules(save_path, format)
+        except Exception as e:
+            QMessageBox.critical(self, "Error", f"Failed to save file :\n{e}")
+        else:
+            QMessageBox.information(self, "Saved", "File saved successfully.")
+
 
 class CreateModule(QWidget):
     """
@@ -501,7 +541,7 @@ class CreateModule(QWidget):
     def _data_box(self) -> QGroupBox:
         """Creates a group box to introduce the dimensions (width and height) 
         and the initial position of the new module (x,y) which indicates the
-        top left corner of the rectangle."""
+        center of the rectangle."""
         label_x, self._linedit_x = create_labeled_lineedit("x")
         label_y, self._linedit_y = create_labeled_lineedit("y")
         label_w, self._linedit_w = create_labeled_lineedit("width")
@@ -521,7 +561,7 @@ class CreateModule(QWidget):
         data_layout.addLayout(grid_layout_wh)
 
         general_layout = QVBoxLayout()
-        general_layout.addWidget(QLabel("* (x,y) indicates the top-left point of the rectangle"), Qt.AlignmentFlag.AlignTop)
+        general_layout.addWidget(QLabel("* (x,y) indicates the center point of the rectangle"), Qt.AlignmentFlag.AlignTop)
         general_layout.addLayout(data_layout)
 
         data_box.setLayout(general_layout)
@@ -536,7 +576,7 @@ class CreateModule(QWidget):
         fixed = QCheckBox("Fixed")
         soft.setChecked(True)
 
-        #Make the checkboxes exclusive
+        # Make the checkboxes exclusive
         exclusive_button_group = QButtonGroup(self)
         atr_layout = QVBoxLayout()
 
@@ -604,10 +644,12 @@ class CreateRectangle(QWidget):
     """
     _floor: FloorplanDesigner
     _tab_widget: QTabWidget
+
     _graphical_view: GraphicalView # Not the same instance as widget 1 (floor)
-    _module_combo_box: QComboBox # To select a module
     _selected_module: Module
     _new_rects: set[RectObj] # New rectangles that will be added to the module
+
+    _module_combo_box: QComboBox # To select a module
     _add_to_design_button: QPushButton
 
     def __init__(self, floor: FloorplanDesigner, tab_widget: QTabWidget):
@@ -623,8 +665,7 @@ class CreateRectangle(QWidget):
         dim_act_layout.addWidget(self._actions_box())
 
         h_layout = QHBoxLayout()
-        scene_rect = self._floor.scene().sceneRect()
-        self._graphical_view = GraphicalView(int(scene_rect.width()), int(scene_rect.height()))
+        self._graphical_view = GraphicalView()
         h_layout.addWidget(self._graphical_view)
         h_layout.addLayout(dim_act_layout)
         h_layout.setAlignment(Qt.AlignmentFlag.AlignTop)
@@ -636,7 +677,7 @@ class CreateRectangle(QWidget):
 
     def _choose_module_box(self) -> QGroupBox:
         """Creates a group box for selecting a module to add the rectangle.
-        Returns : The group box with a combo box."""
+        Returns : The group box containing a combo box."""
 
         mod_box = QGroupBox("Select Module")
         mod_box.setFixedWidth(280)
@@ -644,8 +685,8 @@ class CreateRectangle(QWidget):
         self._module_combo_box = QComboBox()
         self._module_combo_box.setInsertPolicy(QComboBox.InsertPolicy.InsertAlphabetically)
 
-        for module_name in self._floor.module_names():
-            self._module_combo_box.addItem(module_name)
+        for name in self._floor.module_names():
+            self._module_combo_box.addItem(name)
 
         layout = QVBoxLayout()
         layout.addWidget(label)
@@ -704,6 +745,7 @@ class CreateRectangle(QWidget):
 
         return act_box
     
+
     def _add_provisional_rect(self) -> None:
         """
         Adds a new provisional rectangle to the currently selected module. The rectangle is created 
@@ -715,7 +757,12 @@ class CreateRectangle(QWidget):
         """
 
         try:
-            rect = RectObj(10, 10, float(self._linedit_w.text()), float(self._linedit_h.text()))
+            w, h = float(self._linedit_w.text()), float(self._linedit_h.text())
+            if self._selected_module.is_iopin:
+                if w != 0 and h != 0:
+                    raise ValueError("Pins must be segments (at least one dimension must be zero).")
+
+            rect = RectObj(w/2, h/2, w, h)
             rect.setBrush(self._selected_module.trunk.brush())
 
             self._new_rects.add(rect)
@@ -728,6 +775,10 @@ class CreateRectangle(QWidget):
 
             self._selected_module.setFlag(QGraphicsItem.GraphicsItemFlag.ItemIsSelectable, False)
             self._selected_module.setFlag(QGraphicsItem.GraphicsItemFlag.ItemIsMovable, False)
+        except ValueError as e:
+            QMessageBox.critical(self, "Invalid Rectangle Data",
+                                str(e),
+                                QMessageBox.StandardButton.Ok)
         except:
             QMessageBox.critical(self, "Invalid Rectangle Data",
                                 "Please enter valid numbers.",
@@ -745,7 +796,7 @@ class CreateRectangle(QWidget):
 
     def _add_to_floor_scene(self) -> None:
         """Adds the new rectangles to the corresponding module in the floorplan design.
-        Each rectangles is copied and added to the selected module on the first tab.
+        Each rectangle is copied and added to the selected module on the first tab.
         The set of new rectangles is cleared, and the current tab is switched to the
         floorplan designer."""
 
@@ -756,9 +807,6 @@ class CreateRectangle(QWidget):
         self._new_rects.clear()
         self._tab_widget.setCurrentWidget(self._floor)
 
-    def add_item_to_module_combobox(self, item: str) -> None:
-        """Adds an item to the combo box of the widget."""
-        self._module_combo_box.addItem(item)
 
     def _clone_scene_as_background(self):
         """
@@ -772,7 +820,7 @@ class CreateRectangle(QWidget):
         
         for item in self._floor.scene().items():
             if isinstance(item, Module):
-                if not item.is_iopin:
+                # if not item.is_iopin:
                     clone = item.copy()
                     clone.setFlag(QGraphicsItem.GraphicsItemFlag.ItemIsMovable, False)
                     clone.setFlag(QGraphicsItem.GraphicsItemFlag.ItemIsSelectable, False)
@@ -786,7 +834,12 @@ class CreateRectangle(QWidget):
                     if item.name == self._module_combo_box.currentText():
                         self._selected_module = clone
                     else:
-                        clone.setBrush(QBrush(Qt.GlobalColor.lightGray))
+                        if clone.is_iopin:
+                            pen = clone.trunk.pen()
+                            pen.setColor(Qt.GlobalColor.lightGray)
+                            clone.setPen(pen)
+                        else:
+                            clone.setBrush(QBrush(Qt.GlobalColor.lightGray))
                         clone.setZValue(-1)
             
             for item in self._floor.blockages():
@@ -805,12 +858,7 @@ class CreateRectangle(QWidget):
             self._floor.group_modules() # Make sure all the modules are grouped
             # Prepare the scene of the third tab
             self._clone_scene_as_background()
-
-    def remove_from_combobox(self, module_name: str) -> None:
-        """Removes the given module name from the combobox."""
-        index = self._module_combo_box.findText(module_name) # Find the item index in the combo box to delete it
-        if index != -1:
-            self._module_combo_box.removeItem(index)
+            self._graphical_view.fit_scene()
 
     def remove_selected_items(self) -> None:
         """Removes the currently selected rectangles."""
@@ -820,6 +868,28 @@ class CreateRectangle(QWidget):
             if isinstance(item, RectObj) and item in self._new_rects:
                 self._new_rects.remove(item)
                 scene.removeItem(item)
+
+
+    def add_item_to_module_combobox(self, item: str) -> None:
+        """Adds an item to the combo box of the widget."""
+        self._module_combo_box.addItem(item)
+    
+    def remove_from_combobox(self, module_name: str) -> None:
+        """Removes the given module name from the combobox."""
+        index = self._module_combo_box.findText(module_name) # Find the item index in the combo box to delete it
+        if index != -1:
+            self._module_combo_box.removeItem(index)
+
+    def set_combobox_and_scene(self) -> None:
+        """Clears the combobox and adds the names of the modules in the floor widget.
+        Also updates the scene dimensions."""
+        self._module_combo_box.clear()
+        
+        for name in self._floor.module_names():
+            self._module_combo_box.addItem(name)
+
+        floor_scene_rect = self._floor.scene().sceneRect()
+        self._graphical_view.set_scene_rect(int(floor_scene_rect.width()), int(floor_scene_rect.height()))
 
 #### Other functions:
 def create_labeled_lineedit(label_text: str) -> tuple[QLabel, QLineEdit]:
@@ -862,7 +932,7 @@ def rectangle_to_rectobj(rect: Rectangle, scene_h: float) -> RectObj:
 
     center = rect.center
     w, h = rect.shape.w, rect.shape.h
-    return RectObj(center.x - w/2, scene_h - center.y - h/2, w, h)
+    return RectObj(center.x, scene_h - center.y, w, h)
     
 def rectobj_to_rectangle(rectobj: RectObj, scene_h: float) -> Rectangle:
     """
@@ -872,6 +942,9 @@ def rectobj_to_rectangle(rectobj: RectObj, scene_h: float) -> Rectangle:
     """
     rectobj_rect = rectobj.rect()
     w, h = rectobj_rect.width(), rectobj_rect.height()
+
+    center = rectobj.midpoint()
+
     if rectobj.is_iopin:
         if w == 0.1:
             w = 0
@@ -880,11 +953,7 @@ def rectobj_to_rectangle(rectobj: RectObj, scene_h: float) -> Rectangle:
 
         assert w == 0 or h == 0
 
-    pos = rectobj.scenePos()
-    x, y = pos.x(), pos.y() # top-left corner
-    scene_h = scene_h
-
-    return Rectangle(center=Point(x + w/2, scene_h - y - h/2), shape=Shape(w,h))
+    return Rectangle(center=Point(round(center.x(), 10), round(scene_h - center.y(),10)), shape=Shape(w,h))
 
 def rectangle_to_blockage(rect: Rectangle, scene_h: float) -> QGraphicsRectItem:
     """
