@@ -1,4 +1,5 @@
 from __future__ import annotations
+import rportion as rp # type: ignore
 from random import randint
 from graphical_view import GraphicalView
 from PySide6.QtWidgets import (QGraphicsRectItem,QGraphicsItem,QGraphicsSceneMouseEvent,QGraphicsSceneHoverEvent,
@@ -6,12 +7,15 @@ from PySide6.QtWidgets import (QGraphicsRectItem,QGraphicsItem,QGraphicsSceneMou
 )
 from PySide6.QtCore import QPointF, Qt, QLineF, QRectF
 from PySide6.QtGui import QPainter, QPen, QColor, QBrush, QPainterPath, QFont
+
 N = "N"
 W = "W"
 S = "S"
 E = "E"
 
+MIN_PIN_SIZE = 0.000000001 # Minimum pin size ti ensure it's visible
 SCENE_MAGNET = 2
+
 class Module(QGraphicsItemGroup):
     """
     Groups a set of RectObj (rectangles) and manages them as a single item group.
@@ -84,9 +88,9 @@ class Module(QGraphicsItemGroup):
         that they end in the correct position after fast movements."""
         self.update_fly_lines()
         return super().mouseReleaseEvent(event)
-    
+
     def itemChange(self, change: QGraphicsItem.GraphicsItemChange, value: QPointF) -> QPointF:
-        """Keeps the module align with the scene rectangle on position change, and updates the fly lines
+        """Keeps the module aligned with the scene rectangle on position change, and updates the fly lines
         accordingly. I/O pins are also aligned with the blockages."""
         if change == QGraphicsItem.GraphicsItemChange.ItemPositionChange and self.scene():
             new_pos = value
@@ -95,7 +99,6 @@ class Module(QGraphicsItemGroup):
             moved_rect = rect.translated(new_pos - self.pos()) # move to the new position
 
             magnet = SCENE_MAGNET * self.transform().m11()
-            extra_sp_pin = 0.05 if self._is_iopin else 0 # the extra space a pin has because the minimum width/height for a RectObj is 0.1
 
             scene_rect = self.scene().sceneRect()
             alignment_rects = [scene_rect]
@@ -104,15 +107,25 @@ class Module(QGraphicsItemGroup):
 
             for alignment_rect in alignment_rects:
 
-                if abs(moved_rect.left() - alignment_rect.left()) < magnet :
-                    dx = alignment_rect.left() - moved_rect.left() - extra_sp_pin
+                # Horizontal alignment
+                if abs(moved_rect.left() - alignment_rect.left()) < magnet:
+                    dx = alignment_rect.left() - moved_rect.left()
                 elif abs(moved_rect.right() - alignment_rect.right()) < magnet:
-                    dx = alignment_rect.right() - moved_rect.right() + extra_sp_pin
+                    dx = alignment_rect.right() - moved_rect.right()
+                elif abs(moved_rect.left() - alignment_rect.right()) < magnet:
+                    dx = alignment_rect.right() - moved_rect.left()
+                elif abs(moved_rect.right() - alignment_rect.left()) < magnet:
+                    dx = alignment_rect.left() - moved_rect.right()
 
+                # Vertical alignment
                 if abs(moved_rect.top() - alignment_rect.top()) < magnet:
-                    dy = alignment_rect.top() - moved_rect.top() - extra_sp_pin
+                    dy = alignment_rect.top() - moved_rect.top()
                 elif abs(moved_rect.bottom() - alignment_rect.bottom()) < magnet:
-                    dy = alignment_rect.bottom() - moved_rect.bottom() + extra_sp_pin
+                    dy = alignment_rect.bottom() - moved_rect.bottom()
+                elif abs(moved_rect.top() - alignment_rect.bottom()) < magnet:
+                    dy = alignment_rect.bottom() - moved_rect.top()
+                elif abs(moved_rect.bottom() - alignment_rect.top()) < magnet:
+                    dy = alignment_rect.top() - moved_rect.bottom()
 
                 if dx or dy:
                     self.update_fly_lines()
@@ -142,6 +155,7 @@ class Module(QGraphicsItemGroup):
         if self._attribute == "hard" or self._attribute == "soft":
             self.setFlag(QGraphicsItem.GraphicsItemFlag.ItemIsMovable)
             self.setFlag(QGraphicsItem.GraphicsItemFlag.ItemSendsGeometryChanges, True)
+            rect.set_orientation()
             if self._attribute == "soft":
                 self.setAcceptHoverEvents(True)
                 rect.create_handles()
@@ -225,7 +239,7 @@ class Module(QGraphicsItemGroup):
             max_y, min_y = trunk_y + (trunk_h - branch_h)/2, trunk_y + (branch_h - trunk_h)/2
 
             # If branch is taller than trunk, align it to nearest corner; otherwise fit inside the limit
-            if branch_h > trunk_h:
+            if branch_h > trunk_h or self._is_iopin:
                 new_y = max_y if abs(new_y-max_y) < abs(new_y-min_y) else min_y
             else:
                 new_y = max(min(new_y, max_y), min_y)
@@ -251,7 +265,7 @@ class Module(QGraphicsItemGroup):
         x_dist = abs(rect_midp.x() - trunk_midp.x()) - trunk_rect.width()/2 - rect.width()/2
         y_dist = abs(rect_midp.y() - trunk_midp.y()) - trunk_rect.height()/2 - rect.height()/2
 
-        if x_dist > y_dist:
+        if (not rectangle.is_iopin and x_dist > y_dist) or (rectangle.is_iopin and not rectangle.is_horizontal):
             if trunk_midp.x() < rect_midp.x():
                 return E
             else:
@@ -379,24 +393,26 @@ class Module(QGraphicsItemGroup):
     def regroup(self) -> None:
         """Adds the trunk and branches back to the group and joins them together. 
         Also updates fly-lines' position and the area, in case any rectangles were resized while ungrouped."""
-        self.join()
-        self.scene().clearSelection()
-        self.addToGroup(self._trunk)
-        for rect in self._branches:
-            self.addToGroup(rect)
-        
-        self._grouped = True
-        
-        self.update_fly_lines()
-        self.update_area()
+        if not self._grouped:
+            self.join()
+            self.scene().clearSelection()
+            self.addToGroup(self._trunk)
+            for rect in self._branches:
+                self.addToGroup(rect)
+            
+            self._grouped = True
+            
+            self.update_fly_lines()
+            self.update_area()
 
     def ungroup(self) -> None:
         """Removes the trunk and branches from the group, but keeps them as attributes of the class."""
-        self.removeFromGroup(self._trunk)
-        for rect in self._branches:
-            self.removeFromGroup(rect)
-        
-        self._grouped = False
+        if self._grouped:
+            self.removeFromGroup(self._trunk)
+            for rect in self._branches:
+                self.removeFromGroup(rect)
+            
+            self._grouped = False
 
 
     def update_area(self) -> None:
@@ -479,6 +495,82 @@ class Module(QGraphicsItemGroup):
         """Assigns the given set of blockage rectangles to the item, to be used later for alignment 
         during position changes."""
         self._blockages = blockages
+
+
+    def adjust_pin_segments(self, segments: rp.RPolygon) -> None:
+        """Adjusts pins made of 3 segments. Aligns the trunk with the nearest segment of the same
+        orientation and resizes it to match its length. The branches are moved accordingly."""
+        assert self._is_iopin and len(self.branches) == 2
+
+        if self._grouped:
+            self.ungroup()
+
+        list_segments = list(segments.maximal_rectangles())
+        trunk_center = self.trunk.midpoint()
+        trunk_rect = self.trunk.rect()
+
+        horizontal = self.trunk.is_horizontal
+        for segment in list_segments:
+            x_lower, x_upper = float(segment.x_lower), float(segment.x_upper) # type: ignore
+            y_lower, y_upper = float(segment.y_lower), float(segment.y_upper) # type: ignore
+
+            if horizontal:
+                if y_lower == y_upper: # The segment is also horizontal
+                    if abs(trunk_center.y() - y_lower) < MAGNET:
+                        self._trunk.setPos(x_lower, y_lower)
+                        self._trunk.prepareGeometryChange()
+                        trunk_rect.setRight(self._trunk.mapFromScene(QPointF(x_upper,0)).x())
+                        self._trunk.setRect(trunk_rect)
+                        self._trunk.reset_local_origin_update_area()
+                        self._trunk.update_handles_position()
+            else:   
+                if x_lower == x_upper: # The segment is vertical
+                    if abs(trunk_center.x() - x_lower) < MAGNET:
+                        self._trunk.setPos(x_lower, y_lower)
+                        self.trunk.prepareGeometryChange()
+                        trunk_rect.setBottom(self._trunk.mapFromScene(QPointF(0,y_upper)).y())
+                        self._trunk.setRect(trunk_rect)
+                        self._trunk.reset_local_origin_update_area()
+                        self._trunk.update_handles_position()
+  
+        self.regroup()
+
+        return None
+
+    def legal_pin_location(self, segments: rp.RPolygon) -> bool:
+        """Checks if the pin is placed in the given segments (in a legal location)."""
+
+        assert self._is_iopin
+        for item in {self.trunk} | self.branches:
+            rect, center = item.rect(), item.midpoint()
+            w, h = rect.width(), rect.height()
+            
+            if w == MIN_PIN_SIZE:
+                w = 0
+            if h == MIN_PIN_SIZE:
+                h = 0
+
+            segment = rp.rclosed(round(center.x()-w/2, 8), round(center.x()+w/2, 8), round(center.y()-h/2, 8), round(center.y()+h/2, 8)) # type: ignore
+            if segments & segment != segment:
+                return False
+        
+        return True
+
+    def legal_module_location(self) -> bool:
+        """Checks if the module is placed inside the scene and not intersecting any blockages."""
+        scene_rect = self.scene().sceneRect()
+
+        if not scene_rect.contains(self.mapRectToScene(self.boundingRect())):
+            return False
+        
+        for rect in {self.trunk} | self.branches:
+            rect_mapped = rect.mapRectToScene(rect.rect())
+
+            for blockage in self._blockages:
+                if rect_mapped.intersects(blockage.mapRectToScene(blockage.rect())):
+                    return False
+                
+        return True
 
     @property
     def area(self):
@@ -654,9 +746,9 @@ class RectObj(QGraphicsRectItem):
     def __init__(self, x: float, y: float, w: float, h: float):
         """Creates the rectangle given the center point (x,y) and the dimensions (w,h)."""
         if w == 0:
-            w = 0.1
+            w = MIN_PIN_SIZE
         if h == 0:
-            h = 0.1
+            h = MIN_PIN_SIZE
         super().__init__(0, 0, w, h)
         self.setPos(x - w/2, y - h/2)
         self._handles = dict[str,Handle]()
@@ -750,7 +842,6 @@ class RectObj(QGraphicsRectItem):
     def create_handles(self) -> None:
         """Creates Handles for the rectangle and positions them acordingly."""
         if self._is_iopin:
-            self._set_orientation()
             corners = ["left", "right"] if self._horizontal else ["top", "bottom"]
             is_iopin = True
         else:
@@ -812,7 +903,7 @@ class RectObj(QGraphicsRectItem):
 
         # Prevent creating a rectangle that is too small
         w, h = new_rect.width(), new_rect.height()
-        if self._is_iopin and ( w < 0.1 or h < 0.1):
+        if self._is_iopin and ( w < MIN_PIN_SIZE or h < MIN_PIN_SIZE):
             return
         if not self._is_iopin and (w < 1 or h < 1):
             return
@@ -897,7 +988,7 @@ class RectObj(QGraphicsRectItem):
         self._area = w * h
 
 
-    def _set_orientation(self) -> None:
+    def set_orientation(self) -> None:
         """This function is for I/O Pins only. Determines if the pin is oriented horizontally or not."""
         rect = self.rect()
         w, h = rect.width(), rect.height()
@@ -909,7 +1000,7 @@ class RectObj(QGraphicsRectItem):
                 self._horizontal = False
         else:
             center = self.midpoint()
-            if center.x() == 0 or center.x() == self.scene().height(): # if it's placed in a corner it will be horizontal by default
+            if center.x() == 0: # if it's placed in a corner it will be horizontal by default
                 self._horizontal = True
             else:
                 self._horizontal = False
@@ -923,18 +1014,18 @@ class RectObj(QGraphicsRectItem):
         rect = self.rect()
         w, h = rect.width(), rect.height()
 
-        rect.setRight(h)
-        rect.setBottom(w)
+        rect.setWidth(h)
+        rect.setHeight(w)
         self.setRect(rect)
 
         if self._handles:
-            if self._horizontal:
+            if self._horizontal: # Change horizontal -> vertical
                 self._handles["top"] = self._handles.pop("left")
                 self._handles["top"].change_corner("top")
                 
                 self._handles["bottom"] = self._handles.pop("right")
                 self._handles["bottom"].change_corner("bottom")
-            else:
+            else: # Change vertical -> horizontal
                 self._handles["left"] = self._handles.pop("top")
                 self._handles["left"].change_corner("left")
                 self._handles["right"] = self._handles.pop("bottom")
@@ -1037,6 +1128,12 @@ class RectObj(QGraphicsRectItem):
         """Set whether the rectangle is part of an I/O pin."""
         self._is_iopin = is_iopin
 
+    @property
+    def is_horizontal(self) -> bool:
+        """Returns whether the rectangle is horizontal or not. This property is only for soft/hard pins."""
+        assert self._horizontal is not None
+        return self._horizontal
+
 HANDLE_SIZE = 16
 HANDLE_IO_PIN = 10
 class Handle(QGraphicsRectItem):
@@ -1123,3 +1220,14 @@ class Handle(QGraphicsRectItem):
     def change_corner(self, corner: str) -> None:
         """Changes the corner attribute to the given corner (or side)."""
         self._corner = corner
+
+    def mousePressEvent(self, event: QGraphicsSceneMouseEvent) -> None:
+        """Clears selection of all other items and selects this handle exclusively."""
+        self.focusItem()
+        self.setCursor(Qt.CursorShape.OpenHandCursor)
+
+        for item in self.scene().selectedItems():
+            item.setSelected(False)
+
+        self.setSelected(True)
+        return super().mousePressEvent(event)
