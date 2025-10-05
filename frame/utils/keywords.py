@@ -22,6 +22,7 @@ class KW:
     ASPECT_RATIO = "aspect_ratio"  # Aspect ratio of a module/rectangle
     LENGTH = "length"  # Length of a terminal (or pin)
     IO_PIN = "io_pin"  # Is the module a terminal? (synonym of terminal)
+    TERMINAL = "terminal"  # Is the module a terminal? (synonym of io_pin)
     HARD = "hard"  # Hard module
     FIXED = "fixed"  # Is a module (or rectangle) fixed?
     FLIP = "flip"  # Can a non-rectangular hard module be flipped?

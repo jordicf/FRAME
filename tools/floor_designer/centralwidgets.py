@@ -1,5 +1,6 @@
 
 import distinctipy # pyright: ignore[reportMissingTypeStubs]
+import rportion as rp # pyright: ignore[reportMissingTypeStubs]
 from typing import Iterator
 from PySide6.QtWidgets import (
     QWidget, QLabel, QPushButton, QVBoxLayout, QHBoxLayout, QSizePolicy, QLineEdit,
@@ -11,6 +12,7 @@ from PySide6.QtCore import Qt, QSize
 from PySide6.QtGui import QBrush, QColor, QResizeEvent
 from graphical_view import GraphicalView
 from tools.floor_designer.items import Module, FlyLine, RectObj
+from items import MIN_PIN_SIZE
 
 from frame.netlist.netlist import Netlist 
 from frame.geometry.geometry import Rectangle, Point, Shape
@@ -32,6 +34,7 @@ class FloorplanDesigner(QWidget):
     _modules: dict[str,Module] # key: name, value: module
     _fly_lines: set[FlyLine]
     _blockages: set[QGraphicsRectItem]
+    _segments: rp.RPolygon|None = None # Segments available for pin placement
     
     _selected_mod: Module|None = None
     
@@ -79,14 +82,16 @@ class FloorplanDesigner(QWidget):
         self._blockages.clear()
         self._fly_lines.clear()
         self._graphical_view.clear_scene()
+        self._segments = None
 
         die = Die(die_path)
         self._netlist = Netlist(netlist_path)
 
-        self._graphical_view.set_scene_rect(int(die.width), int(die.height))
+        self._graphical_view.set_scene_rect(die.width, die.height)
         self._graphical_view.scene().selectionChanged.connect(self._selected_module_changed)
 
         self.load_blockages(die)
+        self._calculate_segments()
         self.load_modules()
         self.load_fly_lines()
         self._update_info_box()
@@ -214,6 +219,12 @@ class FloorplanDesigner(QWidget):
             if isinstance(rect, RectObj) and rect.is_iopin:
                 rect.change_orientation()
 
+    def _selected_iopin_adjust_segments(self) -> None:
+        """Adjusts the position and size of the segments of a 3-segment I/O pin."""
+        if self._selected_mod is not None:
+            assert self._segments is not None
+            self._selected_mod.adjust_pin_segments(self._segments)
+
 
     def create_and_add_module(self, name: str, x: float, y: float, w: float, h: float, atr: str) -> None:
         """
@@ -262,7 +273,7 @@ class FloorplanDesigner(QWidget):
 
         return info_box
     
-    def _update_info_box(self, iopin_selected: bool = False) -> None:
+    def _update_info_box(self, iopin_single_rect_selected: bool = False) -> None:
         """Refreshes the info box with data from the selected module."""
 
         clear_layout(self._info_layout) # Clear old info
@@ -282,16 +293,27 @@ class FloorplanDesigner(QWidget):
             self._info_layout.addWidget(atr_label)
             self._info_layout.addWidget(group_checkbox)
 
+            # Special button for soft modules
             if self._selected_mod.attribute == "soft" and not self._selected_mod.is_iopin:
                 area_checkbox = QCheckBox("Maintain area")
                 area_checkbox.setChecked(self._selected_mod.maintain_area)
                 area_checkbox.checkStateChanged.connect(self._area_checkbox_changed)
                 self._info_layout.addWidget(area_checkbox)
 
-            if iopin_selected and self._selected_mod.attribute != "fixed":
-                orientation_button = QPushButton("Change orientation")
-                orientation_button.clicked.connect(self._selected_iopin_change_orientation)
-                self._info_layout.addWidget(orientation_button)
+            if self._selected_mod.attribute != "fixed":
+                # Special button for individual rectangles of a pin
+                if iopin_single_rect_selected:
+                    orientation_button = QPushButton("Change orientation")
+                    orientation_button.clicked.connect(self._selected_iopin_change_orientation)
+                    self._info_layout.addWidget(orientation_button)
+
+                # Special button for 3-segment pins
+                if not iopin_single_rect_selected and self._selected_mod.is_iopin:
+                    branches = self._selected_mod.branches
+                    if len(branches) > 1: # The pin has 3 segments
+                        adjust_button = QPushButton("Adjust segments")
+                        adjust_button.clicked.connect(self._selected_iopin_adjust_segments)
+                        self._info_layout.addWidget(adjust_button)
 
             self._info_layout.addWidget(QLabel("<b>Connected to:</b>"))
             label = QLabel(", ".join(self._selected_mod.connected_modules()))
@@ -460,6 +482,42 @@ class FloorplanDesigner(QWidget):
             yield blockage
 
 
+    def _calculate_segments(self) -> None:
+        """Calculates the die boundary to find the segments available for pin placement."""
+        scene_rect = self.scene().sceneRect()
+        die = rp.rclosed(0,scene_rect.width(), 0, scene_rect.height()) # type: ignore
+
+        for blockage in self.blockages():
+            bck_rect = blockage.rect()
+            x, y = blockage.x(), blockage.y()
+
+            die =  die - rp.rclosed(x, x + bck_rect.width(), y, y+ bck_rect.height()) # type: ignore
+
+        self._segments = die.boundary()
+
+    def _check_pins_location(self) -> list[str]:
+        """Returns the names of the I/O pins that are not in the allowed segments."""
+        pins_with_wrong_location = list[str]()
+        for module in self._modules.values():
+            if module.is_iopin:
+                assert self._segments is not None
+                if not module.legal_pin_location(self._segments):
+                    pins_with_wrong_location.append(module.name)
+
+        return pins_with_wrong_location
+
+    def _check_modules_location(self) -> list[str]:
+        """Returns the names of modules placed incorrectly (outisde the scene or
+        colliding with blockages)."""
+        mods_with_wrong_location = list[str]()
+        for module in self._modules.values():
+            if not module.is_iopin:
+                if not module.legal_module_location():
+                    mods_with_wrong_location.append(module.name)
+
+        return mods_with_wrong_location
+
+
     def _scale_weight_to_pen(self, weight: float, min_weight: float, max_weight: float) -> float:
         """ Maps a fly line weight to a pen width:
         - min_weight to MIN_NET_PEN
@@ -474,6 +532,30 @@ class FloorplanDesigner(QWidget):
         return MIN_NET_PEN + (weight - min_weight) * (MAX_NET_PEN - MIN_NET_PEN) / (max_weight - min_weight)
 
     def _save_as_dialog(self) -> None:
+        """Shows a warning if any modules or pins are placed incorrectly, then opens a dialog to save
+        the file. The file can still be saved even if there are placement errors."""
+        pins = self._check_pins_location()
+        modules = self._check_modules_location()
+
+        if modules or pins:
+            message_lines = ["Some elements are not placed correctly:"]
+
+            if modules:
+                message_lines.append("\nModules:")
+                for m in modules:
+                    message_lines.append(f"  • {m}")
+            if pins:
+                message_lines.append("\nPins:")
+                for p in pins:
+                    message_lines.append(f"  • {p}")
+        
+                msg_box = QMessageBox(self)
+                msg_box.setIcon(QMessageBox.Icon.Warning)
+                msg_box.setWindowTitle("Placement check")
+                msg_box.setText("\n".join(message_lines))
+                msg_box.setStandardButtons(QMessageBox.StandardButton.Ok)
+                msg_box.exec()
+
 
         save_path, format = QFileDialog.getSaveFileName(self, "Select File to Save", "", "YAML files (*.yaml *.yml);;JSON files (*.json)")
         if not save_path:
@@ -946,14 +1028,14 @@ def rectobj_to_rectangle(rectobj: RectObj, scene_h: float) -> Rectangle:
     center = rectobj.midpoint()
 
     if rectobj.is_iopin:
-        if w == 0.1:
+        if w == MIN_PIN_SIZE:
             w = 0
-        if h == 0.1:
+        if h == MIN_PIN_SIZE:
             h = 0
 
         assert w == 0 or h == 0
 
-    return Rectangle(center=Point(round(center.x(), 10), round(scene_h - center.y(),10)), shape=Shape(w,h))
+    return Rectangle(center=Point(round(center.x(), 8), round(scene_h - center.y(), 8)), shape=Shape(w,h))
 
 def rectangle_to_blockage(rect: Rectangle, scene_h: float) -> QGraphicsRectItem:
     """
@@ -975,7 +1057,6 @@ def rectangle_to_blockage(rect: Rectangle, scene_h: float) -> QGraphicsRectItem:
 def set_blockage_style(blockage: QGraphicsRectItem) -> None:
     """Colors the given rectangle gray and fills it with diagonal lines."""
     brush = QBrush()
-    # brush.setColor(Qt.GlobalColor.gray)
     brush.setStyle(Qt.BrushStyle.FDiagPattern)
     blockage.setBrush(brush)
     pen = blockage.pen()

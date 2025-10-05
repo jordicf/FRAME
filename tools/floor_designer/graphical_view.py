@@ -94,7 +94,9 @@ class GraphicalView(QGraphicsView):
         self._min_zoom = transform.m11()
         self._current_zoom = self._min_zoom
 
-    def set_scene_rect(self, scene_width: int, scene_height: int) -> None:
+    def set_scene_rect(self, scene_width: float, scene_height: float) -> None:
+        """Updates the scene rectangle with the given dimensions, redraws the border, 
+        and fits the view."""
         self._scene_ref.setSceneRect(0,0,scene_width,scene_height)
 
         if self._border_rect is not None:
