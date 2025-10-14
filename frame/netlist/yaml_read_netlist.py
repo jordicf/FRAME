@@ -78,10 +78,19 @@ def parse_yaml_module(name: str, info: dict[str, Any]) -> Module:
     assert isinstance(info, dict), (
         f"The information for module {name} is not a dictionary"
     )
+
     params = dict[str, Any]()
     for key, value in info.items():
         assert isinstance(key, str)
-        if key in [KW.AREA, KW.LENGTH, KW.IO_PIN, KW.TERMINAL, KW.FIXED, KW.HARD, KW.FLIP]:
+        if key in [
+            KW.AREA,
+            KW.LENGTH,
+            KW.IO_PIN,
+            KW.TERMINAL,
+            KW.FIXED,
+            KW.HARD,
+            KW.FLIP,
+        ]:
             params[key] = value
         elif key == KW.CENTER:
             params[KW.CENTER] = parse_yaml_center(value, name)
@@ -96,6 +105,11 @@ def parse_yaml_module(name: str, info: dict[str, Any]) -> Module:
     assert not (KW.IO_PIN in params and KW.TERMINAL in params), (
         f"Module {name}: io_pin and terminal are synonyms, only one of them should be used"
     )
+
+    if KW.TERMINAL in params:
+        params[KW.IO_PIN] = params[KW.TERMINAL]
+        del params[KW.TERMINAL]
+
     # We need to anticipate fixed and hard for the rectangles (not a nice code)
     assert KW.FIXED not in params or isinstance(params[KW.FIXED], bool), (
         f"Module {name}: incorrect value for fixed (should be a boolean)"
