@@ -1,4 +1,4 @@
-# (c) Marçal Comajoan Cara 2022
+# (c) Jordi Cortadella, 2025
 # For the FRAME Project.
 # Licensed under the MIT License
 # (see https://github.com/jordicf/FRAME/blob/master/LICENSE.txt).
@@ -6,56 +6,51 @@
 """FRAME command-line utility."""
 
 import argparse
+import importlib
 
-import tools.early_router.main_router
-import tools.floorset_parser.floorset_handler
-import tools.hello.hello  # Fake tool
-import tools.draw.draw  # To draw floorplans
-import tools.netgen.netgen  # Netlist generator
-# To find an initial position of modules using spectral methods
-import tools.spectral.spectral
-# To improve the initial position of modules using force-directed methods
-import tools.force.force
-# To find the allocation of the modules using optimization methods
-import tools.glbfloor.glbfloor
-import tools.rect.rect  # To normalize fuzzy module assignments
-import tools.legalfloor.legalfloor  # To legalize the floorplan
-import tools.legalizer.legalizer  # Legalize with tau
-import tools.all.all # To execute the whole flow
-import tools.uscs_parser.uscs_parser
+# Modules that must be imported dynamically when invoking a tool.
+# The keys are the tool names, and the values are the module paths.
+# The main function of each module must be called "main" and must
+# accept two parameters: prog (str) and args (list[str]).
 
-# Tool names and the entry function they execute.
-# The functions must accept two parameters: the tool name and the
-# command-line arguments passed to it.
-TOOLS = {"hello": tools.hello.hello.main,
-         "draw": tools.draw.draw.main,
-         "netgen": tools.netgen.netgen.main,
-         "spectral": tools.spectral.spectral.main,
-         "force": tools.force.force.main,
-         "glbfloor": tools.glbfloor.glbfloor.main,
-         "rect": tools.rect.rect.main,
-         "legalfloor": tools.legalfloor.legalfloor.main,
-         "legalizer": tools.legalizer.legalizer.main,
-         "parse_floorset": tools.floorset_parser.floorset_handler.main,
-         "uscs_parser": tools.uscs_parser.uscs_parser.main,
-         "early_router": tools.early_router.main_router.main,
-         "all": tools.all.all.main
-         }
+TOOLS = {
+    "hello": "tools.hello.hello",
+    "draw": "tools.draw.draw",
+    "netgen": "tools.netgen.netgen",
+    "spectral": "tools.spectral.spectral",
+    "force": "tools.force.force",
+    "glbfloor": "tools.glbfloor.glbfloor",
+    "rect": "tools.rect.rect",
+    "legalfloor": "tools.legalfloor.legalfloor",
+    "legalizer": "tools.legalizer.legalizer",
+    "parse_floorset": "tools.floorset_parser.floorset_handler",
+    "uscs_parser": "tools.uscs_parser.uscs_parser",
+    "early_router": "tools.early_router.main_router",
+    "pswap": "tools.pswap.pswap",
+    "all": "tools.all.all"
+}
 
 
 def main() -> None:
     """Main function."""
     parser = argparse.ArgumentParser(prog="frame")
-    parser.add_argument("tool", choices=TOOLS.keys(),
-                        nargs=argparse.REMAINDER, help="tool to execute")
+    parser.add_argument(
+        "tool", choices=TOOLS.keys(), nargs=argparse.REMAINDER, help="tool to execute"
+    )
     args = parser.parse_args()
-
+    
     if args.tool:
         tool_name, tool_args = args.tool[0], args.tool[1:]
         if tool_name in TOOLS:
-            TOOLS[tool_name](f"frame {tool_name}", tool_args)
+            try:
+                importlib.import_module(
+                    TOOLS[tool_name]).main(f"frame {tool_name}",tool_args)
+            except Exception as e:
+                # import traceback
+                # traceback.print_exc()
+                print(f"Error ({tool_name}): {e}")
         else:
-            print("Unknown tool", tool_name)
+            print("Unknown frame tool:", tool_name)
     else:
         parser.print_help()
 

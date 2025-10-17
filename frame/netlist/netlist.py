@@ -14,7 +14,7 @@ from frame.netlist.module import Module
 from frame.netlist.netlist_types import HyperEdge, NamedHyperEdge
 from frame.netlist.yaml_read_netlist import parse_yaml_netlist
 from frame.netlist.yaml_write_netlist import dump_yaml_modules, dump_yaml_edges
-from frame.geometry.geometry import Rectangle
+from frame.geometry.geometry import Rectangle, Point
 from frame.utils.keywords import KW
 from frame.utils.utils import write_json_yaml, Python_object
 
@@ -136,6 +136,29 @@ class Netlist:
         """Indicates whether all soft modules have STROPs"""
         return all(m.is_hard or m.has_strop for m in self.modules)
 
+    def calculate_centers_from_rectangles(self) -> None:
+        """
+        Calculates the center of each module from its rectangles.
+        If a module has no rectangles, its center is not modified.
+        """
+        for m in self.modules:
+            if m.num_rectangles > 0:
+                m.calculate_center_from_rectangles()
+
+    def update_centers(self, mod_centers: dict[str, tuple[float, float]]) -> None:
+        """
+        Updates the centers of a set of modules of the netlist. If the module has
+        rectangles, they are shifted accordingly.
+        :param mod_centers: mapping from module names to centers
+        """
+        for name, center in mod_centers.items():
+            m = self.get_module(name)
+            assert m.center is not None, f"Module {name} has no center defined"
+            shift = Point(center[0] - m.center.x, center[1] - m.center.y)
+            m.center = Point(center[0], center[1])
+            for r in m.rectangles:
+                r.center += shift
+
     def get_rectangles_module(self, module: str) -> list[Rectangle]:
         """Returns the list of rectangles of a module"""
         return self.get_module(module).rectangles
@@ -167,33 +190,6 @@ class Netlist:
         :return: the list of fixed rectangles
         """
         return [r for r in self.rectangles if r.fixed]
-
-    def write_yaml(self, filename: Optional[str] = None) -> Optional[str]:
-        """
-        Writes the netlist into a YAML file.
-        If no file name is given, a string with the yaml contents is returned
-        :param filename: name of the output file
-        """
-        data = self._write_json_yaml_data()
-        return write_json_yaml(data, False, filename)
-
-    def write_json(self, filename: Optional[str] = None) -> Optional[str]:
-        """
-        Writes the netlist into a JSON file. If no file name is given,
-        a string with the JSON contents is returned
-        :param filename: name of the output file
-        """
-        data = self._write_json_yaml_data()
-        return write_json_yaml(data, True, filename)
-
-    def _write_json_yaml_data(self) -> Python_object:
-        """
-        Generates the data structure to be dumped into a JSON or YAML file.
-        """
-        return {
-            KW.MODULES: dump_yaml_modules(self.modules),
-            KW.NETS: dump_yaml_edges(self.edges),
-        }
 
     def _clean_rectangles(self) -> None:
         """
@@ -245,3 +241,30 @@ class Netlist:
         assert all(not m.flip or m.has_strop for m in self.modules), (
             "Not all flip modules have a STROP"
         )
+
+    def write_yaml(self, filename: Optional[str] = None) -> Optional[str]:
+        """
+        Writes the netlist into a YAML file.
+        If no file name is given, a string with the yaml contents is returned
+        :param filename: name of the output file
+        """
+        data = self._write_json_yaml_data()
+        return write_json_yaml(data, False, filename)
+
+    def write_json(self, filename: Optional[str] = None) -> Optional[str]:
+        """
+        Writes the netlist into a JSON file. If no file name is given,
+        a string with the JSON contents is returned
+        :param filename: name of the output file
+        """
+        data = self._write_json_yaml_data()
+        return write_json_yaml(data, True, filename)
+
+    def _write_json_yaml_data(self) -> Python_object:
+        """
+        Generates the data structure to be dumped into a JSON or YAML file.
+        """
+        return {
+            KW.MODULES: dump_yaml_modules(self.modules),
+            KW.NETS: dump_yaml_edges(self.edges),
+        }

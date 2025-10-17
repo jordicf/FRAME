@@ -62,6 +62,7 @@ packages = [
     "tools.rect.cpp_src",
     "tools.uscs_parser",
     "tools.early_router",
+    "tools.pswap",
     "tools.all"
 ]
 

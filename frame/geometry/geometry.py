@@ -26,6 +26,7 @@ class Point:
     A class to represent two-dimensional points and operate with them
     """
 
+    __slots__ = ("_x", "_y")
     _x: float  # x coordinate
     _y: float  # y coordinate
 
@@ -157,7 +158,7 @@ class Point:
         yield self.y
 
 
-@dataclass
+@dataclass(slots=True)
 class Shape:
     """
     A class to represent a two-dimensional rectilinear shape (width and height)
@@ -167,7 +168,7 @@ class Shape:
     h: float
 
 
-@dataclass
+@dataclass(slots=True)
 class AspectRatio:
     """
     A class to represent the aspect ratio of a module or a rectangle
@@ -178,7 +179,7 @@ class AspectRatio:
     max_wh: float
 
 
-@dataclass
+@dataclass(slots=True)
 class BoundingBox:
     """
     A class to represent a rectangle using a bounding box
@@ -192,6 +193,8 @@ class Rectangle:
     """
     A class to represent a rectilinear rectangle
     """
+
+    __slots__ = ("_center", "_shape", "_fixed", "_hard", "_region", "_id", "_location")
 
     class StropLocation(Enum):
         """Class to represent the location of a rectangle in a Single-Trunk

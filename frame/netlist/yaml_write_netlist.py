@@ -50,7 +50,7 @@ def dump_yaml_module(module: Module) -> dict:
         info[KW.HARD] = True
         
     if module.is_iopin:
-        info[KW.IO_PIN] = True
+        info[KW.TERMINAL] = True
     
     # Soft modules
     if not module.is_hard:

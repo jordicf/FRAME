@@ -127,7 +127,7 @@ def read_json_yaml_file(filename: str) -> Python_object:
     str_fname = str(fname)
     suffix = fname.suffix
 
-    if suffix == ". json":
+    if suffix == ".json":
         with open(str_fname, "r") as f:
             return json.load(f)
 
