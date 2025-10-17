@@ -70,7 +70,7 @@ class swapNetlist:
             for m in e.modules:
                 idx = self._name2idx[m.name]
                 point_indices.append(idx)
-                self._points[idx].nets.append(len(self.nets))
+                self.points[idx].nets.append(len(self.nets))
             self.nets.append(swapNet(weight=e.weight, points=point_indices))
 
         self.hpwl = sum(self.compute_net_hpwl(net) for net in self.nets)
@@ -113,7 +113,7 @@ class swapNetlist:
         It returns the computed HPWL."""
         xs = [self.points[p].x for p in net.points]
         ys = [self.points[p].y for p in net.points]
-        net.hpwl = (max(xs) - min(xs)) + (max(ys) - min(ys)) * net.weight
+        net.hpwl = (max(xs) - min(xs) + max(ys) - min(ys)) * net.weight
         return net.hpwl
 
     def swap_points(self, idx1: int, idx2: int) -> float:
