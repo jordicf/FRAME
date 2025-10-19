@@ -550,7 +550,7 @@ class Module(QGraphicsItemGroup):
             if h == MIN_PIN_SIZE:
                 h = 0
 
-            segment = rp.rclosed(round(center.x()-w/2, 8), round(center.x()+w/2, 8), round(center.y()-h/2, 8), round(center.y()+h/2, 8)) # type: ignore
+            segment = rp.rclosed(round(center.x()-w/2, 4), round(center.x()+w/2, 4), round(center.y()-h/2, 4), round(center.y()+h/2, 4)) # type: ignore
             if segments & segment != segment:
                 return False
         
@@ -777,7 +777,7 @@ class RectObj(QGraphicsRectItem):
     def itemChange(self, change: QGraphicsRectItem.GraphicsItemChange, value: QPointF):
         """Handles item position changes. When moving, this rectangle aligns itself with its siblings 
         in the module if they are close enough."""
-        if change == QGraphicsRectItem.GraphicsItemChange.ItemPositionChange:
+        if not self.is_iopin and change == QGraphicsRectItem.GraphicsItemChange.ItemPositionChange:
             rect = self.rect()
             rect_midp = QPointF(value.x()+ rect.width()/2, value.y() +rect.height()/2)
 

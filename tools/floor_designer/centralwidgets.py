@@ -83,6 +83,7 @@ class FloorplanDesigner(QWidget):
         self._fly_lines.clear()
         self._graphical_view.clear_scene()
         self._segments = None
+        self._selected_mod = None
 
         die = Die(die_path)
         self._netlist = Netlist(netlist_path)
@@ -549,12 +550,12 @@ class FloorplanDesigner(QWidget):
                 for p in pins:
                     message_lines.append(f"  • {p}")
         
-                msg_box = QMessageBox(self)
-                msg_box.setIcon(QMessageBox.Icon.Warning)
-                msg_box.setWindowTitle("Placement check")
-                msg_box.setText("\n".join(message_lines))
-                msg_box.setStandardButtons(QMessageBox.StandardButton.Ok)
-                msg_box.exec()
+            msg_box = QMessageBox(self)
+            msg_box.setIcon(QMessageBox.Icon.Warning)
+            msg_box.setWindowTitle("Placement check")
+            msg_box.setText("\n".join(message_lines))
+            msg_box.setStandardButtons(QMessageBox.StandardButton.Ok)
+            msg_box.exec()
 
 
         save_path, format = QFileDialog.getSaveFileName(self, "Select File to Save", "", "YAML files (*.yaml *.yml);;JSON files (*.json)")
