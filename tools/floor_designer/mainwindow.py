@@ -52,7 +52,6 @@ class MainWindow(QMainWindow):
         open_action.triggered.connect(self._open_files)
         quit_action = file_menu.addAction("Quit")
         quit_action.triggered.connect(self._app.quit)
-        file_menu.addAction("Save")
 
         edit_menu = menu_bar.addMenu("Edit")
         edit_menu.addAction("Copy")
