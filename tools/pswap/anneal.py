@@ -31,9 +31,10 @@ def simulated_annealing(
 
     if verbose:
         print(f"Initially: Temperature {temp:.3f}, HPWL {best_hpwl:.5f}")
+
     no_improvement = 0  # Number of iteration without improvement
     iter = 0  # Iteration counter
-    best_avg = best_hpwl  # Best average HPWL in one iteration
+    best_avg = math.inf  # Conservative best average HPWL in one iteration
     while no_improvement < patience:
         iter += 1
         avg = 0.0
