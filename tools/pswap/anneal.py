@@ -30,7 +30,7 @@ def simulated_annealing(
     best_hpwl = current_hpwl = net.hpwl
 
     if verbose:
-        print(f"Initially: Temperature {temp:.3f}, HPWL {best_hpwl:.5f}")
+        print(f"Initially: Temperature {temp:.3f}, HPWL {best_hpwl:.1f}")
 
     no_improvement = 0  # Number of iteration without improvement
     iter = 0  # Iteration counter

@@ -10,6 +10,7 @@ import pathlib
 from typing import Any, Optional
 from .netlist import swapNetlist
 from .anneal import simulated_annealing
+from .greedy import greedy
 
 
 def parse_options(
@@ -54,6 +55,8 @@ def parse_options(
         default=0.95,
         help="decreasing temperature factor. Default: 0.95",
     )
+    parser.add_argument("-g", "--greedy",
+                        help="greedy optimization after simulated annealing")
 
     return vars(parser.parse_args(args))
 
@@ -70,6 +73,10 @@ def main(prog: Optional[str] = None, args: Optional[list[str]] = None) -> None:
         temp_factor=options["tfactor"],
         verbose=options["verbose"]
     )
+    
+    if options["greedy"]:
+        greedy(netlist, verbose=options["verbose"])
+        
     netlist.netlist.update_centers(
         {netlist.idx2name(i): (p.x, p.y) for i, p in enumerate(netlist.points)}
     )
