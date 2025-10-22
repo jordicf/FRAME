@@ -63,6 +63,7 @@ packages = [
     "tools.uscs_parser",
     "tools.early_router",
     "tools.pswap",
+    "tools.GP",
     "tools.all"
 ]
 
