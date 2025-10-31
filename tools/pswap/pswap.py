@@ -55,8 +55,16 @@ def parse_options(
         default=0.95,
         help="decreasing temperature factor. Default: 0.95",
     )
+    parser.add_argument(
+        "--split_net",
+        type=float,
+        default=10,
+        help="weight factor for nets created by splits (0 to disable splits). "
+        "Default: 10.0.",
+    )
     parser.add_argument("-g", "--greedy",
-                        help="greedy optimization after simulated annealing")
+                        help="greedy optimization after simulated annealing",
+                        action="store_true")
 
     return vars(parser.parse_args(args))
 
@@ -64,7 +72,7 @@ def parse_options(
 def main(prog: Optional[str] = None, args: Optional[list[str]] = None) -> None:
     """Main function."""
     options = parse_options(prog, args)
-    netlist = swapNetlist(options["netlist"])
+    netlist = swapNetlist(options["netlist"], options["split_net"], options["verbose"])
     simulated_annealing(
         netlist,
         n_swaps=options["swaps"],
@@ -76,10 +84,13 @@ def main(prog: Optional[str] = None, args: Optional[list[str]] = None) -> None:
     
     if options["greedy"]:
         greedy(netlist, verbose=options["verbose"])
-        
+    
+    netlist.remove_subblocks() # Remnove fake subblocks from splits
+    # Update the original netlist with the new positions
     netlist.netlist.update_centers(
         {netlist.idx2name(i): (p.x, p.y) for i, p in enumerate(netlist.points)}
     )
+    netlist.hpwl = sum(netlist._compute_net_hpwl(n) for n in netlist.nets)
     if options["verbose"]:
         print(f"Final HPWL: {netlist.hpwl:.2f}")
 

@@ -14,7 +14,7 @@ from frame.geometry.geometry import Point, Shape, Rectangle, BoundingBox
 from frame.die.die import Die
 import math
 from argparse import ArgumentParser
-from typing import Any
+from typing import Any, Optional
 from dataclasses import dataclass
 
 from PIL import Image, ImageDraw, ImageFont
@@ -257,8 +257,9 @@ def draw_geometry(
 
 def get_floorplan_plot(
     netlist: Netlist,
+    draw_nets: bool,
     die_shape: Shape,
-    allocation: Allocation | None = None,
+    allocation: Optional[Allocation] = None,
     width: int = 0,
     height: int = 0,
     frame: int = 20,
@@ -353,21 +354,22 @@ def get_floorplan_plot(
                     draw_rectangle(im, r, rname, color, scaling, fontsize)
 
     # Draw edges
-    for e in netlist.edges:
-        list_points: list[Point] = calculate_centers(e, allocation)
-        canvas_points = [scale(p, scaling) for p in list_points]
-        center = canvas_points[0]
-        for pin in canvas_points[1:]:
-            drawing.line(
-                [(center.x, center.y), (pin.x, pin.y)], fill=COLOR_WHITE, width=3
-            )
-        if len(canvas_points) > 3:  # Circle in the center
-            rad = 8
-            drawing.ellipse(
-                [center.x - rad, center.y - rad, center.x + rad, center.y + rad],
-                outline=COLOR_WHITE,
-                width=3,
-            )
+    if draw_nets:
+        for e in netlist.edges:
+            list_points: list[Point] = calculate_centers(e, allocation)
+            canvas_points = [scale(p, scaling) for p in list_points]
+            center = canvas_points[0]
+            for pin in canvas_points[1:]:
+                drawing.line(
+                    [(center.x, center.y), (pin.x, pin.y)], fill=COLOR_WHITE, width=3
+                )
+            if len(canvas_points) > 3:  # Circle in the center
+                rad = 8
+                drawing.ellipse(
+                    [center.x - rad, center.y - rad, center.x + rad, center.y + rad],
+                    outline=COLOR_WHITE,
+                    width=3,
+                )
 
     return im
 
@@ -390,6 +392,9 @@ def parse_options(
         "--die",
         metavar="<WIDTH>x<HEIGHT> or FILENAME",
         help="size of the die (width x height) or name of the file",
+    )
+    parser.add_argument(
+        "--no_nets", help="do not draw the nets", action="store_true"
     )
     parser.add_argument(
         "--alloc",
@@ -447,6 +452,7 @@ def main(prog: str | None = None, args: list[str] | None = None) -> None:
 
     im = get_floorplan_plot(
         netlist,
+        not options["no_nets"],
         die_shape,
         allocation,
         options["width"],

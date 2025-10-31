@@ -46,8 +46,8 @@ def main() -> None:
                 importlib.import_module(
                     TOOLS[tool_name]).main(f"frame {tool_name}",tool_args)
             except Exception as e:
-                # import traceback
-                # traceback.print_exc()
+                import traceback
+                traceback.print_exc()
                 print(f"Error ({tool_name}): {e}")
         else:
             print("Unknown frame tool:", tool_name)

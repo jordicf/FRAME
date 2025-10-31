@@ -272,7 +272,8 @@ class Module:
     def area(self, region: Optional[str] = None) -> float:
         """Returns the area of a module associated to a region.
         If no region is specified, the total area is returned."""
-        assert not self.is_iopin, f"Module {self.name} is an IO pin, so it has no area"
+        if self.is_iopin:
+            return 0.0
         if region is None:
             if self._total_area < 0:
                 self._total_area = sum(self._area_regions.values())

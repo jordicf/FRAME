@@ -1,3 +1,9 @@
+# (c) Jordi Cortadella 2025
+# For the FRAME Project.
+# Licensed under the MIT License
+# (see https://github.com/jordicf/FRAME/blob/master/LICENSE.txt).
+"""Simulated annealing optimization for module centroid swapping."""
+
 import math
 import numpy as np
 from .netlist import swapNetlist
@@ -68,7 +74,7 @@ def simulated_annealing(
     # Restore best solution
     for i, p in enumerate(net.points):
         p.x, p.y = best_xy[i]
-    net.hpwl = sum(net.compute_net_hpwl(n) for n in net.nets)
+    net.hpwl = sum(net._compute_net_hpwl(n) for n in net.nets)
 
 
 def _find_best_temperature(
@@ -85,6 +91,9 @@ def _find_best_temperature(
         net.swap_points(idx1, idx2)  # Return to the original location
 
     # Compute target temperature
-    cost.sort()
-    idx = min(int(len(cost) * target_acceptance), len(cost) - 1)
-    return -cost[idx] / math.log(target_acceptance)
+    nonzero_cost = [c for c in cost if c > 0]
+    if not nonzero_cost:
+        raise ValueError("No valid cost samples found")
+    nonzero_cost.sort()
+    idx = min(int(len(nonzero_cost) * target_acceptance), len(nonzero_cost) - 1)
+    return -nonzero_cost[idx] / math.log(target_acceptance)
