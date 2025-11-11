@@ -27,6 +27,8 @@ TOOLS = {
     "uscs_parser": "tools.uscs_parser.uscs_parser",
     "early_router": "tools.early_router.main_router",
     "pswap": "tools.pswap.pswap",
+    "grdraw": "tools.grdraw.grdraw",
+    "attrrep": "tools.attrrep.attrrep",
     "all": "tools.all.all"
 }
 

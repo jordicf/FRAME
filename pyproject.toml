@@ -19,7 +19,8 @@ dependencies = [
     "ortools",
     "rportion",
     "torch",
-    "PySide6"
+    "PySide6",
+    "networkx"
 ]
 
 [project.optional-dependencies]
@@ -64,6 +65,8 @@ packages = [
     "tools.early_router",
     "tools.pswap",
     "tools.GP",
+    "tools.grdraw",
+    "tools.attrrep",
     "tools.all"
 ]
 
