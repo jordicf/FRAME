@@ -3,10 +3,11 @@
 # Licensed under the MIT License
 # (see https://github.com/jordicf/FRAME/blob/master/LICENSE.txt).
 
-from dataclasses import dataclass, field
+from dataclasses import dataclass
+
+from matplotlib.pylab import int32
 from frame.netlist.netlist import Netlist
 from frame.netlist.module import Module
-from frame.geometry.geometry import Rectangle
 
 
 @dataclass(slots=True)
@@ -29,7 +30,12 @@ class swapNet:
 
     weight: float  # Weight of the net
     points: list[int]  # List of point IDs that belong to this net
-    hpwl: float = 0.0  # Half-perimeter wire length (initialized to 0.0)
+    hpwl: float  # Half-perimeter wire length (initialized to 0.0)
+
+    def __init__(self, weight: float, points: list[int]) -> None:
+        self.weight = weight
+        self.points = points
+        self.hpwl = 0.0
 
 
 class swapNetlist:
@@ -86,9 +92,9 @@ class swapNetlist:
             area = sum(r.area for r in m.rectangles)
             self.points.append(swapPoint(x=m.center.x, y=m.center.y))
             if not m.is_hard:
-                assert len(m.rectangles) == 1, (
-                    "Only one rectangle per soft module is supported"
-                )
+                assert (
+                    len(m.rectangles) == 1
+                ), "Only one rectangle per soft module is supported"
                 self._movable.append(idx)
                 movable_area += area
 
@@ -167,9 +173,9 @@ class swapNetlist:
             idx = self.movable[i]
             m = self.idx2module(idx)
             assert not m.is_hard, "Only soft modules can be split"
-            assert len(m.rectangles) == 1, (
-                "Only one rectangle per soft module is supported"
-            )
+            assert (
+                len(m.rectangles) == 1
+            ), "Only one rectangle per soft module is supported"
             r = m.rectangles[0]
             nrows, ncols = _best_split(
                 r.shape.w, r.shape.h, self._avg_area, aspect_ratio=0.5
