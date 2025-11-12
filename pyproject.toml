@@ -19,7 +19,8 @@ dependencies = [
     "ortools",
     "rportion",
     "torch",
-    "PySide6"
+    "PySide6",
+    "numba"
 ]
 
 [project.optional-dependencies]

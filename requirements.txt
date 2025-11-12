@@ -11,3 +11,4 @@ ortools
 rportion
 torch
 PySide6
+numba~=0.57.0

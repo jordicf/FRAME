@@ -27,6 +27,7 @@ TOOLS = {
     "uscs_parser": "tools.uscs_parser.uscs_parser",
     "early_router": "tools.early_router.main_router",
     "pswap": "tools.pswap.pswap",
+    "fastpswap": "tools.fastpswap.fastpswap",
     "all": "tools.all.all"
 }
 
