@@ -37,11 +37,13 @@ class jitNet:
     weight: float  # Weight of the net
     points: List[int]  # List of point IDs that belong to this net
     hpwl: float  # Half-perimeter wire length (initialized to 0.0)
+    prev_hpwl: float  # Previous HPWL before swapping
 
     def __init__(self, weight: float, points: List[int]) -> None:
         self.weight = weight
         self.points = NumbaList(points)
         self.hpwl = 0.0
+        self.prev_hpwl = 0.0
 
 
 @jitclass
@@ -50,6 +52,7 @@ class jitNetlist:
     _nets: List[jitNet]
     _movable: List[int]  # List of movable point indices
     _hpwl: float  # Total HPWL of the netlist
+    _prev_hpwl: float  # Previous total HPWL before swapping
 
     def __init__(
         self,
@@ -65,6 +68,7 @@ class jitNetlist:
         for n in nets:
             hpwl += self._compute_net_hpwl(n)
         self._hpwl = hpwl
+        self._prev_hpwl = hpwl
 
     @property
     def movable(self) -> list[int]:
@@ -93,6 +97,7 @@ class jitNetlist:
     def _compute_net_hpwl(self, net: jitNet) -> float:
         """Compute the half-perimeter wire length (HPWL) of a net.
         It returns the computed HPWL."""
+        net.prev_hpwl = net.hpwl
         xs = [self.points[p].x for p in net.points]
         ys = [self.points[p].y for p in net.points]
         net.hpwl = (max(xs) - min(xs) + max(ys) - min(ys)) * net.weight
@@ -100,6 +105,7 @@ class jitNetlist:
 
     def swap_points(self, idx1: int, idx2: int) -> float:
         """Swap two points and return the change in total HPWL."""
+        self._prev_hpwl = self.hpwl
         p1, p2 = self.points[idx1], self.points[idx2]
         p1.x, p2.x = p2.x, p1.x
         p1.y, p2.y = p2.y, p1.y
@@ -110,6 +116,16 @@ class jitNetlist:
             delta_hpwl += self._compute_net_hpwl(self.nets[n])
         self.hpwl += delta_hpwl
         return delta_hpwl
+
+    def undo_swap(self, idx1: int, idx2: int) -> None:
+        """Undo the swap of two points."""
+        p1, p2 = self.points[idx1], self.points[idx2]
+        p1.x, p2.x = p2.x, p1.x
+        p1.y, p2.y = p2.y, p1.y
+        affected_nets = _merge_remove_common(p1.nets, p2.nets)
+        for n in affected_nets:
+            self.nets[n].hpwl = self.nets[n].prev_hpwl
+        self.hpwl = self._prev_hpwl
 
 
 def simulated_annealing(
@@ -188,17 +204,19 @@ def jit_simulated_annealing(
         for _ in range(n_swaps):
             idx1, idx2 = _pick_two_randomly(net.movable)
             delta_hpwl = net.swap_points(idx1, idx2)
-            new_hpwl = current_hpwl + delta_hpwl
-            avg += new_hpwl
+
             if delta_hpwl < 0 or np.random.random() < np.exp(-delta_hpwl / temp):
-                current_hpwl = new_hpwl
-                if new_hpwl < best_hpwl:
+                current_hpwl += delta_hpwl
+                if current_hpwl < best_hpwl:
                     no_improvement = -1
-                    best_hpwl = new_hpwl
+                    best_hpwl = current_hpwl
                     best_xy = [(p.x, p.y) for p in net.points]
             else:
                 # Swap back
-                net.swap_points(idx1, idx2)
+                net.undo_swap(idx2, idx1)
+
+            avg += current_hpwl
+            
         avg /= n_swaps
         if avg >= best_avg:
             no_improvement += 1
@@ -219,6 +237,7 @@ def jit_simulated_annealing(
                 best_hpwl,
             )
         temp = temp * temp_factor
+        
     # Restore best solution
     for i, p in enumerate(net.points):
         p.x, p.y = best_xy[i]
@@ -227,7 +246,6 @@ def jit_simulated_annealing(
     for n in net.nets:
         hpwl += net._compute_net_hpwl(n)
     net.hpwl = hpwl
-    # net.hpwl = sum(net._compute_net_hpwl(n) for n in net.nets)
 
 
 @njit
@@ -242,7 +260,8 @@ def _find_best_temperature(
     for _ in range(nswaps):
         idx1, idx2 = _pick_two_randomly(net.movable)
         cost.append(abs(net.swap_points(idx1, idx2)))
-        net.swap_points(idx1, idx2)  # Return to the original location
+        net.undo_swap(idx2, idx1)  # Return to the original location
+
     # Compute target temperature
     nonzero_cost = [c for c in cost if c > 0]
     if not nonzero_cost:

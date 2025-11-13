@@ -14,7 +14,7 @@ class swapPoint:
 
     x: float
     y: float
-    nets: list[int]  # List of net IDs that this point belongs to
+    nets: list[int]  # List of net IDs that this point belongs to (sorted and unique)
 
     def __init__(self, x: float, y: float) -> None:
         self.x = x
@@ -114,7 +114,8 @@ class swapNetlist:
 
         # Sort the nets of each point
         for p in self.points:
-            p.nets.sort()
+            # Sorted and unique nets (to avoid repeated nets)
+            p.nets = sorted(set(p.nets))
             
         # Compute initial HPWL
         self.hpwl = sum(self._compute_net_hpwl(net) for net in self.nets)
@@ -211,7 +212,6 @@ class swapNetlist:
         # Compute the new dimensions
         new_width = r.shape.w / ncols
         new_height = r.shape.h / nrows
-        new_area = new_width * new_height
         range_cols = ncols // 2
         range_rows = nrows // 2
         # Create new modules
