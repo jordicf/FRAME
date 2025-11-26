@@ -20,7 +20,8 @@ dependencies = [
     "rportion",
     "torch",
     "PySide6",
-    "numba"
+    "numba",
+    "networkx"
 ]
 
 [project.optional-dependencies]
@@ -66,6 +67,8 @@ packages = [
     "tools.pswap",
     "tools.rswap",
     "tools.GP",
+    "tools.inipoints",
+    "tools.inirects",
     "tools.all"
 ]
 
