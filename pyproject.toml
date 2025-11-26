@@ -65,8 +65,8 @@ packages = [
     "tools.early_router",
     "tools.pswap",
     "tools.GP",
-    "tools.grdraw",
-    "tools.attrrep",
+    "tools.inipoints",
+    "tools.inirects",
     "tools.all"
 ]
 
