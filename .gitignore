@@ -2,6 +2,7 @@
 .vscode
 
 __pycache__
+.venv
 venv
 venv10
 *.egg-info

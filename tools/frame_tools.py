@@ -28,7 +28,8 @@ TOOLS = {
     "early_router": "tools.early_router.main_router",
     "pswap": "tools.pswap.pswap",
     "fastpswap": "tools.fastpswap.fastpswap",
-    "all": "tools.all.all"
+    "rswap": "tools.rswap.rswap",
+    "all": "tools.all.all",
 }
 
 

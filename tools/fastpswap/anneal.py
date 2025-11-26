@@ -6,13 +6,10 @@
 
 import math
 import numpy as np
-import numpy.typing as npt
 from typing import List
-from numba import njit, types
+from numba import njit
 from numba.experimental import jitclass
 from numba.typed import List as NumbaList
-
-# from numba.types import int32, float64, ListType
 from .netlist import swapNetlist
 
 
@@ -200,7 +197,7 @@ def jit_simulated_annealing(
     while no_improvement < patience:
         iter += 1
         avg = 0.0
-        # Perform n_swaps swaps
+        # Perform n_swaps
         for _ in range(n_swaps):
             idx1, idx2 = _pick_two_randomly(net.movable)
             delta_hpwl = net.swap_points(idx1, idx2)
