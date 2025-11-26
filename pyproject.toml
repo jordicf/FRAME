@@ -65,7 +65,7 @@ packages = [
     "tools.uscs_parser",
     "tools.early_router",
     "tools.pswap",
-    "tools.rswap",
+    "tools.fastpswap",
     "tools.GP",
     "tools.inipoints",
     "tools.inirects",
