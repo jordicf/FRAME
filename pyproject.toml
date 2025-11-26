@@ -20,6 +20,7 @@ dependencies = [
     "rportion",
     "torch",
     "PySide6",
+    "numba",
     "networkx"
 ]
 

@@ -4,8 +4,6 @@
 # (see https://github.com/jordicf/FRAME/blob/master/LICENSE.txt).
 
 from dataclasses import dataclass
-
-from matplotlib.pylab import int32
 from frame.netlist.netlist import Netlist
 from frame.netlist.module import Module
 
@@ -16,7 +14,7 @@ class swapPoint:
 
     x: float
     y: float
-    nets: list[int]  # List of net IDs that this point belongs to
+    nets: list[int]  # List of net IDs that this point belongs to (sorted and unique)
 
     def __init__(self, x: float, y: float) -> None:
         self.x = x
@@ -114,6 +112,12 @@ class swapNetlist:
         if self._split_net_factor > 0.0:
             self._split_modules()
 
+        # Sort the nets of each point
+        for p in self.points:
+            # Sorted and unique nets (to avoid repeated nets)
+            p.nets = sorted(set(p.nets))
+            
+        # Compute initial HPWL
         self.hpwl = sum(self._compute_net_hpwl(net) for net in self.nets)
 
     @property
@@ -165,6 +169,12 @@ class swapNetlist:
         ys = [self.points[p].y for p in net.points]
         net.hpwl = (max(xs) - min(xs) + max(ys) - min(ys)) * net.weight
         return net.hpwl
+    
+    def compute_total_hpwl(self) -> float:
+        """Compute the total half-perimeter wire length (HPWL) of the netlist.
+        It returns the computed total HPWL."""
+        self.hpwl = sum(self._compute_net_hpwl(net) for net in self.nets)  # Reset HPWL
+        return self.hpwl
 
     def _split_modules(self) -> None:
         """Split all movable modules that are too large."""
@@ -202,7 +212,6 @@ class swapNetlist:
         # Compute the new dimensions
         new_width = r.shape.w / ncols
         new_height = r.shape.h / nrows
-        new_area = new_width * new_height
         range_cols = ncols // 2
         range_rows = nrows // 2
         # Create new modules
@@ -243,19 +252,6 @@ class swapNetlist:
         del self._points[-self._num_subblocks :]
         del self._movable[-self._num_subblocks :]
         del self._nets[-self._num_subblocks :]
-
-    def swap_points(self, idx1: int, idx2: int) -> float:
-        """Swap two points and return the change in total HPWL."""
-        p1, p2 = self.points[idx1], self.points[idx2]
-        affected_nets = set(p1.nets) | set(p2.nets)
-        p1.x, p2.x = p2.x, p1.x
-        p1.y, p2.y = p2.y, p1.y
-        delta_hpwl = -sum(self.nets[net_idx].hpwl for net_idx in affected_nets)
-        delta_hpwl += sum(
-            self._compute_net_hpwl(self.nets[net_idx]) for net_idx in affected_nets
-        )
-        self.hpwl += delta_hpwl
-        return delta_hpwl
 
 
 def _best_split(
