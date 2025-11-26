@@ -7,11 +7,11 @@
 import argparse
 import random
 from typing import Any
-from ruamel.yaml import YAML
 
 from frame.die.die import Die
 from frame.geometry.geometry import Shape
 from frame.utils.keywords import KW
+from frame.utils.utils import write_json_yaml
 
 
 def parse_options(prog: str | None = None, args: list[str] | None = None) -> dict[str, Any]:
@@ -81,10 +81,8 @@ def main(prog: str | None = None, args: list[str] | None = None) -> int:
     else:
         assert False  # Should never happen
 
-    yaml = YAML()
-    yaml.default_flow_style = False
-    with open(options['outfile'], 'w') as stream:
-        yaml.dump(data, stream)
+    # Writes a YAML file
+    write_json_yaml(data, False, options['outfile'])
     return 0
 
 
