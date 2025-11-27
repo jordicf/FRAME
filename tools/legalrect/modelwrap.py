@@ -5,7 +5,7 @@ from gekko.gk_operators import GK_Value
 from math import sqrt as math_sqrt
 from typing import Any, Callable
 from enum import IntEnum
-from tools.legalizer.expr_tree import Equation, ExpressionTree, NodeType, Cmp, set_epsilon_gekko, sqrt
+from tools.legalrect.expr_tree import Equation, ExpressionTree, NodeType, Cmp, set_epsilon_gekko, sqrt
 
 
 

@@ -1,9 +1,9 @@
 import unittest
 from pathlib import Path
-from tools.legalizer.legalizer import compute_options, Model
+from tools.legalrect.legalizer import compute_options, Model
 
 PROJECT_ROOT = Path(__file__).resolve().parents[2]  #back to the FRAME
-BENCH_EXAM_DIR = PROJECT_ROOT / 'tools' / 'legalizer' / 'bench-exam'  #locate the bench-exam directory
+BENCH_EXAM_DIR = PROJECT_ROOT / 'tools' / 'legalrect' / 'test-exam'  #locate the test-exam directory
 
 DIE_PATH = BENCH_EXAM_DIR / 'test_die.yaml'
 NETLIST_PATH = BENCH_EXAM_DIR / 'test_netlist.yaml'

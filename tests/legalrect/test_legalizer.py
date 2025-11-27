@@ -1,11 +1,11 @@
 import unittest
 import sys
 from pathlib import Path
-from tools.legalizer import legalizer
+from tools.legalrect import legalizer
 
 
 PROJECT_ROOT = Path(__file__).resolve().parents[2]  
-BENCH_EXAM_DIR = PROJECT_ROOT / 'tools' / 'legalizer' / 'bench-exam'
+BENCH_EXAM_DIR = PROJECT_ROOT / 'tools' / 'legalrect' / 'test-exam'
 
 DIE_PATH = BENCH_EXAM_DIR / 'test_die.yaml'
 NETLIST_PATH = BENCH_EXAM_DIR / 'test_netlist.yaml'

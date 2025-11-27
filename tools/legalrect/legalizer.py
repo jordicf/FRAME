@@ -15,7 +15,7 @@ import sys
 from frame.die.die import Die
 from frame.netlist.netlist import Netlist
 from frame.geometry.geometry import Rectangle
-from tools.legalizer.expr_tree import (
+from tools.legalrect.expr_tree import (
     ExpressionTree,
     Cmp,
     set_epsilon,
@@ -23,8 +23,8 @@ from tools.legalizer.expr_tree import (
     turn_off_flag,
     Equation,
 )
-from tools.legalizer.expr_tree import sqrt as expr_sqrt
-from tools.legalizer.modelwrap import ModelWrapper
+from tools.legalrect.expr_tree import sqrt as expr_sqrt
+from tools.legalrect.modelwrap import ModelWrapper
 from tools.rect.canvas import Canvas
 from argparse import ArgumentParser
 import matplotlib.pyplot as plt
