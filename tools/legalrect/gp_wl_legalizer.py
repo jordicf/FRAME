@@ -863,7 +863,7 @@ def optimize_floorplan(netlist_file, die_file, output_file, output_image,
         return False
     
     # Extract solution (even if suboptimal)
-    # W, H = extract_solution(sol, modules, module_data, problem_data)
+    W, H = extract_solution(sol, modules, module_data, problem_data)
     # print(f"\nSolution: W={W:.2f}, H={H:.2f}, Area={W*H:.2f}")
     
     # Save results
@@ -872,7 +872,7 @@ def optimize_floorplan(netlist_file, die_file, output_file, output_image,
     
     print(f"\n{'='*70}")
     print(f"Optimization completed!")
-    print(f"Final solution: W={W:.2f}, H={H:.2f}, Area={W*H:.2f}")
+
     print(f"Output files: {output_file}, {output_image}")
     print(f"{'='*70}\n")
     
