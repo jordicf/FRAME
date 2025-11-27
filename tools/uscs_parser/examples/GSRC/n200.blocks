@@ -1,0 +1,774 @@
+UCSC blocks 1.0
+# Created      : Fri Dec 08 22:29:29 PST 2000
+# User         : huaizhi@shawnee
+# Platform     : SunOS 5.8 sparc
+
+NumSoftRectangularBlocks : 200
+NumHardRectilinearBlocks : 0
+NumTerminals : 564
+
+sb0 softrectangular 576 0.300 3.000
+sb1 softrectangular 741 0.300 3.000
+sb2 softrectangular 1435 0.300 3.000
+sb3 softrectangular 846 0.300 3.000
+sb4 softrectangular 832 0.300 3.000
+sb5 softrectangular 1085 0.300 3.000
+sb6 softrectangular 377 0.300 3.000
+sb7 softrectangular 588 0.300 3.000
+sb8 softrectangular 480 0.300 3.000
+sb9 softrectangular 1564 0.300 3.000
+sb10 softrectangular 1440 0.300 3.000
+sb11 softrectangular 504 0.300 3.000
+sb12 softrectangular 1512 0.300 3.000
+sb13 softrectangular 2160 0.300 3.000
+sb14 softrectangular 375 0.300 3.000
+sb15 softrectangular 2070 0.300 3.000
+sb16 softrectangular 396 0.300 3.000
+sb17 softrectangular 858 0.300 3.000
+sb18 softrectangular 646 0.300 3.000
+sb19 softrectangular 360 0.300 3.000
+sb20 softrectangular 924 0.300 3.000
+sb21 softrectangular 1716 0.300 3.000
+sb22 softrectangular 1014 0.300 3.000
+sb23 softrectangular 1000 0.300 3.000
+sb24 softrectangular 375 0.300 3.000
+sb25 softrectangular 1296 0.300 3.000
+sb26 softrectangular 1075 0.300 3.000
+sb27 softrectangular 510 0.300 3.000
+sb28 softrectangular 1748 0.300 3.000
+sb29 softrectangular 444 0.300 3.000
+sb30 softrectangular 459 0.300 3.000
+sb31 softrectangular 592 0.300 3.000
+sb32 softrectangular 736 0.300 3.000
+sb33 softrectangular 648 0.300 3.000
+sb34 softrectangular 722 0.300 3.000
+sb35 softrectangular 495 0.300 3.000
+sb36 softrectangular 336 0.300 3.000
+sb37 softrectangular 336 0.300 3.000
+sb38 softrectangular 858 0.300 3.000
+sb39 softrectangular 1260 0.300 3.000
+sb40 softrectangular 1148 0.300 3.000
+sb41 softrectangular 256 0.300 3.000
+sb42 softrectangular 836 0.300 3.000
+sb43 softrectangular 1360 0.300 3.000
+sb44 softrectangular 432 0.300 3.000
+sb45 softrectangular 518 0.300 3.000
+sb46 softrectangular 720 0.300 3.000
+sb47 softrectangular 322 0.300 3.000
+sb48 softrectangular 624 0.300 3.000
+sb49 softrectangular 1240 0.300 3.000
+sb50 softrectangular 1386 0.300 3.000
+sb51 softrectangular 1296 0.300 3.000
+sb52 softrectangular 999 0.300 3.000
+sb53 softrectangular 306 0.300 3.000
+sb54 softrectangular 688 0.300 3.000
+sb55 softrectangular 598 0.300 3.000
+sb56 softrectangular 550 0.300 3.000
+sb57 softrectangular 912 0.300 3.000
+sb58 softrectangular 779 0.300 3.000
+sb59 softrectangular 2116 0.300 3.000
+sb60 softrectangular 1050 0.300 3.000
+sb61 softrectangular 1122 0.300 3.000
+sb62 softrectangular 1665 0.300 3.000
+sb63 softrectangular 525 0.300 3.000
+sb64 softrectangular 2256 0.300 3.000
+sb65 softrectangular 990 0.300 3.000
+sb66 softrectangular 961 0.300 3.000
+sb67 softrectangular 1628 0.300 3.000
+sb68 softrectangular 840 0.300 3.000
+sb69 softrectangular 722 0.300 3.000
+sb70 softrectangular 504 0.300 3.000
+sb71 softrectangular 1428 0.300 3.000
+sb72 softrectangular 1122 0.300 3.000
+sb73 softrectangular 684 0.300 3.000
+sb74 softrectangular 522 0.300 3.000
+sb75 softrectangular 621 0.300 3.000
+sb76 softrectangular 168 0.300 3.000
+sb77 softrectangular 384 0.300 3.000
+sb78 softrectangular 1118 0.300 3.000
+sb79 softrectangular 703 0.300 3.000
+sb80 softrectangular 210 0.300 3.000
+sb81 softrectangular 640 0.300 3.000
+sb82 softrectangular 1056 0.300 3.000
+sb83 softrectangular 703 0.300 3.000
+sb84 softrectangular 1591 0.300 3.000
+sb85 softrectangular 1776 0.300 3.000
+sb86 softrectangular 576 0.300 3.000
+sb87 softrectangular 855 0.300 3.000
+sb88 softrectangular 1204 0.300 3.000
+sb89 softrectangular 420 0.300 3.000
+sb90 softrectangular 1080 0.300 3.000
+sb91 softrectangular 1232 0.300 3.000
+sb92 softrectangular 1008 0.300 3.000
+sb93 softrectangular 903 0.300 3.000
+sb94 softrectangular 240 0.300 3.000
+sb95 softrectangular 900 0.300 3.000
+sb96 softrectangular 1125 0.300 3.000
+sb97 softrectangular 700 0.300 3.000
+sb98 softrectangular 416 0.300 3.000
+sb99 softrectangular 740 0.300 3.000
+sb100 softrectangular 675 0.300 3.000
+sb101 softrectangular 1920 0.300 3.000
+sb102 softrectangular 950 0.300 3.000
+sb103 softrectangular 1024 0.300 3.000
+sb104 softrectangular 900 0.300 3.000
+sb105 softrectangular 1302 0.300 3.000
+sb106 softrectangular 1326 0.300 3.000
+sb107 softrectangular 720 0.300 3.000
+sb108 softrectangular 396 0.300 3.000
+sb109 softrectangular 264 0.300 3.000
+sb110 softrectangular 1012 0.300 3.000
+sb111 softrectangular 234 0.300 3.000
+sb112 softrectangular 828 0.300 3.000
+sb113 softrectangular 1204 0.300 3.000
+sb114 softrectangular 741 0.300 3.000
+sb115 softrectangular 1110 0.300 3.000
+sb116 softrectangular 1554 0.300 3.000
+sb117 softrectangular 888 0.300 3.000
+sb118 softrectangular 1365 0.300 3.000
+sb119 softrectangular 864 0.300 3.000
+sb120 softrectangular 675 0.300 3.000
+sb121 softrectangular 1440 0.300 3.000
+sb122 softrectangular 1290 0.300 3.000
+sb123 softrectangular 455 0.300 3.000
+sb124 softrectangular 507 0.300 3.000
+sb125 softrectangular 504 0.300 3.000
+sb126 softrectangular 1064 0.300 3.000
+sb127 softrectangular 528 0.300 3.000
+sb128 softrectangular 900 0.300 3.000
+sb129 softrectangular 2024 0.300 3.000
+sb130 softrectangular 1980 0.300 3.000
+sb131 softrectangular 720 0.300 3.000
+sb132 softrectangular 608 0.300 3.000
+sb133 softrectangular 168 0.300 3.000
+sb134 softrectangular 464 0.300 3.000
+sb135 softrectangular 555 0.300 3.000
+sb136 softrectangular 456 0.300 3.000
+sb137 softrectangular 396 0.300 3.000
+sb138 softrectangular 660 0.300 3.000
+sb139 softrectangular 1023 0.300 3.000
+sb140 softrectangular 192 0.300 3.000
+sb141 softrectangular 850 0.300 3.000
+sb142 softrectangular 1242 0.300 3.000
+sb143 softrectangular 2024 0.300 3.000
+sb144 softrectangular 725 0.300 3.000
+sb145 softrectangular 1530 0.300 3.000
+sb146 softrectangular 1122 0.300 3.000
+sb147 softrectangular 372 0.300 3.000
+sb148 softrectangular 425 0.300 3.000
+sb149 softrectangular 484 0.300 3.000
+sb150 softrectangular 390 0.300 3.000
+sb151 softrectangular 432 0.300 3.000
+sb152 softrectangular 1089 0.300 3.000
+sb153 softrectangular 480 0.300 3.000
+sb154 softrectangular 1848 0.300 3.000
+sb155 softrectangular 156 0.300 3.000
+sb156 softrectangular 798 0.300 3.000
+sb157 softrectangular 504 0.300 3.000
+sb158 softrectangular 476 0.300 3.000
+sb159 softrectangular 864 0.300 3.000
+sb160 softrectangular 432 0.300 3.000
+sb161 softrectangular 589 0.300 3.000
+sb162 softrectangular 360 0.300 3.000
+sb163 softrectangular 2162 0.300 3.000
+sb164 softrectangular 864 0.300 3.000
+sb165 softrectangular 1353 0.300 3.000
+sb166 softrectangular 432 0.300 3.000
+sb167 softrectangular 658 0.300 3.000
+sb168 softrectangular 925 0.300 3.000
+sb169 softrectangular 1288 0.300 3.000
+sb170 softrectangular 990 0.300 3.000
+sb171 softrectangular 1190 0.300 3.000
+sb172 softrectangular 775 0.300 3.000
+sb173 softrectangular 924 0.300 3.000
+sb174 softrectangular 500 0.300 3.000
+sb175 softrectangular 408 0.300 3.000
+sb176 softrectangular 320 0.300 3.000
+sb177 softrectangular 651 0.300 3.000
+sb178 softrectangular 320 0.300 3.000
+sb179 softrectangular 1845 0.300 3.000
+sb180 softrectangular 399 0.300 3.000
+sb181 softrectangular 630 0.300 3.000
+sb182 softrectangular 396 0.300 3.000
+sb183 softrectangular 592 0.300 3.000
+sb184 softrectangular 380 0.300 3.000
+sb185 softrectangular 572 0.300 3.000
+sb186 softrectangular 624 0.300 3.000
+sb187 softrectangular 528 0.300 3.000
+sb188 softrectangular 960 0.300 3.000
+sb189 softrectangular 620 0.300 3.000
+sb190 softrectangular 1258 0.300 3.000
+sb191 softrectangular 1554 0.300 3.000
+sb192 softrectangular 616 0.300 3.000
+sb193 softrectangular 1806 0.300 3.000
+sb194 softrectangular 1806 0.300 3.000
+sb195 softrectangular 900 0.300 3.000
+sb196 softrectangular 624 0.300 3.000
+sb197 softrectangular 1645 0.300 3.000
+sb198 softrectangular 880 0.300 3.000
+sb199 softrectangular 1360 0.300 3.000
+
+p1 terminal
+p2 terminal
+p3 terminal
+p4 terminal
+p5 terminal
+p6 terminal
+p7 terminal
+p8 terminal
+p9 terminal
+p10 terminal
+p11 terminal
+p12 terminal
+p13 terminal
+p14 terminal
+p15 terminal
+p16 terminal
+p17 terminal
+p18 terminal
+p19 terminal
+p20 terminal
+p21 terminal
+p22 terminal
+p23 terminal
+p24 terminal
+p25 terminal
+p26 terminal
+p27 terminal
+p28 terminal
+p29 terminal
+p30 terminal
+p31 terminal
+p32 terminal
+p33 terminal
+p34 terminal
+p35 terminal
+p36 terminal
+p37 terminal
+p38 terminal
+p39 terminal
+p40 terminal
+p41 terminal
+p42 terminal
+p43 terminal
+p44 terminal
+p45 terminal
+p46 terminal
+p47 terminal
+p48 terminal
+p49 terminal
+p50 terminal
+p51 terminal
+p52 terminal
+p53 terminal
+p54 terminal
+p55 terminal
+p56 terminal
+p57 terminal
+p58 terminal
+p59 terminal
+p60 terminal
+p61 terminal
+p62 terminal
+p63 terminal
+p64 terminal
+p65 terminal
+p66 terminal
+p67 terminal
+p68 terminal
+p69 terminal
+p70 terminal
+p71 terminal
+p72 terminal
+p73 terminal
+p74 terminal
+p75 terminal
+p76 terminal
+p77 terminal
+p78 terminal
+p79 terminal
+p80 terminal
+p81 terminal
+p82 terminal
+p83 terminal
+p84 terminal
+p85 terminal
+p86 terminal
+p87 terminal
+p88 terminal
+p89 terminal
+p90 terminal
+p91 terminal
+p92 terminal
+p93 terminal
+p94 terminal
+p95 terminal
+p96 terminal
+p97 terminal
+p98 terminal
+p99 terminal
+p100 terminal
+p101 terminal
+p102 terminal
+p103 terminal
+p104 terminal
+p105 terminal
+p106 terminal
+p107 terminal
+p108 terminal
+p109 terminal
+p110 terminal
+p111 terminal
+p112 terminal
+p113 terminal
+p114 terminal
+p115 terminal
+p116 terminal
+p117 terminal
+p118 terminal
+p119 terminal
+p120 terminal
+p121 terminal
+p122 terminal
+p123 terminal
+p124 terminal
+p125 terminal
+p126 terminal
+p127 terminal
+p128 terminal
+p129 terminal
+p130 terminal
+p131 terminal
+p132 terminal
+p133 terminal
+p134 terminal
+p135 terminal
+p136 terminal
+p137 terminal
+p138 terminal
+p139 terminal
+p140 terminal
+p141 terminal
+p142 terminal
+p143 terminal
+p144 terminal
+p145 terminal
+p146 terminal
+p147 terminal
+p148 terminal
+p149 terminal
+p150 terminal
+p151 terminal
+p152 terminal
+p153 terminal
+p154 terminal
+p155 terminal
+p156 terminal
+p157 terminal
+p158 terminal
+p159 terminal
+p160 terminal
+p161 terminal
+p162 terminal
+p163 terminal
+p164 terminal
+p165 terminal
+p166 terminal
+p167 terminal
+p168 terminal
+p169 terminal
+p170 terminal
+p171 terminal
+p172 terminal
+p173 terminal
+p174 terminal
+p175 terminal
+p176 terminal
+p177 terminal
+p178 terminal
+p179 terminal
+p180 terminal
+p181 terminal
+p182 terminal
+p183 terminal
+p184 terminal
+p185 terminal
+p186 terminal
+p187 terminal
+p188 terminal
+p189 terminal
+p190 terminal
+p191 terminal
+p192 terminal
+p193 terminal
+p194 terminal
+p195 terminal
+p196 terminal
+p197 terminal
+p198 terminal
+p199 terminal
+p200 terminal
+p201 terminal
+p202 terminal
+p203 terminal
+p204 terminal
+p205 terminal
+p206 terminal
+p207 terminal
+p208 terminal
+p209 terminal
+p210 terminal
+p211 terminal
+p212 terminal
+p213 terminal
+p214 terminal
+p215 terminal
+p216 terminal
+p217 terminal
+p218 terminal
+p219 terminal
+p220 terminal
+p221 terminal
+p222 terminal
+p223 terminal
+p224 terminal
+p225 terminal
+p226 terminal
+p227 terminal
+p228 terminal
+p229 terminal
+p230 terminal
+p231 terminal
+p232 terminal
+p233 terminal
+p234 terminal
+p235 terminal
+p236 terminal
+p237 terminal
+p238 terminal
+p239 terminal
+p240 terminal
+p241 terminal
+p242 terminal
+p243 terminal
+p244 terminal
+p245 terminal
+p246 terminal
+p247 terminal
+p248 terminal
+p249 terminal
+p250 terminal
+p251 terminal
+p252 terminal
+p253 terminal
+p254 terminal
+p255 terminal
+p256 terminal
+p257 terminal
+p258 terminal
+p259 terminal
+p260 terminal
+p261 terminal
+p262 terminal
+p263 terminal
+p264 terminal
+p265 terminal
+p266 terminal
+p267 terminal
+p268 terminal
+p269 terminal
+p270 terminal
+p271 terminal
+p272 terminal
+p273 terminal
+p274 terminal
+p275 terminal
+p276 terminal
+p277 terminal
+p278 terminal
+p279 terminal
+p280 terminal
+p281 terminal
+p282 terminal
+p283 terminal
+p284 terminal
+p285 terminal
+p286 terminal
+p287 terminal
+p288 terminal
+p289 terminal
+p290 terminal
+p291 terminal
+p292 terminal
+p293 terminal
+p294 terminal
+p295 terminal
+p296 terminal
+p297 terminal
+p298 terminal
+p299 terminal
+p300 terminal
+p301 terminal
+p302 terminal
+p303 terminal
+p304 terminal
+p305 terminal
+p306 terminal
+p307 terminal
+p308 terminal
+p309 terminal
+p310 terminal
+p311 terminal
+p312 terminal
+p313 terminal
+p314 terminal
+p315 terminal
+p316 terminal
+p317 terminal
+p318 terminal
+p319 terminal
+p320 terminal
+p321 terminal
+p322 terminal
+p323 terminal
+p324 terminal
+p325 terminal
+p326 terminal
+p327 terminal
+p328 terminal
+p329 terminal
+p330 terminal
+p331 terminal
+p332 terminal
+p333 terminal
+p334 terminal
+p335 terminal
+p336 terminal
+p337 terminal
+p338 terminal
+p339 terminal
+p340 terminal
+p341 terminal
+p342 terminal
+p343 terminal
+p344 terminal
+p345 terminal
+p346 terminal
+p347 terminal
+p348 terminal
+p349 terminal
+p350 terminal
+p351 terminal
+p352 terminal
+p353 terminal
+p354 terminal
+p355 terminal
+p356 terminal
+p357 terminal
+p358 terminal
+p359 terminal
+p360 terminal
+p361 terminal
+p362 terminal
+p363 terminal
+p364 terminal
+p365 terminal
+p366 terminal
+p367 terminal
+p368 terminal
+p369 terminal
+p370 terminal
+p371 terminal
+p372 terminal
+p373 terminal
+p374 terminal
+p375 terminal
+p376 terminal
+p377 terminal
+p378 terminal
+p379 terminal
+p380 terminal
+p381 terminal
+p382 terminal
+p383 terminal
+p384 terminal
+p385 terminal
+p386 terminal
+p387 terminal
+p388 terminal
+p389 terminal
+p390 terminal
+p391 terminal
+p392 terminal
+p393 terminal
+p394 terminal
+p395 terminal
+p396 terminal
+p397 terminal
+p398 terminal
+p399 terminal
+p400 terminal
+p401 terminal
+p402 terminal
+p403 terminal
+p404 terminal
+p405 terminal
+p406 terminal
+p407 terminal
+p408 terminal
+p409 terminal
+p410 terminal
+p411 terminal
+p412 terminal
+p413 terminal
+p414 terminal
+p415 terminal
+p416 terminal
+p417 terminal
+p418 terminal
+p419 terminal
+p420 terminal
+p421 terminal
+p422 terminal
+p423 terminal
+p424 terminal
+p425 terminal
+p426 terminal
+p427 terminal
+p428 terminal
+p429 terminal
+p430 terminal
+p431 terminal
+p432 terminal
+p433 terminal
+p434 terminal
+p435 terminal
+p436 terminal
+p437 terminal
+p438 terminal
+p439 terminal
+p440 terminal
+p441 terminal
+p442 terminal
+p443 terminal
+p444 terminal
+p445 terminal
+p446 terminal
+p447 terminal
+p448 terminal
+p449 terminal
+p450 terminal
+p451 terminal
+p452 terminal
+p453 terminal
+p454 terminal
+p455 terminal
+p456 terminal
+p457 terminal
+p458 terminal
+p459 terminal
+p460 terminal
+p461 terminal
+p462 terminal
+p463 terminal
+p464 terminal
+p465 terminal
+p466 terminal
+p467 terminal
+p468 terminal
+p469 terminal
+p470 terminal
+p471 terminal
+p472 terminal
+p473 terminal
+p474 terminal
+p475 terminal
+p476 terminal
+p477 terminal
+p478 terminal
+p479 terminal
+p480 terminal
+p481 terminal
+p482 terminal
+p483 terminal
+p484 terminal
+p485 terminal
+p486 terminal
+p487 terminal
+p488 terminal
+p489 terminal
+p490 terminal
+p491 terminal
+p492 terminal
+p493 terminal
+p494 terminal
+p495 terminal
+p496 terminal
+p497 terminal
+p498 terminal
+p499 terminal
+p500 terminal
+p501 terminal
+p502 terminal
+p503 terminal
+p504 terminal
+p505 terminal
+p506 terminal
+p507 terminal
+p508 terminal
+p509 terminal
+p510 terminal
+p511 terminal
+p512 terminal
+p513 terminal
+p514 terminal
+p515 terminal
+p516 terminal
+p517 terminal
+p518 terminal
+p519 terminal
+p520 terminal
+p521 terminal
+p522 terminal
+p523 terminal
+p524 terminal
+p525 terminal
+p526 terminal
+p527 terminal
+p528 terminal
+p529 terminal
+p530 terminal
+p531 terminal
+p532 terminal
+p533 terminal
+p534 terminal
+p535 terminal
+p536 terminal
+p537 terminal
+p538 terminal
+p539 terminal
+p540 terminal
+p541 terminal
+p542 terminal
+p543 terminal
+p544 terminal
+p545 terminal
+p546 terminal
+p547 terminal
+p548 terminal
+p549 terminal
+p550 terminal
+p551 terminal
+p552 terminal
+p553 terminal
+p554 terminal
+p555 terminal
+p556 terminal
+p557 terminal
+p558 terminal
+p559 terminal
+p560 terminal
+p561 terminal
+p562 terminal
+p563 terminal
+p564 terminal

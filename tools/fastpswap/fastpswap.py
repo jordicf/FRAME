@@ -34,7 +34,7 @@ def parse_options(
     parser.add_argument(
         "--patience",
         type=int,
-        default=10,
+        default=20,
         help="number of iterations without improvement. Default: 10",
     )
     parser.add_argument(
@@ -58,9 +58,9 @@ def parse_options(
     parser.add_argument(
         "--split_net",
         type=float,
-        default=10,
+        default=1.0,
         help="weight factor for nets created by splits (0 to disable splits). "
-        "Default: 10.0.",
+        "Default: 1.0.",
     )
     parser.add_argument("-g", "--greedy",
                         help="greedy optimization after simulated annealing",

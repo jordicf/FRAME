@@ -5,6 +5,7 @@ matplotlib~=3.8.0
 gekko~=1.0.6
 numpy~=1.26.0
 setuptools~=65.5.1
+casadi~=3.6.0
 python-sat
 pyyaml
 ortools
