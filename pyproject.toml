@@ -67,7 +67,6 @@ packages = [
     "tools.early_router",
     "tools.pswap",
     "tools.fastpswap",
-    "tools.GP",
     "tools.inipoints",
     "tools.inirects",
     "tools.all"
